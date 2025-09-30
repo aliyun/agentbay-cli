@@ -1,0 +1,1141 @@
+// Copyright 2025 AgentBay CLI Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package cmd
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+
+	"github.com/agentbay/agentbay-cli/internal/agentbay"
+	"github.com/agentbay/agentbay-cli/internal/client"
+	"github.com/agentbay/agentbay-cli/internal/config"
+	"github.com/alibabacloud-go/tea/dara"
+)
+
+// printErrorMessage prints multi-line error messages by printing each line separately
+// This avoids Windows line ending issues
+func printErrorMessage(lines ...string) error {
+	// Print each line to stderr for immediate display
+	for _, line := range lines {
+		fmt.Fprintln(os.Stderr, line)
+	}
+	// Return a simple error for the command framework
+	return fmt.Errorf("command failed")
+}
+
+var ImageCmd = &cobra.Command{
+	Use:     "image",
+	Short:   "Manage AgentBay images",
+	Long:    "Create, build, and manage custom AgentBay images",
+	GroupID: "management",
+}
+
+var imageCreateCmd = &cobra.Command{
+	Use:   "create <image-name>",
+	Short: "Create a new AgentBay image",
+	Long: `Create a new AgentBay image from a Dockerfile.
+
+This command builds a custom image that can be used in AgentBay environments.
+The image will be built from the specified Dockerfile and based on the provided source image.
+
+Examples:
+  # Create an image with a custom Dockerfile
+  agentbay image create my-custom-image --dockerfile ./Dockerfile --imageId code_latest
+  
+  # Short form
+  agentbay image create my-image -f ./Dockerfile -i code_latest`,
+	Args: cobra.ExactArgs(1),
+	RunE: runImageCreate,
+}
+
+var imageListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List available AgentBay images",
+	Long: `List available AgentBay images that can be used as base images for custom builds.
+
+This command queries the AgentBay platform for available User images and displays
+their details including image ID, name, type, and description.
+
+OS types:
+  Linux   - Linux-based images
+  Android - Android-based images  
+  Windows - Windows-based images
+
+Examples:
+  # List all user images
+  agentbay image list
+  
+  # List Linux images only
+  agentbay image list --os-type Linux
+  
+  # List images with pagination
+  agentbay image list --page 2 --size 5`,
+	RunE: runImageList,
+}
+
+var imageActivateCmd = &cobra.Command{
+	Use:   "activate <image-id>",
+	Short: "Activate a User image",
+	Long: `Activate a User image to make it available for use.
+
+This command creates a resource group for the specified User image, making it 
+available for deployment. Only User type images can be activated.
+
+Examples:
+  # Activate a user image
+  agentbay image activate imgc-xxxxxxxxxxxxxx
+  
+  # Activate with verbose output
+  agentbay image activate imgc-xxxxxxxxxxxxxx --verbose`,
+	Args: cobra.ExactArgs(1),
+	RunE: runImageActivate,
+}
+
+var imageDeactivateCmd = &cobra.Command{
+	Use:   "deactivate <image-id>",
+	Short: "Deactivate an activated User image",
+	Long: `Deactivate an activated User image to stop its resource group.
+
+This command deletes the resource group for the specified User image, making it 
+unavailable for deployment. Only activated User type images can be deactivated.
+
+Examples:
+  # Deactivate a user image
+  agentbay image deactivate imgc-xxxxxxxxxxxxxx
+  
+  # Deactivate with verbose output
+  agentbay image deactivate imgc-xxxxxxxxxxxxxx --verbose`,
+	Args: cobra.ExactArgs(1),
+	RunE: runImageDeactivate,
+}
+
+func init() {
+	// Add flags to image create command
+	imageCreateCmd.Flags().StringP("dockerfile", "f", "", "Path to the Dockerfile (required)")
+	imageCreateCmd.Flags().StringP("imageId", "i", "", "Source image ID to build from (required)")
+
+	// Mark required flags
+	imageCreateCmd.MarkFlagRequired("dockerfile")
+	imageCreateCmd.MarkFlagRequired("imageId")
+
+	// Add flags to image list command
+	imageListCmd.Flags().StringP("os-type", "o", "", "Filter by OS type: Linux, Android, or Windows (optional)")
+	imageListCmd.Flags().IntP("page", "p", 1, "Page number (default: 1)")
+	imageListCmd.Flags().IntP("size", "s", 10, "Page size (default: 10)")
+	imageListCmd.Flags().Int32P("max-results", "m", 100, "Maximum number of results to return (default: 100)")
+
+	// Add subcommands to image command
+	ImageCmd.AddCommand(imageCreateCmd)
+	ImageCmd.AddCommand(imageListCmd)
+	ImageCmd.AddCommand(imageActivateCmd)
+	ImageCmd.AddCommand(imageDeactivateCmd)
+}
+
+func runImageCreate(cmd *cobra.Command, args []string) error {
+	imageName := args[0]
+	dockerfilePath, _ := cmd.Flags().GetString("dockerfile")
+	sourceImageId, _ := cmd.Flags().GetString("imageId")
+
+	// Validate required flags with friendly messages
+	if dockerfilePath == "" {
+		return printErrorMessage(
+			fmt.Sprintf("[ERROR] Missing required flag: --dockerfile for %s", imageName),
+			"",
+			fmt.Sprintf("[TIP] Usage: agentbay image create %s --dockerfile <path> --imageId <id>", imageName),
+			fmt.Sprintf("[NOTE] Example: agentbay image create %s --dockerfile ./Dockerfile --imageId code_latest", imageName),
+			fmt.Sprintf("[NOTE] Short form: agentbay image create %s -f ./Dockerfile -i code_latest", imageName),
+		)
+	}
+	if sourceImageId == "" {
+		return printErrorMessage(
+			fmt.Sprintf("[ERROR] Missing required flag: --imageId for %s", imageName),
+			"",
+			fmt.Sprintf("[TIP] Usage: agentbay image create %s --dockerfile <path> --imageId <id>", imageName),
+			fmt.Sprintf("[NOTE] Example: agentbay image create %s --dockerfile ./Dockerfile --imageId code_latest", imageName),
+			fmt.Sprintf("[NOTE] Short form: agentbay image create %s -f ./Dockerfile -i code_latest", imageName),
+		)
+	}
+
+	// Validate dockerfile path
+	if !filepath.IsAbs(dockerfilePath) {
+		var err error
+		dockerfilePath, err = filepath.Abs(dockerfilePath)
+		if err != nil {
+			return fmt.Errorf("failed to resolve dockerfile path: %w", err)
+		}
+	}
+
+	if _, err := os.Stat(dockerfilePath); os.IsNotExist(err) {
+		return fmt.Errorf("dockerfile not found: %s", dockerfilePath)
+	}
+
+	fmt.Printf("[BUILD] Creating image '%s'...\n", imageName)
+
+	// Load configuration and check authentication
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	if !cfg.IsAuthenticated() {
+		return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
+	}
+
+	// Create API client
+	apiClient := agentbay.NewClientFromConfig(cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Minute)
+	defer cancel()
+
+	// Step 1: Get Docker file store credentials
+	fmt.Printf("[STEP 1/4] Getting upload credentials...\n")
+	sourceAgentBay := "AgentBay"
+	credReq := &client.GetDockerFileStoreCredentialRequest{
+		Source: &sourceAgentBay,
+	}
+
+	// Debug: Print credential request (simplified)
+	if log.GetLevel() >= log.DebugLevel {
+		log.Debugf("[DEBUG] GetDockerFileStoreCredential Request:")
+		if credReq.Source != nil {
+			log.Debugf("[DEBUG] - Source: %s", *credReq.Source)
+		}
+	}
+
+	log.Debugf("[DEBUG] Making GetDockerFileStoreCredential API call...")
+	fmt.Printf("Requesting upload credentials...")
+	credResp, err := apiClient.GetDockerFileStoreCredential(ctx, credReq)
+	if err != nil {
+		log.Debugf("[DEBUG] GetDockerFileStoreCredential API call failed: %v", err)
+		// Show user-friendly error message in non-verbose mode
+		fmt.Printf("[ERROR] Failed to get upload credentials. Please check your authentication and try again.\n")
+		if log.GetLevel() >= log.DebugLevel {
+			fmt.Printf("[DEBUG] Error details: %v\n", err)
+		}
+		return fmt.Errorf("failed to get upload credentials: %w", err)
+	}
+	fmt.Printf(" Done.\n")
+	log.Debugf("[DEBUG] GetDockerFileStoreCredential API call completed successfully")
+
+	// Debug: Print credential response (simplified)
+	if log.GetLevel() >= log.DebugLevel && credResp.Body != nil && credResp.Body.Data != nil {
+		taskId := credResp.Body.Data.GetTaskId()
+		ossUrl := credResp.Body.Data.GetOssUrl()
+
+		log.Debugf("[DEBUG] GetDockerFileStoreCredential Response:")
+		if taskId != nil {
+			log.Debugf("[DEBUG] - TaskId: %s", *taskId)
+		}
+		if ossUrl != nil {
+			log.Debugf("[DEBUG] - OssUrl: %s", *ossUrl)
+		}
+	}
+
+	if credResp.Body == nil || credResp.Body.Data == nil {
+		return fmt.Errorf("invalid response: missing upload credentials")
+	}
+
+	ossUrl := credResp.Body.Data.GetOssUrl()
+	taskId := credResp.Body.Data.GetTaskId()
+
+	if ossUrl == nil || taskId == nil {
+		return fmt.Errorf("invalid response: missing OSS URL or task ID")
+	}
+
+	fmt.Printf("[STEP 2/4] Uploading Dockerfile...\n")
+
+	// Step 2: Upload Dockerfile to OSS
+	fmt.Printf("Uploading file...")
+	err = uploadDockerfile(dockerfilePath, *ossUrl)
+	if err != nil {
+		// Show user-friendly error message in non-verbose mode
+		fmt.Printf("[ERROR] Failed to upload Dockerfile. Please check your network connection and try again.\n")
+		if log.GetLevel() >= log.DebugLevel {
+			fmt.Printf("[DEBUG] Error details: %v\n", err)
+		}
+		return fmt.Errorf("failed to upload Dockerfile: %w", err)
+	}
+	fmt.Printf(" Done.\n")
+
+	fmt.Printf("[STEP 3/4] Creating Docker image task...\n")
+
+	// Step 3: Create Docker image task
+	createReq := &client.CreateDockerImageTaskRequest{
+		ImageName:     &imageName,
+		Source:        &sourceAgentBay,
+		SourceImageId: &sourceImageId,
+		TaskId:        taskId,
+	}
+
+	// Debug: Print create task request (simplified)
+	if log.GetLevel() >= log.DebugLevel {
+		log.Debugf("[DEBUG] CreateDockerImageTask Request:")
+		if createReq.ImageName != nil {
+			log.Debugf("[DEBUG] - ImageName: %s", *createReq.ImageName)
+		}
+		if createReq.Source != nil {
+			log.Debugf("[DEBUG] - Source: %s", *createReq.Source)
+		}
+		if createReq.SourceImageId != nil {
+			log.Debugf("[DEBUG] - SourceImageId: %s", *createReq.SourceImageId)
+		}
+		if createReq.TaskId != nil {
+			log.Debugf("[DEBUG] - TaskId: %s", *createReq.TaskId)
+		}
+	}
+
+	fmt.Printf("Creating image task...")
+	createResp, err := apiClient.CreateDockerImageTask(ctx, createReq)
+	if err != nil {
+		// Show user-friendly error message in non-verbose mode
+		fmt.Printf("[ERROR] Failed to create Docker image task. Please try again.\n")
+		if log.GetLevel() >= log.DebugLevel {
+			fmt.Printf("[DEBUG] Error details: %v\n", err)
+		}
+		// Try to extract Request ID from response if available
+		if createResp != nil && createResp.Body != nil && createResp.Body.GetRequestId() != nil {
+			fmt.Printf("[DEBUG] Request ID: %s\n", *createResp.Body.GetRequestId())
+		}
+		return fmt.Errorf("failed to create Docker image task: %w", err)
+	}
+	fmt.Printf(" Done.\n")
+
+	// Debug: Print create task response (simplified)
+	if log.GetLevel() >= log.DebugLevel && createResp.Body != nil && createResp.Body.Data != nil {
+		taskId := createResp.Body.Data.GetTaskId()
+
+		log.Debugf("[DEBUG] CreateDockerImageTask Response:")
+		if taskId != nil {
+			log.Debugf("[DEBUG] - TaskId: %s", *taskId)
+		}
+	}
+
+	if createResp.Body == nil || createResp.Body.Data == nil {
+		// Print Request ID for debugging if available
+		if createResp != nil && createResp.Body != nil && createResp.Body.GetRequestId() != nil {
+			fmt.Printf("[DEBUG] Request ID: %s\n", *createResp.Body.GetRequestId())
+		}
+		return fmt.Errorf("invalid response: missing task data")
+	}
+
+	finalTaskId := createResp.Body.Data.GetTaskId()
+	if finalTaskId == nil {
+		// Print Request ID for debugging
+		if createResp.Body.GetRequestId() != nil {
+			fmt.Printf("[DEBUG] Request ID: %s\n", *createResp.Body.GetRequestId())
+		}
+		return fmt.Errorf("invalid response: missing final task ID")
+	}
+
+	fmt.Printf("[STEP 4/4] Building image (Task ID: %s)...\n", *finalTaskId)
+
+	// Step 4: Poll for task completion
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("build timeout: %w", ctx.Err())
+		case <-ticker.C:
+			sourceAgentBay := "AgentBay"
+			taskReq := &client.GetDockerImageTaskRequest{
+				Source: &sourceAgentBay,
+				TaskId: finalTaskId,
+			}
+
+			// Debug: Print polling request (simplified)
+			if log.GetLevel() >= log.DebugLevel {
+				log.Debugf("[DEBUG] GetDockerImageTask Request:")
+				if taskReq.Source != nil {
+					log.Debugf("[DEBUG] - Source: %s", *taskReq.Source)
+				}
+				if taskReq.TaskId != nil {
+					log.Debugf("[DEBUG] - TaskId: %s", *taskReq.TaskId)
+				}
+			}
+
+			taskResp, err := apiClient.GetDockerImageTask(ctx, taskReq)
+			if err != nil {
+				log.Debugf("[DEBUG] GetDockerImageTask Polling Error: %v", err)
+				fmt.Printf("[WARN] Warning: Failed to check task status: %v\n", err)
+				// Try to extract Request ID from response if available
+				if taskResp != nil && taskResp.Body != nil && taskResp.Body.GetRequestId() != nil {
+					fmt.Printf("[DEBUG] Request ID: %s\n", *taskResp.Body.GetRequestId())
+				}
+				continue // Continue polling on API errors
+			}
+
+			// Debug: Print polling response (simplified)
+			if log.GetLevel() >= log.DebugLevel && taskResp.Body != nil && taskResp.Body.Data != nil {
+				status := taskResp.Body.Data.GetStatus()
+				taskMsg := taskResp.Body.Data.GetTaskMsg()
+				imageId := taskResp.Body.Data.GetImageId()
+
+				log.Debugf("[DEBUG] GetDockerImageTask Response:")
+				if status != nil {
+					log.Debugf("[DEBUG] - Status: %s", *status)
+				}
+				if taskMsg != nil && *taskMsg != "" {
+					log.Debugf("[DEBUG] - Message: %s", *taskMsg)
+				}
+				if imageId != nil && *imageId != "" {
+					log.Debugf("[DEBUG] - ImageId: %s", *imageId)
+				}
+			}
+
+			if taskResp.Body == nil || taskResp.Body.Data == nil {
+				fmt.Printf("[WARN] Warning: Invalid response format\n")
+				// Print Request ID for debugging if available
+				if taskResp != nil && taskResp.Body != nil && taskResp.Body.GetRequestId() != nil {
+					fmt.Printf("[DEBUG] Request ID: %s\n", *taskResp.Body.GetRequestId())
+				}
+				continue
+			}
+
+			status := taskResp.Body.Data.GetStatus()
+			taskMsg := taskResp.Body.Data.GetTaskMsg()
+			imageId := taskResp.Body.Data.GetImageId()
+
+			if status == nil {
+				fmt.Printf("[WARN] Warning: Missing status in response\n")
+				// Print Request ID for debugging
+				if taskResp.Body.GetRequestId() != nil {
+					fmt.Printf("[DEBUG] Request ID: %s\n", *taskResp.Body.GetRequestId())
+				}
+				continue
+			}
+
+			fmt.Printf("[STATUS] Build status: %s\n", *status)
+
+			if taskMsg != nil && *taskMsg != "" {
+				fmt.Printf("[MESSAGE] %s\n", *taskMsg)
+			}
+
+			switch *status {
+			case "SUCCESS", "Finished":
+				fmt.Printf("[SUCCESS] ✅ Image '%s' created successfully!\n", imageName)
+				if imageId != nil && *imageId != "" {
+					fmt.Printf("[RESULT] Image ID: %s\n", *imageId)
+				}
+				fmt.Printf("[DOC] Task ID: %s\n", *finalTaskId)
+				return nil
+			case "FAILED", "Failed":
+				fmt.Printf("[ERROR] ❌ Image build failed\n")
+				if taskMsg != nil && *taskMsg != "" {
+					fmt.Printf("[ERROR] Error details: %s\n", *taskMsg)
+				}
+				// Print Request ID for debugging
+				if taskResp.Body.GetRequestId() != nil {
+					fmt.Printf("[DEBUG] Request ID: %s\n", *taskResp.Body.GetRequestId())
+				}
+				fmt.Printf("[DOC] Task ID: %s\n", *finalTaskId)
+				return fmt.Errorf("image build failed")
+			case "RUNNING", "PENDING", "Preparing":
+				// Continue polling
+				continue
+			default:
+				fmt.Printf("[WARN] Warning: Unknown status: %s\n", *status)
+				continue
+			}
+		}
+	}
+}
+
+func runImageList(cmd *cobra.Command, args []string) error {
+	// Get flag values
+	osType, _ := cmd.Flags().GetString("os-type")
+	page, _ := cmd.Flags().GetInt("page")
+	pageSize, _ := cmd.Flags().GetInt("size")
+	maxResults, _ := cmd.Flags().GetInt32("max-results")
+
+	fmt.Printf("[LIST] Fetching available AgentBay user images...\n")
+
+	// Load configuration and check authentication
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	if !cfg.IsAuthenticated() {
+		return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
+	}
+
+	// Create API client
+	apiClient := agentbay.NewClientFromConfig(cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Prepare request
+	req := &client.ListMcpImagesRequest{}
+
+	// Set image type to User (fixed)
+	imageType := "User"
+	req.ImageType = &imageType
+	if osType != "" {
+		req.OsType = &osType
+	}
+	if pageSize > 0 {
+		pageSizeInt32 := int32(pageSize)
+		req.PageSize = &pageSizeInt32
+	}
+	if page > 0 {
+		pageInt32 := int32(page)
+		req.PageStart = &pageInt32
+	}
+	if maxResults > 0 {
+		req.MaxResults = &maxResults
+	}
+
+	// Debug: Print request details
+	if log.GetLevel() >= log.DebugLevel {
+		log.Debugf("[DEBUG] ListMcpImages Request:")
+		log.Debugf("[DEBUG] - ImageType: %s", imageType)
+		if req.OsType != nil {
+			log.Debugf("[DEBUG] - OsType: %s", *req.OsType)
+		}
+		if req.PageSize != nil {
+			log.Debugf("[DEBUG] - PageSize: %d", *req.PageSize)
+		}
+		if req.PageStart != nil {
+			log.Debugf("[DEBUG] - PageStart: %d", *req.PageStart)
+		}
+		if req.MaxResults != nil {
+			log.Debugf("[DEBUG] - MaxResults: %d", *req.MaxResults)
+		}
+	}
+
+	// Make API call
+	fmt.Printf("Requesting image list...")
+	resp, err := apiClient.ListMcpImages(ctx, req)
+	if err != nil {
+		log.Debugf("[DEBUG] ListMcpImages API call failed: %v", err)
+		fmt.Printf("[ERROR] Failed to fetch image list. Please check your authentication and try again.\n")
+		if log.GetLevel() >= log.DebugLevel {
+			fmt.Printf("[DEBUG] Error details: %v\n", err)
+		}
+		return fmt.Errorf("failed to fetch image list: %w", err)
+	}
+	fmt.Printf(" Done.\n")
+
+	// Debug: Print response details
+	if log.GetLevel() >= log.DebugLevel && resp.Body != nil {
+		log.Debugf("[DEBUG] ListMcpImages Response:")
+		if resp.Body.GetRequestId() != nil {
+			log.Debugf("[DEBUG] - RequestId: %s", *resp.Body.GetRequestId())
+		}
+		if resp.Body.GetSuccess() != nil {
+			log.Debugf("[DEBUG] - Success: %t", *resp.Body.GetSuccess())
+		}
+		if resp.Body.GetTotalCount() != nil {
+			log.Debugf("[DEBUG] - TotalCount: %d", *resp.Body.GetTotalCount())
+		}
+	}
+
+	// Validate response
+	if resp.Body == nil {
+		return fmt.Errorf("invalid response: missing response body")
+	}
+
+	if resp.Body.GetSuccess() != nil && !*resp.Body.GetSuccess() {
+		errorMsg := "unknown error"
+		if resp.Body.GetMessage() != nil {
+			errorMsg = *resp.Body.GetMessage()
+		}
+		return fmt.Errorf("API request failed: %s", errorMsg)
+	}
+
+	images := resp.Body.GetData()
+	if images == nil || len(images) == 0 {
+		fmt.Printf("\n[EMPTY] No images found.\n")
+		return nil
+	}
+
+	// Display results
+	fmt.Printf("\n[OK] Found %d images", len(images))
+	if resp.Body.GetTotalCount() != nil {
+		fmt.Printf(" (Total: %d)", *resp.Body.GetTotalCount())
+	}
+	fmt.Printf("\n")
+
+	if resp.Body.GetPageStart() != nil && resp.Body.GetPageSize() != nil && resp.Body.GetTotalCount() != nil {
+		pageSize := *resp.Body.GetPageSize()
+		if pageSize > 0 {
+			totalPages := (*resp.Body.GetTotalCount() + pageSize - 1) / pageSize
+			fmt.Printf("[PAGE] Page %d of %d (Page Size: %d)\n\n", *resp.Body.GetPageStart(), totalPages, pageSize)
+		}
+	}
+
+	if len(images) == 0 {
+		fmt.Println("[EMPTY] No images found.")
+		return nil
+	}
+
+	// Display image table with consistent formatting
+	fmt.Printf("%s %s %s %s %s %s\n",
+		padString("IMAGE ID", 25),
+		padString("IMAGE NAME", 30),
+		padString("TYPE", 20),
+		padString("STATUS", 15),
+		padString("OS", 18),
+		"APPLY SCENE")
+	fmt.Printf("%s %s %s %s %s %s\n",
+		padString("--------", 25),
+		padString("----------", 30),
+		padString("----", 20),
+		padString("------", 15),
+		padString("--", 18),
+		"-----------")
+
+	for _, image := range images {
+		imageId := getStringValue(image.GetImageId())
+		imageName := getStringValue(image.GetImageName())
+		imageType := getStringValue(image.GetImageBuildType())
+		status := formatImageStatus(getStringValue(image.GetImageResourceStatus()))
+		osInfo := formatOSInfo(image.GetImageInfo())
+		applyScene := getStringValue(image.GetImageApplyScene())
+
+		// 使用支持中文的填充和截断函数，手动控制列间距
+		fmt.Printf("%s %s %s %s %s %s\n",
+			padString(truncateString(imageId, 25), 25),
+			padString(truncateString(imageName, 30), 30),
+			padString(truncateString(imageType, 20), 20),
+			padString(truncateString(status, 15), 15),
+			padString(truncateString(osInfo, 18), 18),
+			truncateString(applyScene, 15)) // 最后一列不需要填充
+	}
+
+	return nil
+}
+
+// Helper functions for formatting table output
+
+// getStringValue safely extracts string value from pointer, returns empty string if nil
+func getStringValue(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+// truncateString truncates a string to the specified length, adding "..." if truncated
+func truncateString(s string, maxLen int) string {
+	if displayWidth(s) <= maxLen {
+		return s
+	}
+	if maxLen <= 3 {
+		return s[:maxLen]
+	}
+
+	// 逐字符截断直到达到合适的显示宽度
+	runes := []rune(s)
+	width := 0
+	for i, r := range runes {
+		charWidth := runeDisplayWidth(r)
+		if width+charWidth+3 > maxLen { // 为 "..." 预留3个字符
+			return string(runes[:i]) + "..."
+		}
+		width += charWidth
+	}
+	return s
+}
+
+// padString 填充字符串到指定显示宽度，支持中文字符
+func padString(s string, width int) string {
+	currentWidth := displayWidth(s)
+	if currentWidth >= width {
+		return s
+	}
+	// 添加空格填充到指定宽度
+	padding := width - currentWidth
+	return s + strings.Repeat(" ", padding)
+}
+
+// displayWidth 计算字符串的显示宽度，中文字符算2个宽度
+func displayWidth(s string) int {
+	width := 0
+	for _, r := range s {
+		width += runeDisplayWidth(r)
+	}
+	return width
+}
+
+// runeDisplayWidth 计算单个字符的显示宽度
+func runeDisplayWidth(r rune) int {
+	// 中文字符、全角字符等占用2个显示宽度
+	if r >= 0x4e00 && r <= 0x9fff || // CJK统一汉字
+		r >= 0x3400 && r <= 0x4dbf || // CJK扩展A
+		r >= 0x20000 && r <= 0x2a6df || // CJK扩展B
+		r >= 0x2a700 && r <= 0x2b73f || // CJK扩展C
+		r >= 0x2b740 && r <= 0x2b81f || // CJK扩展D
+		r >= 0x2b820 && r <= 0x2ceaf || // CJK扩展E
+		r >= 0xf900 && r <= 0xfaff || // CJK兼容汉字
+		r >= 0x2f800 && r <= 0x2fa1f || // CJK兼容汉字补充
+		r >= 0xff00 && r <= 0xffef { // 全角ASCII、半角片假名、全角符号
+		return 2
+	}
+	return 1
+}
+
+// formatImageStatus formats image status for better readability
+func formatImageStatus(status string) string {
+	switch status {
+	case "IMAGE_CREATING":
+		return "Creating"
+	case "IMAGE_CREATE_FAILED":
+		return "Create Failed"
+	case "IMAGE_AVAILABLE":
+		return "Available"
+	case "RESOURCE_DEPLOYING":
+		return "Activating"
+	case "RESOURCE_PUBLISHED":
+		return "Activated"
+	case "RESOURCE_DELETING":
+		return "Deactivating"
+	case "RESOURCE_FAILED":
+		return "Activate Failed"
+	case "RESOURCE_CEASED":
+		return "Ceased"
+	default:
+		if status == "" {
+			return "-"
+		}
+		return status
+	}
+}
+
+// formatOSInfo formats OS information for compact display
+func formatOSInfo(imageInfo *client.ListMcpImagesResponseBodyDataImageInfo) string {
+	if imageInfo == nil {
+		return "-"
+	}
+
+	osName := getStringValue(imageInfo.GetOsName())
+	osVersion := getStringValue(imageInfo.GetOsVersion())
+
+	if osName == "" && osVersion == "" {
+		return "-"
+	}
+
+	if osName == "" {
+		return osVersion
+	}
+
+	if osVersion == "" {
+		return osName
+	}
+
+	// Format as "OS Version" (e.g., "Linux Debian", "Windows 2022")
+	if osName == "Linux" && (osVersion == "Debian" || osVersion == "Ubuntu 2204") {
+		return osName + " " + osVersion
+	}
+
+	if osName == "Windows" && osVersion == "Windows Server 2022" {
+		return "Windows 2022"
+	}
+
+	if osName == "Android" {
+		return osVersion // "Android 14", "Android 12"
+	}
+
+	return osName
+}
+
+// uploadDockerfile uploads the Dockerfile to the provided OSS URL
+func uploadDockerfile(dockerfilePath, ossUrl string) error {
+	log.Debugf("[DEBUG] Starting Dockerfile upload...")
+	log.Debugf("[DEBUG] - Dockerfile path: %s", dockerfilePath)
+	log.Debugf("[DEBUG] - OSS URL: %s", ossUrl)
+
+	// Read the Dockerfile
+	dockerfileContent, err := os.ReadFile(dockerfilePath)
+	if err != nil {
+		log.Debugf("[DEBUG] Failed to read Dockerfile: %v", err)
+		return fmt.Errorf("failed to read Dockerfile: %w", err)
+	}
+
+	log.Debugf("[DEBUG] Dockerfile content length: %d bytes", len(dockerfileContent))
+	previewLen := 100
+	if len(dockerfileContent) < previewLen {
+		previewLen = len(dockerfileContent)
+	}
+	log.Debugf("[DEBUG] Dockerfile content preview: %s", string(dockerfileContent[:previewLen]))
+
+	// Create HTTP request
+	req, err := http.NewRequest("PUT", ossUrl, strings.NewReader(string(dockerfileContent)))
+	if err != nil {
+		log.Debugf("[DEBUG] Failed to create upload request: %v", err)
+		return fmt.Errorf("failed to create upload request: %w", err)
+	}
+
+	// Set appropriate headers
+	req.Header.Set("Content-Type", "application/octet-stream")
+	req.Header.Set("User-Agent", "AgentBay-CLI/1.0")
+
+	log.Debugf("[DEBUG] Upload request headers:")
+	for key, values := range req.Header {
+		for _, value := range values {
+			log.Debugf("[DEBUG] - %s: %s", key, value)
+		}
+	}
+
+	// Perform the upload
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	log.Debugf("[DEBUG] Sending upload request...")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Debugf("[DEBUG] Upload request failed: %v", err)
+		return fmt.Errorf("failed to upload Dockerfile: %w", err)
+	}
+	defer resp.Body.Close()
+
+	log.Debugf("[DEBUG] Upload response received:")
+	log.Debugf("[DEBUG] - Status: %s", resp.Status)
+	log.Debugf("[DEBUG] - Status Code: %d", resp.StatusCode)
+	log.Debugf("[DEBUG] - Response headers:")
+	for key, values := range resp.Header {
+		for _, value := range values {
+			log.Debugf("[DEBUG] - %s: %s", key, value)
+		}
+	}
+
+	// Check response status
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		log.Debugf("[DEBUG] Upload failed with status %d", resp.StatusCode)
+		log.Debugf("[DEBUG] Response body: %s", string(body))
+		return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Read response body for debugging
+	body, _ := io.ReadAll(resp.Body)
+	log.Debugf("[DEBUG] Upload successful!")
+	log.Debugf("[DEBUG] Response body: %s", string(body))
+
+	return nil
+}
+
+func runImageActivate(cmd *cobra.Command, args []string) error {
+	imageId := args[0]
+
+	fmt.Printf("[ACTIVATE] Activating image '%s'...\n", imageId)
+
+	// Load configuration and check authentication
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	if !cfg.IsAuthenticated() {
+		return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
+	}
+
+	// Create API client
+	apiClient := agentbay.NewClientFromConfig(cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// First, check if the image exists and is of User type
+	fmt.Printf("Checking image details...")
+	listReq := &client.ListMcpImagesRequest{
+		ImageType: dara.String("User"), // Only User images can be activated
+		PageSize:  dara.Int32(100),     // Get enough results to find the image
+	}
+
+	listResp, err := apiClient.ListMcpImages(ctx, listReq)
+	if err != nil {
+		fmt.Printf(" Failed.\n")
+		return fmt.Errorf("failed to fetch image list: %w", err)
+	}
+
+	// Check if response is successful
+	if listResp.Body == nil || listResp.Body.Data == nil {
+		fmt.Printf(" Failed.\n")
+		return fmt.Errorf("invalid response from server")
+	}
+
+	// Find the specified image
+	var targetImage *client.ListMcpImagesResponseBodyData
+	for _, image := range listResp.Body.Data {
+		if image.ImageId != nil && *image.ImageId == imageId {
+			targetImage = image
+			break
+		}
+	}
+
+	if targetImage == nil {
+		fmt.Printf(" Failed.\n")
+		return fmt.Errorf("image not found or not a User type image: %s", imageId)
+	}
+
+	fmt.Printf(" Done.\n")
+	fmt.Printf("[INFO] Image Name: %s\n", getStringValue(targetImage.ImageName))
+	fmt.Printf("[INFO] Image Type: %s\n", getStringValue(targetImage.ImageBuildType))
+	fmt.Printf("[INFO] Current Status: %s\n", formatImageStatus(getStringValue(targetImage.ImageResourceStatus)))
+
+	// Check if image is already activated (if it has a specific status)
+	currentStatus := getStringValue(targetImage.ImageResourceStatus)
+	if currentStatus == "Activated" {
+		fmt.Printf("[OK] Image is already activated! Image ID: %s\n", imageId)
+		return nil
+	}
+
+	// Create resource group for the image
+	fmt.Printf("Creating resource group...")
+	createReq := &client.CreateResourceGroupRequest{
+		ImageId: dara.String(imageId),
+	}
+
+	// Debug: Print request details
+	if log.GetLevel() >= log.DebugLevel {
+		log.Debugf("[DEBUG] CreateResourceGroup Request:")
+		if createReq.ImageId != nil {
+			log.Debugf("[DEBUG] - ImageId: %s", *createReq.ImageId)
+		}
+	}
+
+	createResp, err := apiClient.CreateResourceGroup(ctx, createReq)
+	if err != nil {
+		fmt.Printf(" Failed.\n")
+		return fmt.Errorf("failed to create resource group: %w", err)
+	}
+
+	// Check response
+	if createResp.Body == nil {
+		fmt.Printf(" Failed.\n")
+		return fmt.Errorf("invalid response from server")
+	}
+
+	success := createResp.Body.GetSuccess()
+	if success == nil || !*success {
+		fmt.Printf(" Failed.\n")
+		code := createResp.Body.GetCode()
+		message := createResp.Body.GetMessage()
+		if code != nil && message != nil {
+			return fmt.Errorf("activation failed: %s - %s", *code, *message)
+		}
+		return fmt.Errorf("activation failed")
+	}
+
+	fmt.Printf(" Done.\n")
+	fmt.Printf("[SUCCESS] Image activated successfully! Image ID: %s\n", imageId)
+
+	if createResp.Body.GetRequestId() != nil {
+		fmt.Printf("[INFO] Request ID: %s\n", *createResp.Body.GetRequestId())
+	}
+
+	return nil
+}
+
+func runImageDeactivate(cmd *cobra.Command, args []string) error {
+	imageId := args[0]
+
+	fmt.Printf("[DEACTIVATE] Deactivating image '%s'...\n", imageId)
+
+	// Load configuration and check authentication
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	if !cfg.IsAuthenticated() {
+		return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
+	}
+
+	// Create API client
+	apiClient := agentbay.NewClientFromConfig(cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// First, check if the image exists and is activated
+	fmt.Printf("Checking image status...")
+	listReq := &client.ListMcpImagesRequest{
+		ImageType: dara.String("User"), // Only User images can be deactivated
+		PageSize:  dara.Int32(100),     // Get enough results to find the image
+	}
+
+	listResp, err := apiClient.ListMcpImages(ctx, listReq)
+	if err != nil {
+		fmt.Printf(" Failed.\n")
+		return fmt.Errorf("failed to fetch image list: %w", err)
+	}
+
+	// Check if response is successful
+	if listResp.Body == nil || listResp.Body.Data == nil {
+		fmt.Printf(" Failed.\n")
+		return fmt.Errorf("invalid response from server")
+	}
+
+	// Find the specified image
+	var targetImage *client.ListMcpImagesResponseBodyData
+	for _, image := range listResp.Body.Data {
+		if image.ImageId != nil && *image.ImageId == imageId {
+			targetImage = image
+			break
+		}
+	}
+
+	if targetImage == nil {
+		fmt.Printf(" Failed.\n")
+		return fmt.Errorf("image not found or not a User type image: %s", imageId)
+	}
+
+	fmt.Printf(" Done.\n")
+	fmt.Printf("[INFO] Image Name: %s\n", getStringValue(targetImage.ImageName))
+	fmt.Printf("[INFO] Image Type: %s\n", getStringValue(targetImage.ImageBuildType))
+	fmt.Printf("[INFO] Current Status: %s\n", formatImageStatus(getStringValue(targetImage.ImageResourceStatus)))
+
+	// Check if image is already deactivated
+	currentStatus := getStringValue(targetImage.ImageResourceStatus)
+	if currentStatus == "IMAGE_AVAILABLE" {
+		fmt.Printf("[OK] Image is already deactivated! Image ID: %s\n", imageId)
+		return nil
+	}
+
+	// Check if image is in a state that can be deactivated
+	if currentStatus != "RESOURCE_PUBLISHED" {
+		return fmt.Errorf("image cannot be deactivated in current state: %s", formatImageStatus(currentStatus))
+	}
+
+	// Delete resource group for the image
+	fmt.Printf("Deleting resource group...")
+	deleteReq := &client.DeleteResourceGroupRequest{
+		// Note: The actual parameters for DeleteResourceGroup may need to be adjusted
+		// when the API is ready. For now, we assume it takes an ImageId parameter.
+		// This will need to be updated based on the final API specification.
+	}
+
+	// Debug: Print request details
+	if log.GetLevel() >= log.DebugLevel {
+		log.Debugf("[DEBUG] DeleteResourceGroup Request:")
+		log.Debugf("[DEBUG] - ImageId: %s", imageId)
+		log.Debugf("[DEBUG] Note: API parameters may need adjustment when DeleteResourceGroup API is ready")
+	}
+
+	deleteResp, err := apiClient.DeleteResourceGroup(ctx, deleteReq)
+	if err != nil {
+		fmt.Printf(" Failed.\n")
+		// Since the API is not ready yet, we expect this to fail
+		log.Debugf("[DEBUG] DeleteResourceGroup API call failed (expected): %v", err)
+		return fmt.Errorf("failed to delete resource group (API not ready yet): %w", err)
+	}
+
+	// Check response
+	if deleteResp.Body == nil {
+		fmt.Printf(" Failed.\n")
+		return fmt.Errorf("invalid response from server")
+	}
+
+	success := deleteResp.Body.GetSuccess()
+	if success == nil || !*success {
+		fmt.Printf(" Failed.\n")
+		code := deleteResp.Body.GetCode()
+		message := deleteResp.Body.GetMessage()
+		if code != nil && message != nil {
+			return fmt.Errorf("deactivation failed: %s - %s", *code, *message)
+		}
+		return fmt.Errorf("deactivation failed")
+	}
+
+	fmt.Printf(" Done.\n")
+	fmt.Printf("[OK] Image deactivation initiated successfully!\n")
+
+	if deleteResp.Body.GetRequestId() != nil {
+		fmt.Printf("[INFO] Request ID: %s\n", *deleteResp.Body.GetRequestId())
+	}
+
+	// Start status polling
+	fmt.Println("[MONITOR] Monitoring image deactivation status...")
+	return pollImageDeactivationStatus(ctx, apiClient, imageId)
+}
+
+// pollImageDeactivationStatus polls the image deactivation status until completion or failure
+func pollImageDeactivationStatus(ctx context.Context, apiClient agentbay.Client, imageId string) error {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	// Create a new context with longer timeout for polling
+	pollCtx, pollCancel := context.WithTimeout(context.Background(), 45*time.Minute)
+	defer pollCancel()
+
+	for {
+		select {
+		case <-pollCtx.Done():
+			fmt.Printf("[INFO] Image ID: %s\n", imageId)
+			return fmt.Errorf("timeout waiting for image deactivation to complete")
+		case <-ticker.C:
+			// Query specific image status using ListMcpImages
+			listReq := &client.ListMcpImagesRequest{
+				ImageType: dara.String("User"),
+				PageSize:  dara.Int32(100),
+			}
+
+			listResp, err := apiClient.ListMcpImages(pollCtx, listReq)
+			if err != nil {
+				fmt.Printf("[WARN] Warning: Failed to check image status: %v\n", err)
+				fmt.Printf("[INFO] Image ID: %s\n", imageId)
+				continue // Continue polling on API errors
+			}
+
+			if listResp.Body == nil || listResp.Body.Data == nil {
+				fmt.Printf("[WARN] Warning: Invalid response format\n")
+				fmt.Printf("[INFO] Image ID: %s\n", imageId)
+				continue
+			}
+
+			// Find the specified image
+			var targetImage *client.ListMcpImagesResponseBodyData
+			for _, image := range listResp.Body.Data {
+				if image.ImageId != nil && *image.ImageId == imageId {
+					targetImage = image
+					break
+				}
+			}
+
+			if targetImage == nil {
+				fmt.Printf("[WARN] Warning: Image not found: %s\n", imageId)
+				continue // Continue polling
+			}
+
+			status := getStringValue(targetImage.ImageResourceStatus)
+			formattedStatus := formatImageStatus(status)
+
+			fmt.Printf("[STATUS] Status: %s\n", formattedStatus)
+
+			switch status {
+			case "IMAGE_AVAILABLE":
+				fmt.Printf("[SUCCESS] Image deactivated successfully! Image ID: %s\n", imageId)
+				fmt.Printf("[INFO] Final Status: %s\n", formattedStatus)
+				return nil
+			case "RESOURCE_FAILED":
+				fmt.Printf("[INFO] Image ID: %s\n", imageId)
+				if listResp.Body.GetRequestId() != nil {
+					fmt.Printf("[INFO] Request ID: %s\n", *listResp.Body.GetRequestId())
+				}
+				return fmt.Errorf("image deactivation failed with status: %s", formattedStatus)
+			case "RESOURCE_DELETING":
+				// Continue polling - deactivation in progress
+				continue
+			case "RESOURCE_PUBLISHED":
+				// Image is still activated, continue polling in case deactivation is delayed
+				fmt.Printf("[REFRESH] Image still activated, continuing to monitor deactivation...\n")
+				continue
+			default:
+				fmt.Printf("[REFRESH] Unknown status '%s', continuing to monitor...\n", formattedStatus)
+				continue
+			}
+		}
+	}
+}
