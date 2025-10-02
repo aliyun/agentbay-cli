@@ -716,8 +716,8 @@ func (client *Client) DeleteResourceGroupWithContext(ctx context.Context, reques
 		return _result, _err
 	}
 	body := map[string]interface{}{}
-	if !dara.IsNil(request.ResourceGroupId) {
-		body["ResourceGroupId"] = request.ResourceGroupId
+	if !dara.IsNil(request.ImageId) {
+		body["ImageId"] = request.ImageId
 	}
 
 	req := &openapiutil.OpenApiRequest{

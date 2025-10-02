@@ -9,12 +9,12 @@ type iDeleteResourceGroupRequest interface {
 	dara.Model
 	String() string
 	GoString() string
-	SetResourceGroupId(v string) *DeleteResourceGroupRequest
-	GetResourceGroupId() *string
+	SetImageId(v string) *DeleteResourceGroupRequest
+	GetImageId() *string
 }
 
 type DeleteResourceGroupRequest struct {
-	ResourceGroupId *string `json:"ResourceGroupId,omitempty" xml:"ResourceGroupId,omitempty"`
+	ImageId *string `json:"ImageId,omitempty" xml:"ImageId,omitempty"`
 }
 
 func (s DeleteResourceGroupRequest) String() string {
@@ -25,12 +25,12 @@ func (s DeleteResourceGroupRequest) GoString() string {
 	return s.String()
 }
 
-func (s *DeleteResourceGroupRequest) GetResourceGroupId() *string {
-	return s.ResourceGroupId
+func (s *DeleteResourceGroupRequest) GetImageId() *string {
+	return s.ImageId
 }
 
-func (s *DeleteResourceGroupRequest) SetResourceGroupId(v string) *DeleteResourceGroupRequest {
-	s.ResourceGroupId = &v
+func (s *DeleteResourceGroupRequest) SetImageId(v string) *DeleteResourceGroupRequest {
+	s.ImageId = &v
 	return s
 }
 

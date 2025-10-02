@@ -844,97 +844,116 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 
 	// Create API client
 	apiClient := agentbay.NewClientFromConfig(cfg)
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
 
-	// First, check if the image exists and is of User type
-	fmt.Printf("Checking image details...")
-	listReq := &client.ListMcpImagesRequest{
-		ImageType: dara.String("User"), // Only User images can be activated
-		PageSize:  dara.Int32(100),     // Get enough results to find the image
-	}
+	// Use longer timeout for status check (not for the full polling)
+	statusCtx, statusCancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer statusCancel()
 
-	listResp, err := apiClient.ListMcpImages(ctx, listReq)
+	// Check current image status and type using GetMcpImageInfo
+	fmt.Printf("Checking current image status...")
+	imageInfo, err := GetImageInfo(statusCtx, apiClient, imageId)
 	if err != nil {
 		fmt.Printf(" Failed.\n")
-		return fmt.Errorf("failed to fetch image list: %w", err)
+		return fmt.Errorf("failed to get image info: %w", err)
 	}
-
-	// Check if response is successful
-	if listResp.Body == nil || listResp.Body.Data == nil {
-		fmt.Printf(" Failed.\n")
-		return fmt.Errorf("invalid response from server")
-	}
-
-	// Find the specified image
-	var targetImage *client.ListMcpImagesResponseBodyData
-	for _, image := range listResp.Body.Data {
-		if image.ImageId != nil && *image.ImageId == imageId {
-			targetImage = image
-			break
-		}
-	}
-
-	if targetImage == nil {
-		fmt.Printf(" Failed.\n")
-		return fmt.Errorf("image not found or not a User type image: %s", imageId)
-	}
-
 	fmt.Printf(" Done.\n")
-	fmt.Printf("[INFO] Image Name: %s\n", getStringValue(targetImage.ImageName))
-	fmt.Printf("[INFO] Image Type: %s\n", getStringValue(targetImage.ImageBuildType))
-	fmt.Printf("[INFO] Current Status: %s\n", formatImageStatus(getStringValue(targetImage.ImageResourceStatus)))
+	fmt.Printf("[INFO] Image Type: %s\n", imageInfo.ImageType)
+	fmt.Printf("[INFO] Current Status: %s\n", TranslateImageResourceStatus(imageInfo.ResourceStatus))
 
-	// Check if image is already activated (if it has a specific status)
-	currentStatus := getStringValue(targetImage.ImageResourceStatus)
-	if currentStatus == "Activated" {
-		fmt.Printf("[OK] Image is already activated! Image ID: %s\n", imageId)
+	// Check if this is a System image
+	if IsSystemImage(imageInfo.ImageType) {
+		fmt.Printf("[INFO] This is a System image.\n")
+		fmt.Printf("[INFO] System images are always available and do not need to be activated.\n")
+		fmt.Printf("[INFO] You can use this image directly without activation.\n")
+		fmt.Printf("[INFO] Image ID: %s\n", imageId)
 		return nil
 	}
 
-	// Create resource group for the image
-	fmt.Printf("Creating resource group...")
-	createReq := &client.CreateResourceGroupRequest{
-		ImageId: dara.String(imageId),
+	// Check if this is a User image
+	if !IsUserImage(imageInfo.ImageType) {
+		return fmt.Errorf("unknown image type: %s (expected 'User' or 'System')", imageInfo.ImageType)
 	}
 
-	// Debug: Print request details
-	if log.GetLevel() >= log.DebugLevel {
-		log.Debugf("[DEBUG] CreateResourceGroup Request:")
-		if createReq.ImageId != nil {
-			log.Debugf("[DEBUG] - ImageId: %s", *createReq.ImageId)
+	// Check if image is already activated
+	if IsActivated(imageInfo.ResourceStatus) {
+		fmt.Printf("[OK] Image is already activated! No action needed.\n")
+		fmt.Printf("[INFO] Image ID: %s\n", imageId)
+		return nil
+	}
+
+	// Check if image is currently activating
+	shouldCreateResourceGroup := true
+	if IsActivating(imageInfo.ResourceStatus) {
+		fmt.Printf("[INFO] Image is currently activating, waiting for completion...\n")
+		shouldCreateResourceGroup = false
+	} else if IsDeactivated(imageInfo.ResourceStatus) {
+		// Image is deactivated, proceed with activation
+		shouldCreateResourceGroup = true
+	} else {
+		// Image is in an unexpected state
+		return fmt.Errorf("cannot activate image in current state: %s", TranslateImageResourceStatus(imageInfo.ResourceStatus))
+	}
+
+	// Create resource group if needed
+	if shouldCreateResourceGroup {
+		fmt.Printf("Creating resource group...")
+		createReq := &client.CreateResourceGroupRequest{
+			ImageId: dara.String(imageId),
+		}
+
+		// Debug: Print request details
+		if log.GetLevel() >= log.DebugLevel {
+			log.Debugf("[DEBUG] CreateResourceGroup Request:")
+			if createReq.ImageId != nil {
+				log.Debugf("[DEBUG] - ImageId: %s", *createReq.ImageId)
+			}
+		}
+
+		// Use a separate context for the create operation
+		createCtx, createCancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer createCancel()
+
+		createResp, err := apiClient.CreateResourceGroup(createCtx, createReq)
+		if err != nil {
+			fmt.Printf(" Failed.\n")
+			return fmt.Errorf("failed to create resource group: %w", err)
+		}
+
+		// Check response
+		if createResp.Body == nil {
+			fmt.Printf(" Failed.\n")
+			return fmt.Errorf("invalid response from server")
+		}
+
+		success := createResp.Body.GetSuccess()
+		if success == nil || !*success {
+			fmt.Printf(" Failed.\n")
+			code := createResp.Body.GetCode()
+			message := createResp.Body.GetMessage()
+			if code != nil && message != nil {
+				return fmt.Errorf("failed to create resource group: %s - %s", *code, *message)
+			}
+			return fmt.Errorf("failed to create resource group")
+		}
+
+		fmt.Printf(" Done.\n")
+
+		if createResp.Body.GetRequestId() != nil {
+			log.Debugf("[DEBUG] Request ID: %s", *createResp.Body.GetRequestId())
 		}
 	}
 
-	createResp, err := apiClient.CreateResourceGroup(ctx, createReq)
-	if err != nil {
-		fmt.Printf(" Failed.\n")
-		return fmt.Errorf("failed to create resource group: %w", err)
+	// Poll for activation completion
+	fmt.Printf("Waiting for activation to complete...\n")
+	pollingCtx := context.Background() // Don't use timeout context, polling has its own timeout
+	config := DefaultActivatePollingConfig()
+
+	if err := PollForActivation(pollingCtx, apiClient, imageId, config); err != nil {
+		return fmt.Errorf("activation failed: %w", err)
 	}
 
-	// Check response
-	if createResp.Body == nil {
-		fmt.Printf(" Failed.\n")
-		return fmt.Errorf("invalid response from server")
-	}
-
-	success := createResp.Body.GetSuccess()
-	if success == nil || !*success {
-		fmt.Printf(" Failed.\n")
-		code := createResp.Body.GetCode()
-		message := createResp.Body.GetMessage()
-		if code != nil && message != nil {
-			return fmt.Errorf("activation failed: %s - %s", *code, *message)
-		}
-		return fmt.Errorf("activation failed")
-	}
-
-	fmt.Printf(" Done.\n")
-	fmt.Printf("[SUCCESS] Image activated successfully! Image ID: %s\n", imageId)
-
-	if createResp.Body.GetRequestId() != nil {
-		fmt.Printf("[INFO] Request ID: %s\n", *createResp.Body.GetRequestId())
-	}
+	fmt.Printf("[SUCCESS] Image activated successfully!\n")
+	fmt.Printf("[INFO] Image ID: %s\n", imageId)
 
 	return nil
 }
@@ -956,109 +975,115 @@ func runImageDeactivate(cmd *cobra.Command, args []string) error {
 
 	// Create API client
 	apiClient := agentbay.NewClientFromConfig(cfg)
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
 
-	// First, check if the image exists and is activated
-	fmt.Printf("Checking image status...")
-	listReq := &client.ListMcpImagesRequest{
-		ImageType: dara.String("User"), // Only User images can be deactivated
-		PageSize:  dara.Int32(100),     // Get enough results to find the image
-	}
+	// Use longer timeout for status check (not for the full polling)
+	statusCtx, statusCancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer statusCancel()
 
-	listResp, err := apiClient.ListMcpImages(ctx, listReq)
+	// Check current image status and type using GetMcpImageInfo
+	fmt.Printf("Checking current image status...")
+	imageInfo, err := GetImageInfo(statusCtx, apiClient, imageId)
 	if err != nil {
 		fmt.Printf(" Failed.\n")
-		return fmt.Errorf("failed to fetch image list: %w", err)
+		return fmt.Errorf("failed to get image info: %w", err)
 	}
-
-	// Check if response is successful
-	if listResp.Body == nil || listResp.Body.Data == nil {
-		fmt.Printf(" Failed.\n")
-		return fmt.Errorf("invalid response from server")
-	}
-
-	// Find the specified image
-	var targetImage *client.ListMcpImagesResponseBodyData
-	for _, image := range listResp.Body.Data {
-		if image.ImageId != nil && *image.ImageId == imageId {
-			targetImage = image
-			break
-		}
-	}
-
-	if targetImage == nil {
-		fmt.Printf(" Failed.\n")
-		return fmt.Errorf("image not found or not a User type image: %s", imageId)
-	}
-
 	fmt.Printf(" Done.\n")
-	fmt.Printf("[INFO] Image Name: %s\n", getStringValue(targetImage.ImageName))
-	fmt.Printf("[INFO] Image Type: %s\n", getStringValue(targetImage.ImageBuildType))
-	fmt.Printf("[INFO] Current Status: %s\n", formatImageStatus(getStringValue(targetImage.ImageResourceStatus)))
+	fmt.Printf("[INFO] Image Type: %s\n", imageInfo.ImageType)
+	fmt.Printf("[INFO] Current Status: %s\n", TranslateImageResourceStatus(imageInfo.ResourceStatus))
 
-	// Check if image is already deactivated
-	currentStatus := getStringValue(targetImage.ImageResourceStatus)
-	if currentStatus == "IMAGE_AVAILABLE" {
-		fmt.Printf("[OK] Image is already deactivated! Image ID: %s\n", imageId)
+	// Check if this is a System image
+	if IsSystemImage(imageInfo.ImageType) {
+		fmt.Printf("[INFO] This is a System image.\n")
+		fmt.Printf("[INFO] System images cannot be deactivated as they are always available.\n")
+		fmt.Printf("[INFO] Image ID: %s\n", imageId)
 		return nil
 	}
 
-	// Check if image is in a state that can be deactivated
-	if currentStatus != "RESOURCE_PUBLISHED" {
-		return fmt.Errorf("image cannot be deactivated in current state: %s", formatImageStatus(currentStatus))
+	// Check if this is a User image
+	if !IsUserImage(imageInfo.ImageType) {
+		return fmt.Errorf("unknown image type: %s (expected 'User' or 'System')", imageInfo.ImageType)
 	}
 
-	// Delete resource group for the image
-	fmt.Printf("Deleting resource group...")
-	deleteReq := &client.DeleteResourceGroupRequest{
-		// Note: The actual parameters for DeleteResourceGroup may need to be adjusted
-		// when the API is ready. For now, we assume it takes an ImageId parameter.
-		// This will need to be updated based on the final API specification.
+	// Check if image is already deactivated
+	if IsDeactivated(imageInfo.ResourceStatus) {
+		fmt.Printf("[OK] Image is already deactivated! No action needed.\n")
+		fmt.Printf("[INFO] Image ID: %s\n", imageId)
+		return nil
 	}
 
-	// Debug: Print request details
-	if log.GetLevel() >= log.DebugLevel {
-		log.Debugf("[DEBUG] DeleteResourceGroup Request:")
-		log.Debugf("[DEBUG] - ImageId: %s", imageId)
-		log.Debugf("[DEBUG] Note: API parameters may need adjustment when DeleteResourceGroup API is ready")
+	// Check if image is currently deactivating
+	shouldDeleteResourceGroup := true
+	if IsDeactivating(imageInfo.ResourceStatus) {
+		fmt.Printf("[INFO] Image is currently deactivating, waiting for completion...\n")
+		shouldDeleteResourceGroup = false
+	} else if IsActivated(imageInfo.ResourceStatus) {
+		// Image is activated, proceed with deactivation
+		shouldDeleteResourceGroup = true
+	} else {
+		// Image is in an unexpected state
+		return fmt.Errorf("cannot deactivate image in current state: %s", TranslateImageResourceStatus(imageInfo.ResourceStatus))
 	}
 
-	deleteResp, err := apiClient.DeleteResourceGroup(ctx, deleteReq)
-	if err != nil {
-		fmt.Printf(" Failed.\n")
-		// Since the API is not ready yet, we expect this to fail
-		log.Debugf("[DEBUG] DeleteResourceGroup API call failed (expected): %v", err)
-		return fmt.Errorf("failed to delete resource group (API not ready yet): %w", err)
-	}
+	// Delete resource group if needed
+	if shouldDeleteResourceGroup {
+		fmt.Printf("Deleting resource group...")
+		deleteReq := &client.DeleteResourceGroupRequest{}
+		deleteReq.SetImageId(imageId)
 
-	// Check response
-	if deleteResp.Body == nil {
-		fmt.Printf(" Failed.\n")
-		return fmt.Errorf("invalid response from server")
-	}
-
-	success := deleteResp.Body.GetSuccess()
-	if success == nil || !*success {
-		fmt.Printf(" Failed.\n")
-		code := deleteResp.Body.GetCode()
-		message := deleteResp.Body.GetMessage()
-		if code != nil && message != nil {
-			return fmt.Errorf("deactivation failed: %s - %s", *code, *message)
+		// Debug: Print request details
+		if log.GetLevel() >= log.DebugLevel {
+			log.Debugf("[DEBUG] DeleteResourceGroup Request:")
+			log.Debugf("[DEBUG] - ImageId: %s", imageId)
 		}
-		return fmt.Errorf("deactivation failed")
+
+		// Use a separate context for the delete operation
+		deleteCtx, deleteCancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer deleteCancel()
+
+		deleteResp, err := apiClient.DeleteResourceGroup(deleteCtx, deleteReq)
+		if err != nil {
+			fmt.Printf(" Failed.\n")
+			log.Debugf("[DEBUG] DeleteResourceGroup API call failed: %v", err)
+			return fmt.Errorf("failed to delete resource group: %w", err)
+		}
+
+		// Check response
+		if deleteResp.Body == nil {
+			fmt.Printf(" Failed.\n")
+			return fmt.Errorf("invalid response from server")
+		}
+
+		success := deleteResp.Body.GetSuccess()
+		if success == nil || !*success {
+			fmt.Printf(" Failed.\n")
+			code := deleteResp.Body.GetCode()
+			message := deleteResp.Body.GetMessage()
+			if code != nil && message != nil {
+				return fmt.Errorf("failed to delete resource group: %s - %s", *code, *message)
+			}
+			return fmt.Errorf("failed to delete resource group")
+		}
+
+		fmt.Printf(" Done.\n")
+
+		if deleteResp.Body.GetRequestId() != nil {
+			log.Debugf("[DEBUG] Request ID: %s", *deleteResp.Body.GetRequestId())
+		}
 	}
 
-	fmt.Printf(" Done.\n")
-	fmt.Printf("[OK] Image deactivation initiated successfully!\n")
+	// Poll for deactivation completion
+	fmt.Printf("Waiting for deactivation to complete...\n")
+	pollingCtx := context.Background() // Don't use timeout context, polling has its own timeout
+	config := DefaultDeactivatePollingConfig()
 
-	if deleteResp.Body.GetRequestId() != nil {
-		fmt.Printf("[INFO] Request ID: %s\n", *deleteResp.Body.GetRequestId())
+	if err := PollForDeactivation(pollingCtx, apiClient, imageId, config); err != nil {
+		return fmt.Errorf("deactivation failed: %w", err)
 	}
 
-	// Start status polling
-	fmt.Println("[MONITOR] Monitoring image deactivation status...")
-	return pollImageDeactivationStatus(ctx, apiClient, imageId)
+	fmt.Printf("[SUCCESS] Image deactivated successfully!\n")
+	fmt.Printf("[INFO] Image ID: %s\n", imageId)
+
+	return nil
 }
 
 // pollImageDeactivationStatus polls the image deactivation status until completion or failure
