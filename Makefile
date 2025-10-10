@@ -49,6 +49,10 @@ test-coverage: coverage
 
 deps:
 	$(GOMOD) download
+
+# Tidy go modules (for local development only, not used in CI)
+.PHONY: tidy
+tidy:
 	$(GOMOD) tidy
 
 # Development targets
@@ -105,7 +109,8 @@ help:
 	@echo "  test-all     - Run all tests"
 	@echo "  coverage     - Run tests with coverage"
 	@echo "  test-coverage - Run tests with coverage (alias)"
-	@echo "  deps         - Download and tidy dependencies"
+	@echo "  deps         - Download dependencies"
+	@echo "  tidy         - Tidy go modules (local development only)"
 	@echo "  dev-build    - Quick development build"
 	@echo "  dev-test     - Quick development test"
 	@echo "  dev-run      - Build and run binary"
