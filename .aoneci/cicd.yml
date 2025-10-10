@@ -370,7 +370,27 @@ jobs:
           echo "  • Windows (x64, ARM64)"
           echo ""
           echo "📦 Download URLs:"
-          echo "  Base URL: https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/"
+          echo ""
+          
+          # Generate download URLs for each package
+          BASE_URL="https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION"
+          
+          echo "🍎 macOS:"
+          echo "  Intel (x64):     $BASE_URL/${{vars.BINARY_NAME}}-$VERSION-darwin-amd64.tar.gz"
+          echo "  Apple Silicon:   $BASE_URL/${{vars.BINARY_NAME}}-$VERSION-darwin-arm64.tar.gz"
+          echo ""
+          echo "🐧 Linux:"
+          echo "  x64:             $BASE_URL/${{vars.BINARY_NAME}}-$VERSION-linux-amd64.tar.gz"
+          echo "  ARM64:           $BASE_URL/${{vars.BINARY_NAME}}-$VERSION-linux-arm64.tar.gz"
+          echo ""
+          echo "🪟 Windows:"
+          echo "  x64 (exe):       $BASE_URL/${{vars.BINARY_NAME}}-$VERSION-windows-amd64.exe"
+          echo "  ARM64 (exe):     $BASE_URL/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.exe"
+          echo "  x64 (zip):       $BASE_URL/${{vars.BINARY_NAME}}-$VERSION-windows-amd64.zip"
+          echo "  ARM64 (zip):     $BASE_URL/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.zip"
+          echo ""
+          echo "📋 Checksums:"
+          echo "  All files:       $BASE_URL/ (append .sha256 to any filename)"
           echo ""
           echo "════════════════════════════════════════════════════════════"
 

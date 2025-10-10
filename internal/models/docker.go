@@ -37,7 +37,7 @@ type GetDockerFileStoreCredentialResponseBody struct {
 }
 
 func (s GetDockerFileStoreCredentialResponseBody) String() string {
-	return fmt.Sprintf("%+v", s)
+	return fmt.Sprintf("%#v", s)
 }
 
 func (s *GetDockerFileStoreCredentialResponseBody) GetCode() *string {
