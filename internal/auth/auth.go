@@ -234,7 +234,7 @@ func GetSuccessHTML() string {
 </head>
 <body>
     <div class="container">
-        <div class="success">✓ Authentication Successful</div>
+        <div class="success">Authentication Successful</div>
         <div class="message">You have successfully authenticated with AgentBay.</div>
         <div class="message">You can now close this window and return to the terminal.</div>
     </div>
