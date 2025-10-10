@@ -36,6 +36,16 @@ jobs:
           go mod download
           echo "✅ Dependencies installed"
 
+      - id: verify-build
+        name: Verify Build
+        run: |
+          echo "Verifying that code compiles..."
+          if ! go build -v ./...; then
+            echo "❌ Code compilation failed"
+            exit 1
+          fi
+          echo "✅ Code compiles successfully"
+
       - id: run-unit-tests
         name: Run Unit Tests
         run: |
