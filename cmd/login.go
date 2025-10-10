@@ -16,11 +16,7 @@ import (
 	"github.com/agentbay/agentbay-cli/internal/config"
 )
 
-const (
-	ClientID     = "4019057658592127596"
-	RedirectURI  = "http://localhost:3001/callback"
-	CallbackPort = "3001"
-)
+// OAuth constants are now defined in constants.go
 
 var LoginCmd = &cobra.Command{
 	Use:     "login",

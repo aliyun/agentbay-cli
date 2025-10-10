@@ -11,11 +11,13 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	openapiutil "github.com/alibabacloud-go/darabonba-openapi/v2/utils"
 	"github.com/alibabacloud-go/tea/dara"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/agentbay/agentbay-cli/internal/auth"
 	"github.com/agentbay/agentbay-cli/internal/client"
 	"github.com/agentbay/agentbay-cli/internal/config"
 )
@@ -146,14 +148,32 @@ func NewClientFromConfig(cfg *config.Config) Client {
 
 // getClient returns the underlying SDK client, creating it if necessary
 func (cw *clientWrapper) getClient() (*client.Client, error) {
-	if cw.client != nil {
-		log.Debugf("[DEBUG] getClient: Using cached SDK client")
-		return cw.client, nil
-	}
-
 	log.Debugf("[DEBUG] getClient: Creating new SDK client...")
 
-	// Get authentication token
+	// Refresh token if needed (checks expiry and refreshes automatically)
+	log.Debugf("[DEBUG] getClient: Checking if token refresh is needed...")
+
+	// Create an adapter to bridge config.Config to auth.TokenConfig
+	tokenCfgAdapter := auth.NewConfigAdapter(
+		func() (string, string, time.Time, error) {
+			token, err := cw.config.GetTokens()
+			if err != nil {
+				return "", "", time.Time{}, err
+			}
+			return token.AccessToken, token.RefreshToken, token.ExpiresAt, nil
+		},
+		cw.config.RefreshTokens,
+		cw.config.IsTokenExpired,
+		cw.config.ClearTokens,
+	)
+
+	err := auth.RefreshTokenIfNeeded(tokenCfgAdapter, auth.DefaultClientID)
+	if err != nil {
+		log.Debugf("[DEBUG] getClient: Token refresh check failed: %v", err)
+		return nil, fmt.Errorf("failed to ensure valid token: %w", err)
+	}
+
+	// Get authentication token (now guaranteed to be valid or refreshed)
 	log.Debugf("[DEBUG] getClient: Getting authentication token...")
 	token, err := cw.config.GetTokens()
 	if err != nil {
@@ -219,7 +239,7 @@ func (cw *clientWrapper) getClient() (*client.Client, error) {
 	}
 	log.Debugf("[DEBUG] getClient: SDK client created successfully")
 
-	cw.client = sdkClient
+	// Don't cache the client to ensure token refresh check on each API call
 	return sdkClient, nil
 }
 

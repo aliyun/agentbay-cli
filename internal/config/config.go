@@ -90,6 +90,15 @@ func (c *Config) GetTokens() (*Token, error) {
 	return c.Token, nil
 }
 
+// GetTokensForRefresh returns token information for the refresh mechanism
+// This method implements the auth.TokenConfig interface
+func (c *Config) GetTokensForRefresh() (accessToken string, refreshToken string, expiresAt time.Time, err error) {
+	if c.Token == nil {
+		return "", "", time.Time{}, ErrNoTokenFound
+	}
+	return c.Token.AccessToken, c.Token.RefreshToken, c.Token.ExpiresAt, nil
+}
+
 // SaveTokens saves OAuth authentication tokens to the configuration
 func (c *Config) SaveTokens(accessToken, tokenType string, expiresIn int, refreshToken, idToken string) error {
 	// Calculate expiration time

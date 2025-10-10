@@ -15,13 +15,20 @@ import (
 	"net/url"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
-// OAuth endpoints
+// OAuth endpoints and constants
 var (
 	authEndpoint   = "https://signin.aliyun.com/oauth2/v1/auth"
 	tokenEndpoint  = "https://oauth.aliyun.com/v1/token"
 	revokeEndpoint = "https://oauth.aliyun.com/v1/revoke"
+)
+
+// OAuth client configuration
+const (
+	DefaultClientID = "4019057658592127596"
 )
 
 // TokenResponse represents the OAuth token response
@@ -270,4 +277,51 @@ func IsPortOccupied(port string) bool {
 	}
 	ln.Close()
 	return false
+}
+
+// TokenConfig interface for accessing config methods
+// Note: We use a struct with time.Time directly to avoid circular dependency
+type TokenConfig interface {
+	GetTokens() (accessToken string, refreshToken string, expiresAt time.Time, err error)
+	RefreshTokens(accessToken, tokenType string, expiresIn int) error
+	IsTokenExpired() bool
+	ClearTokens() error
+}
+
+// RefreshTokenIfNeeded checks and refreshes token if it's about to expire (within 5 minutes)
+// This provides automatic token management for seamless API access
+func RefreshTokenIfNeeded(cfg TokenConfig, clientID string) error {
+	_, refreshToken, expiresAt, err := cfg.GetTokens()
+	if err != nil {
+		return fmt.Errorf("no valid token found: %w", err)
+	}
+
+	// Check if token is about to expire (within 5 minutes)
+	if !cfg.IsTokenExpired() && time.Until(expiresAt) > 5*time.Minute {
+		log.Debug("Token is still valid, no refresh needed")
+		return nil
+	}
+
+	log.Info("Token is approaching expiry or expired, refreshing...")
+
+	// Perform token refresh
+	refreshResp, err := RefreshAccessToken(clientID, refreshToken)
+	if err != nil {
+		// If refresh fails, clear the tokens
+		cfg.ClearTokens()
+		return fmt.Errorf("token refresh failed, please run 'agentbay login' to reauthenticate: %w", err)
+	}
+
+	// Save new access token
+	err = cfg.RefreshTokens(
+		refreshResp.AccessToken,
+		refreshResp.TokenType,
+		refreshResp.ExpiresIn,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to save refreshed tokens: %w", err)
+	}
+
+	log.Info("Token refreshed successfully")
+	return nil
 }
