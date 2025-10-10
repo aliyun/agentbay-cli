@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -89,5 +90,61 @@ func TestLogoutCmd(t *testing.T) {
 
 		// Verify it's a valid cobra command
 		assert.NoError(t, cmd.LogoutCmd.ValidateArgs([]string{}))
+	})
+
+	t.Run("logout should handle expired access token gracefully", func(t *testing.T) {
+		// Save tokens with past expiration time (expired)
+		cfg, err := config.GetConfig()
+		require.NoError(t, err)
+
+		// Manually set an expired token
+		cfg.Token = &config.Token{
+			AccessToken:  "expired-access-token",
+			TokenType:    "Bearer",
+			ExpiresIn:    3600,
+			RefreshToken: "valid-refresh-token",
+			IDToken:      "id-token",
+			ExpiresAt:    time.Now().Add(-1 * time.Hour), // Expired 1 hour ago
+		}
+		err = cfg.Save()
+		require.NoError(t, err)
+
+		// Verify token is expired
+		assert.True(t, cfg.IsTokenExpired())
+		assert.True(t, cfg.IsAuthenticated())
+
+		// Run logout command - should not fail even with expired token
+		err = cmd.LogoutCmd.RunE(cmd.LogoutCmd, []string{})
+		assert.NoError(t, err)
+
+		// Verify tokens are cleared
+		cfg, err = config.GetConfig()
+		require.NoError(t, err)
+		assert.False(t, cfg.IsAuthenticated())
+	})
+
+	t.Run("logout should handle non-expired access token", func(t *testing.T) {
+		// Save tokens with future expiration time (not expired)
+		cfg, err := config.GetConfig()
+		require.NoError(t, err)
+
+		// Set a valid (non-expired) token
+		err = cfg.SaveTokens("valid-access-token", "Bearer", 3600, "valid-refresh-token", "id-token")
+		require.NoError(t, err)
+
+		// Verify token is not expired
+		assert.False(t, cfg.IsTokenExpired())
+		assert.True(t, cfg.IsAuthenticated())
+
+		// Run logout command - should work normally
+		// Note: This will attempt to revoke the token on the server, which will fail in test
+		// but the command should still complete successfully (warnings are not errors)
+		err = cmd.LogoutCmd.RunE(cmd.LogoutCmd, []string{})
+		assert.NoError(t, err)
+
+		// Verify tokens are cleared
+		cfg, err = config.GetConfig()
+		require.NoError(t, err)
+		assert.False(t, cfg.IsAuthenticated())
 	})
 }

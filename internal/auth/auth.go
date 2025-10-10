@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -102,11 +103,21 @@ func RefreshAccessToken(clientID, refreshToken string) (*RefreshResponse, error)
 	return &refreshResponse, nil
 }
 
-// RevokeToken revokes the given token
+// RevokeToken revokes the given token with an optional token type hint
 func RevokeToken(clientID, token string) error {
+	return RevokeTokenWithHint(clientID, token, "")
+}
+
+// RevokeTokenWithHint revokes the given token with a specific token type hint
+func RevokeTokenWithHint(clientID, token, tokenTypeHint string) error {
 	data := url.Values{}
 	data.Set("token", token)
 	data.Set("client_id", clientID)
+
+	// Add token_type_hint if provided (as per RFC 7009)
+	if tokenTypeHint != "" {
+		data.Set("token_type_hint", tokenTypeHint)
+	}
 
 	resp, err := http.PostForm(revokeEndpoint, data)
 	if err != nil {
@@ -115,6 +126,15 @@ func RevokeToken(clientID, token string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		// Read response body for error details
+		bodyBytes, readErr := io.ReadAll(resp.Body)
+		if readErr == nil && len(bodyBytes) > 0 {
+			var result map[string]interface{}
+			if json.Unmarshal(bodyBytes, &result) == nil {
+				return fmt.Errorf("token revocation failed with status: %d, error: %v", resp.StatusCode, result)
+			}
+			return fmt.Errorf("token revocation failed with status: %d, body: %s", resp.StatusCode, string(bodyBytes))
+		}
 		return fmt.Errorf("token revocation failed with status: %d", resp.StatusCode)
 	}
 

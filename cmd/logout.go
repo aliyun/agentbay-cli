@@ -43,17 +43,13 @@ func runLogout(cmd *cobra.Command) error {
 		if err != nil {
 			fmt.Printf("Warning: Could not get tokens for revocation: %v\n", err)
 		} else {
-			// Try to revoke access token
-			err = auth.RevokeToken(ClientID, token.AccessToken)
-			if err != nil {
-				fmt.Printf("Warning: Could not revoke access token: %v\n", err)
-			} else {
-				fmt.Println("Access token revoked successfully")
-			}
+			// Note: Aliyun OAuth service only supports revoking refresh_token
+			// Access tokens are short-lived and will expire automatically
+			// Revoking the refresh token also invalidates associated access tokens
 
-			// Try to revoke refresh token if different
-			if token.RefreshToken != "" && token.RefreshToken != token.AccessToken {
-				err = auth.RevokeToken(ClientID, token.RefreshToken)
+			// Try to revoke refresh token
+			if token.RefreshToken != "" {
+				err = auth.RevokeTokenWithHint(ClientID, token.RefreshToken, "refresh_token")
 				if err != nil {
 					fmt.Printf("Warning: Could not revoke refresh token: %v\n", err)
 				} else {
