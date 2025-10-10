@@ -40,6 +40,15 @@ jobs:
         name: Verify Build
         run: |
           echo "Verifying that code compiles..."
+          echo "Current directory: $(pwd)"
+          echo "Go module: $(head -1 go.mod)"
+          echo "Go version: $(go version)"
+          echo "GOPATH: ${GOPATH:-not set}"
+          echo "GO111MODULE: ${GO111MODULE:-auto}"
+          
+          # Ensure we're in module mode
+          export GO111MODULE=on
+          
           if ! go build -v ./...; then
             echo "❌ Code compilation failed"
             exit 1
