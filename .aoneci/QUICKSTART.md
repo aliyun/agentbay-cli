@@ -8,7 +8,7 @@ This document provides a quick start guide for using the aone.ci CI/CD pipeline 
 
 - aone.ci account with access to the repository
 - Familiarity with Git and aone.ci platform
-- (Optional) OSS bucket and credentials if deploying packages
+- OSS bucket and credentials configured in aone.ci (required for artifact storage)
 
 ## Getting Started
 
@@ -84,21 +84,23 @@ The pipeline first runs all unit tests to ensure code quality.
 - All unit tests pass
 - No compilation errors
 
-### Stage 2: Build and Package (约 5-8 分钟)
+### Stage 2: Build and Package (约 5-10 分钟)
 
-After tests pass, the pipeline builds binaries for all platforms.
+After tests pass, the pipeline builds binaries for all platforms and uploads to OSS.
 
 **What it does:**
 - Sets up build variables (version, timestamp, git commit)
 - Builds binaries for 6 platforms
 - Creates distribution packages (tar.gz, zip)
 - Generates SHA256 checksums
-- Prints build summary
+- Uploads all artifacts to OSS
+- Prints build summary with download URLs
 
 **Success criteria:**
 - All 6 binaries built successfully
 - All packages created with checksums
-- No build errors
+- All artifacts uploaded to OSS
+- No build or upload errors
 
 ## Build Artifacts
 
@@ -118,6 +120,17 @@ After successful build, the following artifacts are available:
 
 ### Checksums
 - All packages include `.sha256` checksum files
+
+### Download URLs
+After successful upload, artifacts can be downloaded from:
+```
+https://{OSS_BUCKET}.{OSS_ENDPOINT}/agentbay/releases/{VERSION}/{filename}
+```
+
+Example:
+```
+https://your-bucket.oss-cn-hangzhou.aliyuncs.com/agentbay/releases/dev-20251010-1030/agentbay-dev-20251010-1030-darwin-arm64.tar.gz
+```
 
 ## Troubleshooting
 
@@ -156,21 +169,43 @@ If significantly slower:
 - Check if resources are properly allocated (2-8Gi for tests, 4-16Gi for builds)
 - Review pipeline logs for any hanging processes
 
+### OSS Upload Fails
+
+**Symptom:** Red ❌ on the "Upload to OSS" step
+
+**Solution:**
+1. Check OSS credentials are configured in aone.ci:
+   - `secrets.OSS_ACCESS_KEY_ID`
+   - `secrets.OSS_ACCESS_KEY_SECRET`
+   - `vars.OSS_BUCKET`
+   - `vars.OSS_ENDPOINT`
+2. Verify OSS bucket exists and is accessible
+3. Check network connectivity to OSS endpoint
+4. Review logs for specific error messages
+5. Ensure OSS credentials have write permissions
+
 ### Artifacts Not Found
 
 **Solution:**
-1. Ensure the pipeline completed successfully
+1. Ensure the pipeline completed successfully (including OSS upload)
 2. Check the "Build and Package" stage logs
-3. Look for "✅ All packages created" message
-4. If using OSS upload (optional), verify OSS credentials
+3. Look for "✅ All packages uploaded successfully" message
+4. Verify OSS credentials and bucket configuration
+5. Try accessing the download URL directly
 
 ## Environment Variables
 
 The pipeline uses the following variables:
 
 ### Global Variables (configured in aone.ci)
-- `BINARY_NAME`: `agentbay`
-- `VERSION_PREFIX`: `dev` (or your preferred prefix)
+- `vars.BINARY_NAME`: `agentbay`
+- `vars.VERSION_PREFIX`: `dev` (or your preferred prefix)
+- `vars.OSS_BUCKET`: Your OSS bucket name
+- `vars.OSS_ENDPOINT`: OSS endpoint (e.g., `oss-cn-hangzhou.aliyuncs.com`)
+
+### Secrets (configured in aone.ci)
+- `secrets.OSS_ACCESS_KEY_ID`: OSS access key ID
+- `secrets.OSS_ACCESS_KEY_SECRET`: OSS access key secret
 
 ### Auto-generated Variables
 - `VERSION`: `{VERSION_PREFIX}-{TIMESTAMP}`
@@ -233,17 +268,21 @@ jobs:
     runs-on: 8-32Gi  # Increase from 4-16Gi if needed
 ```
 
-### Adding OSS Upload
+### Configuring OSS Upload
 
-To automatically upload artifacts to OSS (like agbcloud-cli does):
+OSS upload is already configured in the pipeline. You just need to set the required variables in aone.ci:
 
-1. Configure OSS credentials in aone.ci secrets:
-   - `OSS_ACCESS_KEY_ID`
-   - `OSS_ACCESS_KEY_SECRET`
-   - `OSS_BUCKET`
-   - `OSS_ENDPOINT`
+1. In aone.ci console, go to your project settings
+2. Add Variables (vars):
+   - `BINARY_NAME`: `agentbay`
+   - `VERSION_PREFIX`: `dev` (or your preferred version prefix)
+   - `OSS_BUCKET`: Your OSS bucket name
+   - `OSS_ENDPOINT`: Your OSS endpoint (e.g., `oss-cn-hangzhou.aliyuncs.com`)
+3. Add Secrets (secrets):
+   - `OSS_ACCESS_KEY_ID`: Your OSS access key ID
+   - `OSS_ACCESS_KEY_SECRET`: Your OSS access key secret
 
-2. Add upload step to `.aoneci/cicd.yml` (refer to agbcloud-cli project)
+After configuration, the pipeline will automatically upload all build artifacts to OSS.
 
 ## Getting Help
 

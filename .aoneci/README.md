@@ -57,11 +57,17 @@ The pipeline builds binaries for the following platforms:
 
 ## Configuration Variables
 
-The pipeline uses the following variables:
+The pipeline uses the following variables that must be configured in aone.ci:
 
-### Global Variables
-- `BINARY_NAME`: The name of the binary (default: `agentbay`)
+### Global Variables (vars)
+- `BINARY_NAME`: The name of the binary (must be set to: `agentbay`)
 - `VERSION_PREFIX`: Version prefix for builds (default: `dev`)
+- `OSS_BUCKET`: OSS bucket name for storing build artifacts
+- `OSS_ENDPOINT`: OSS endpoint URL (e.g., `oss-cn-hangzhou.aliyuncs.com`)
+
+### Secrets (secrets)
+- `OSS_ACCESS_KEY_ID`: OSS access key ID for authentication
+- `OSS_ACCESS_KEY_SECRET`: OSS access key secret for authentication
 
 ### Runtime Variables
 - `VERSION`: Auto-generated as `{VERSION_PREFIX}-{TIMESTAMP}`
@@ -97,6 +103,37 @@ agentbay-{VERSION}-windows-arm64.exe
 
 ### Checksum Files
 Each package includes a corresponding `.sha256` file for integrity verification.
+
+## OSS Upload
+
+After successful build, all packages are automatically uploaded to Alibaba Cloud OSS.
+
+### Upload Structure
+```
+oss://{OSS_BUCKET}/agentbay/releases/{VERSION}/
+├── agentbay-{VERSION}-darwin-amd64.tar.gz
+├── agentbay-{VERSION}-darwin-amd64.tar.gz.sha256
+├── agentbay-{VERSION}-darwin-arm64.tar.gz
+├── agentbay-{VERSION}-darwin-arm64.tar.gz.sha256
+├── agentbay-{VERSION}-linux-amd64.tar.gz
+├── agentbay-{VERSION}-linux-amd64.tar.gz.sha256
+├── agentbay-{VERSION}-linux-arm64.tar.gz
+├── agentbay-{VERSION}-linux-arm64.tar.gz.sha256
+├── agentbay-{VERSION}-windows-amd64.zip
+├── agentbay-{VERSION}-windows-amd64.zip.sha256
+├── agentbay-{VERSION}-windows-amd64.exe
+├── agentbay-{VERSION}-windows-amd64.exe.sha256
+├── agentbay-{VERSION}-windows-arm64.zip
+├── agentbay-{VERSION}-windows-arm64.zip.sha256
+├── agentbay-{VERSION}-windows-arm64.exe
+└── agentbay-{VERSION}-windows-arm64.exe.sha256
+```
+
+### Public Access
+All uploaded files are set with `public-read` ACL, allowing public downloads via:
+```
+https://{OSS_BUCKET}.{OSS_ENDPOINT}/agentbay/releases/{VERSION}/{filename}
+```
 
 ## Usage
 

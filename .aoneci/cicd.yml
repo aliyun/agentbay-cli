@@ -34,7 +34,6 @@ jobs:
         run: |
           echo "Installing dependencies..."
           go mod download
-          go mod tidy
           echo "✅ Dependencies installed"
 
       - id: run-unit-tests
@@ -220,6 +219,93 @@ jobs:
           echo "✅ All packages created:"
           ls -lh packages/
 
+      - id: upload-to-oss
+        name: Upload to OSS
+        run: |
+          echo "Uploading packages to OSS..."
+
+          # Load variables
+          if [ -z "$VERSION" ] && [ -f "$AONE_CI_WORKSPACE/BUILD_VERSION" ]; then
+            export VERSION=$(cat $AONE_CI_WORKSPACE/BUILD_VERSION)
+          fi
+
+          # Set OSS configuration variables
+          export OSS_BUCKET="${{vars.OSS_BUCKET}}"
+          export OSS_ENDPOINT="${{vars.OSS_ENDPOINT}}"
+
+          # Set OSS credentials
+          export OSS_ACCESS_KEY_ID="${{secrets.OSS_ACCESS_KEY_ID}}"
+          export OSS_ACCESS_KEY_SECRET="${{secrets.OSS_ACCESS_KEY_SECRET}}"
+
+          # Debug info
+          echo "=== OSS Configuration ==="
+          echo "OSS_ACCESS_KEY_ID length: ${#OSS_ACCESS_KEY_ID}"
+          echo "OSS_ACCESS_KEY_SECRET length: ${#OSS_ACCESS_KEY_SECRET}"
+          echo "OSS_ENDPOINT: $OSS_ENDPOINT"
+          echo "OSS_BUCKET: $OSS_BUCKET"
+
+          # Check if credentials are set
+          if [[ -z "$OSS_ACCESS_KEY_ID" ]] || [[ -z "$OSS_ACCESS_KEY_SECRET" ]]; then
+            echo "Error: OSS credentials not set in secrets"
+            exit 1
+          fi
+
+          # Install ossutil
+          if ! command -v ossutil >/dev/null 2>&1; then
+            echo "Installing ossutil..."
+            curl -L "https://gosspublic.alicdn.com/ossutil/1.7.19/ossutil-v1.7.19-linux-amd64.zip" -o ossutil.zip
+            unzip -q ossutil.zip
+            OSSUTIL_BINARY=$(find . -name "ossutil*" -type f | head -1)
+            if [[ -z "$OSSUTIL_BINARY" ]]; then
+              echo "Error: Failed to find ossutil binary after extraction"
+              exit 1
+            fi
+            chmod +x "$OSSUTIL_BINARY"
+            mv "$OSSUTIL_BINARY" /usr/local/bin/ossutil
+            rm -f ossutil.zip
+            rm -rf ossutil*/
+            echo "✓ ossutil installed"
+          fi
+
+          # Configure ossutil
+          echo "Configuring ossutil..."
+          if ossutil config --endpoint="${{vars.OSS_ENDPOINT}}" --access-key-id="$OSS_ACCESS_KEY_ID" --access-key-secret="$OSS_ACCESS_KEY_SECRET"; then
+            echo "✓ ossutil configured"
+          else
+            echo "✗ ossutil configuration failed"
+            exit 1
+          fi
+
+          # Test connection
+          echo "Testing OSS connection..."
+          if ossutil ls oss://${{vars.OSS_BUCKET}}/; then
+            echo "✓ Connected to OSS bucket: ${{vars.OSS_BUCKET}}"
+          else
+            echo "✗ Failed to connect to OSS bucket"
+            exit 1
+          fi
+
+          # Upload packages
+          echo "Uploading packages..."
+          for package in packages/*.tar.gz packages/*.zip packages/*.exe packages/*.sha256; do
+            if [[ -f "$package" ]]; then
+              filename=$(basename "$package")
+              echo "Uploading $filename..."
+              if ossutil cp "$package" "oss://$OSS_BUCKET/${{vars.BINARY_NAME}}/releases/$VERSION/$filename" --force; then
+                if ossutil set-acl "oss://$OSS_BUCKET/${{vars.BINARY_NAME}}/releases/$VERSION/$filename" public-read; then
+                  echo "✓ Uploaded: $filename"
+                else
+                  echo "⚠ Uploaded but failed to set ACL: $filename"
+                fi
+              else
+                echo "✗ Failed to upload: $filename"
+                exit 1
+              fi
+            fi
+          done
+
+          echo "✅ All packages uploaded successfully"
+
       - id: print-summary
         name: Print Build Summary
         run: |
@@ -243,6 +329,7 @@ jobs:
           echo "🕒 Build Time: $TIMESTAMP"
           echo "📝 Git Commit: $GIT_COMMIT"
           echo "✅ Unit Tests: Passed"
+          echo "✅ OSS Upload: Complete"
           echo ""
           echo "📦 Generated Packages:"
           echo ""
@@ -262,6 +349,9 @@ jobs:
           echo "  • macOS (Intel, Apple Silicon)"
           echo "  • Linux (x64, ARM64)"
           echo "  • Windows (x64, ARM64)"
+          echo ""
+          echo "📦 Download URLs:"
+          echo "  Base URL: https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/"
           echo ""
           echo "════════════════════════════════════════════════════════════"
 
