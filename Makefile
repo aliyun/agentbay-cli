@@ -27,7 +27,8 @@ build: deps
 clean:
 	$(GOCLEAN)
 	rm -f $(BINARY_NAME)
-	rm -f coverage.out
+	rm -rf bin/
+	rm -f coverage.out coverage.html
 
 test: test-unit
 
@@ -75,16 +76,22 @@ uninstall:
 .PHONY: build-linux build-windows build-darwin build-all
 
 build-linux: deps
-	GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME)-linux-amd64 .
+	GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o bin/$(BINARY_NAME)-linux-amd64 .
+	GOOS=linux GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o bin/$(BINARY_NAME)-linux-arm64 .
 
 build-windows: deps
-	GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME)-windows-amd64.exe .
+	GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o bin/$(BINARY_NAME)-windows-amd64.exe .
+	GOOS=windows GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o bin/$(BINARY_NAME)-windows-arm64.exe .
 
 build-darwin: deps
-	GOOS=darwin GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME)-darwin-amd64 .
-	GOOS=darwin GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME)-darwin-arm64 .
+	GOOS=darwin GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o bin/$(BINARY_NAME)-darwin-amd64 .
+	GOOS=darwin GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o bin/$(BINARY_NAME)-darwin-arm64 .
 
-build-all: build-linux build-windows build-darwin
+build-all: deps
+	@mkdir -p bin
+	$(MAKE) build-linux
+	$(MAKE) build-windows
+	$(MAKE) build-darwin
 
 # Help target
 help:

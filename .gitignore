@@ -39,6 +39,8 @@ agentbay
 agentbay-*
 dist/
 build/
+bin/
+packages/
 
 # Environment files
 .env
