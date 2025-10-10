@@ -1,86 +1,39 @@
 # AgentBay CLI
 
-Command line interface for AgentBay services.
+A command-line interface for AgentBay services.
 
 ## Features
 
-- **Authentication**: OAuth-based login/logout
-- **Image Management**: 
-  - Create custom images from Dockerfiles
-  - List available images with filtering and pagination
-  - Activate User images for deployment
-  - Deactivate activated User images *(requires API enhancement)*
-- **Configuration Management**: Secure token storage and management
+AgentBay CLI provides comprehensive image management capabilities:
 
-## Installation
+- **Authentication**: Secure OAuth-based login with Google account integration
+- **Image Creation**: Build custom images from Dockerfiles with base image support
+- **Image Management**: Activate, deactivate, and monitor image instances
+- **Image Listing**: Browse user and system images with pagination and filtering support
+- **Configuration Management**: Secure token storage and automatic token refresh
+
+## Quick Start
 
 ```bash
-# Build from source
-make build
-
-# Run tests
-make test
-```
-
-## Usage
-
-### Authentication
-```bash
-# Login to AgentBay
+# 1. Log in to AgentBay
 agentbay login
 
-# Logout from AgentBay
-agentbay logout
-```
-
-### Image Management
-```bash
-# List all user images
+# 2. List available user images
 agentbay image list
 
-# List images with filters
-agentbay image list --os-type Linux --size 5
+# 3. Create a custom image
+agentbay image create myapp --dockerfile ./Dockerfile --imageId code_latest
 
-# Create a custom image
-agentbay image create my-image --dockerfile ./Dockerfile --imageId base_image_id
+# 4. Activate the image
+agentbay image activate imgc-xxxxx...xxx
 
-# Activate an image
-agentbay image activate imgc-xxxxxxxxxxxxxx
-
-# Deactivate an image (API enhancement required)
-agentbay image deactivate imgc-xxxxxxxxxxxxxx
+# 5. Deactivate when done
+agentbay image deactivate imgc-xxxxx...xxx
 ```
 
-## API Status
+For detailed usage instructions and examples, see the [User Guide](docs/USER_GUIDE.md).
 
-### Image Deactivate Command
 
-The `image deactivate` command has been implemented but requires backend API enhancement:
+## License
 
-**Current Status**: ✅ Command implemented, ❌ API not ready
-
-**Issue**: The `DeleteResourceGroup` API currently requires a `resourceGroupId` parameter, but the command only has access to `imageId`.
-
-**Required API Enhancement**: 
-- Option 1: Modify `DeleteResourceGroup` API to accept `imageId` parameter and internally resolve to `resourceGroupId`
-- Option 2: Add a new API endpoint specifically for image deactivation that takes `imageId`
-
-**Error Message**: 
-```
-MissingParameter: There is a missing parameter resourceGroupId
-```
-
-**Implementation**: The command structure, validation, status polling, and user experience are fully implemented and ready for testing once the API is enhanced.
-
-## Development
-
-```bash
-# Run unit tests
-make test
-
-# Build the CLI
-make build
-
-# Run with verbose output
-./agentbay --verbose <command>
-``` 
+This project is licensed under the Apache License 2.0 - see the LICENSE file for details. 
