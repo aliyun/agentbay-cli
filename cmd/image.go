@@ -132,7 +132,6 @@ func init() {
 	imageListCmd.Flags().StringP("os-type", "o", "", "Filter by OS type: Linux, Android, or Windows (optional)")
 	imageListCmd.Flags().IntP("page", "p", 1, "Page number (default: 1)")
 	imageListCmd.Flags().IntP("size", "s", 10, "Page size (default: 10)")
-	imageListCmd.Flags().Int32P("max-results", "m", 100, "Maximum number of results to return (default: 100)")
 
 	// Add subcommands to image command
 	ImageCmd.AddCommand(imageCreateCmd)
@@ -184,10 +183,12 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "[ERROR] Failed to load configuration: %v\n", err)
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
 	if !cfg.IsAuthenticated() {
+		fmt.Fprintf(os.Stderr, "[ERROR] Not authenticated. Please run 'agentbay login' first\n")
 		return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
 	}
 
@@ -195,6 +196,23 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 	apiClient := agentbay.NewClientFromConfig(cfg)
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Minute)
 	defer cancel()
+
+	// Validate source image ID exists before proceeding
+	fmt.Printf("Validating source image ID '%s'...\n", sourceImageId)
+	validateCtx, validateCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer validateCancel()
+
+	_, err = GetImageInfo(validateCtx, apiClient, sourceImageId)
+	if err != nil {
+		return printErrorMessage(
+			fmt.Sprintf("[ERROR] Source image not found: %s", sourceImageId),
+			"",
+			fmt.Sprintf("[TIP] The specified source image ID '%s' does not exist or is not accessible.", sourceImageId),
+			"[TIP] Use 'agentbay image list' to see available images that can be used as base images.",
+			"[NOTE] Example: agentbay image list",
+		)
+	}
+	fmt.Printf(" Done.\n")
 
 	// Step 1: Get Docker file store credentials
 	fmt.Printf("[STEP 1/4] Getting upload credentials...\n")
@@ -456,17 +474,18 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	osType, _ := cmd.Flags().GetString("os-type")
 	page, _ := cmd.Flags().GetInt("page")
 	pageSize, _ := cmd.Flags().GetInt("size")
-	maxResults, _ := cmd.Flags().GetInt32("max-results")
 
 	fmt.Printf("[LIST] Fetching available AgentBay user images...\n")
 
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "[ERROR] Failed to load configuration: %v\n", err)
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
 	if !cfg.IsAuthenticated() {
+		fmt.Fprintf(os.Stderr, "[ERROR] Not authenticated. Please run 'agentbay login' first\n")
 		return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
 	}
 
@@ -492,9 +511,6 @@ func runImageList(cmd *cobra.Command, args []string) error {
 		pageInt32 := int32(page)
 		req.PageStart = &pageInt32
 	}
-	if maxResults > 0 {
-		req.MaxResults = &maxResults
-	}
 
 	// Debug: Print request details
 	if log.GetLevel() >= log.DebugLevel {
@@ -508,9 +524,6 @@ func runImageList(cmd *cobra.Command, args []string) error {
 		}
 		if req.PageStart != nil {
 			log.Debugf("[DEBUG] - PageStart: %d", *req.PageStart)
-		}
-		if req.MaxResults != nil {
-			log.Debugf("[DEBUG] - MaxResults: %d", *req.MaxResults)
 		}
 	}
 
@@ -555,7 +568,7 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	}
 
 	images := resp.Body.GetData()
-	if images == nil || len(images) == 0 {
+	if len(images) == 0 {
 		fmt.Printf("\n[EMPTY] No images found.\n")
 		return nil
 	}
@@ -835,10 +848,12 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "[ERROR] Failed to load configuration: %v\n", err)
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
 	if !cfg.IsAuthenticated() {
+		fmt.Fprintf(os.Stderr, "[ERROR] Not authenticated. Please run 'agentbay login' first\n")
 		return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
 	}
 
@@ -966,10 +981,12 @@ func runImageDeactivate(cmd *cobra.Command, args []string) error {
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "[ERROR] Failed to load configuration: %v\n", err)
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
 	if !cfg.IsAuthenticated() {
+		fmt.Fprintf(os.Stderr, "[ERROR] Not authenticated. Please run 'agentbay login' first\n")
 		return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
 	}
 

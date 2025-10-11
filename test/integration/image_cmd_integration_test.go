@@ -1,6 +1,9 @@
 // Copyright 2025 AgentBay CLI Contributors
 // SPDX-License-Identifier: Apache-2.0
 
+//go:build integration
+// +build integration
+
 package cmd
 
 import (
@@ -15,7 +18,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func TestImageCreateCommand(t *testing.T) {
+// These tests execute full commands and may make real API calls
+// They are marked as integration tests to separate them from fast unit tests
+
+func TestImageCreateCommand_Integration(t *testing.T) {
 	tests := []struct {
 		name        string
 		args        []string
@@ -147,7 +153,7 @@ func TestImageCreateCommand(t *testing.T) {
 	}
 }
 
-func TestImageCreateCommandWithValidDockerfile(t *testing.T) {
+func TestImageCreateCommandWithValidDockerfile_Integration(t *testing.T) {
 	// Create a temporary dockerfile for testing
 	tempDir := t.TempDir()
 	dockerfilePath := filepath.Join(tempDir, "Dockerfile")
@@ -158,7 +164,7 @@ func TestImageCreateCommandWithValidDockerfile(t *testing.T) {
 
 	// Test with valid dockerfile but no authentication (should fail at auth check)
 	rootCmd := &cobra.Command{Use: "agentbay"}
-	rootCmd.AddGroup(&cobra.Group{ID: "management", Title: "Management Commands"})
+	rootCmd.AddGroup(&cobra.Command{ID: "management", Title: "Management Commands"})
 	rootCmd.AddCommand(cmd.ImageCmd)
 
 	cmdArgs := []string{"image", "create", "myimage", "--dockerfile", dockerfilePath, "--imageId", "test-id"}
@@ -178,79 +184,7 @@ func TestImageCreateCommandWithValidDockerfile(t *testing.T) {
 	}
 }
 
-// TestImageStatusHandling tests the status handling logic for different build statuses
-func TestImageStatusHandling(t *testing.T) {
-	tests := []struct {
-		name           string
-		status         string
-		expectSuccess  bool
-		expectContinue bool
-		expectWarning  bool
-	}{
-		{
-			name:          "SUCCESS status should complete successfully",
-			status:        "SUCCESS",
-			expectSuccess: true,
-		},
-		{
-			name:          "Finished status should complete successfully",
-			status:        "Finished",
-			expectSuccess: true,
-		},
-		{
-			name:           "RUNNING status should continue polling",
-			status:         "RUNNING",
-			expectContinue: true,
-		},
-		{
-			name:           "PENDING status should continue polling",
-			status:         "PENDING",
-			expectContinue: true,
-		},
-		{
-			name:           "Preparing status should continue polling",
-			status:         "Preparing",
-			expectContinue: true,
-		},
-		{
-			name:          "FAILED status should return error",
-			status:        "FAILED",
-			expectSuccess: false,
-		},
-		{
-			name:          "Unknown status should show warning and continue",
-			status:        "UNKNOWN",
-			expectWarning: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// This test validates that the status constants we use in the switch statement
-			// match the actual values returned by the API
-			switch tt.status {
-			case "SUCCESS", "Finished":
-				if !tt.expectSuccess {
-					t.Errorf("Expected success for status %s", tt.status)
-				}
-			case "FAILED":
-				if tt.expectSuccess {
-					t.Errorf("Expected failure for status %s", tt.status)
-				}
-			case "RUNNING", "PENDING", "Preparing":
-				if !tt.expectContinue {
-					t.Errorf("Expected continue for status %s", tt.status)
-				}
-			default:
-				if !tt.expectWarning {
-					t.Errorf("Expected warning for unknown status %s", tt.status)
-				}
-			}
-		})
-	}
-}
-
-func TestImageListCommand(t *testing.T) {
+func TestImageListCommand_Integration(t *testing.T) {
 	tests := []struct {
 		name        string
 		args        []string
@@ -268,7 +202,6 @@ func TestImageListCommand(t *testing.T) {
 			args:    []string{"extra-arg"},
 			wantErr: false, // Extra args are ignored, command still runs but fails on auth
 		},
-
 		{
 			name:    "with os-type filter Linux",
 			args:    []string{},
@@ -352,81 +285,7 @@ func TestImageListCommand(t *testing.T) {
 	}
 }
 
-func TestImageListCommandFlags(t *testing.T) {
-	// Find the list command
-	var imageListCmd *cobra.Command
-	for _, subCmd := range cmd.ImageCmd.Commands() {
-		if subCmd.Use == "list" {
-			imageListCmd = subCmd
-			break
-		}
-	}
-
-	if imageListCmd == nil {
-		t.Fatal("Could not find list command")
-	}
-
-	expectedFlags := []struct {
-		name      string
-		shorthand string
-		usage     string
-	}{
-		{"os-type", "o", "Filter by OS type: Linux, Android, or Windows (optional)"},
-		{"page", "p", "Page number (default: 1)"},
-		{"size", "s", "Page size (default: 10)"},
-	}
-
-	for _, expected := range expectedFlags {
-		flag := imageListCmd.Flags().Lookup(expected.name)
-		if flag == nil {
-			t.Errorf("Expected flag %q not found", expected.name)
-			continue
-		}
-
-		if flag.Shorthand != expected.shorthand {
-			t.Errorf("Flag %q shorthand: expected %q, got %q", expected.name, expected.shorthand, flag.Shorthand)
-		}
-
-		if flag.Usage != expected.usage {
-			t.Errorf("Flag %q usage: expected %q, got %q", expected.name, expected.usage, flag.Usage)
-		}
-	}
-}
-
-func TestImageListCommandMetadata(t *testing.T) {
-	// Find the list subcommand
-	var listCmd *cobra.Command
-	for _, subCmd := range cmd.ImageCmd.Commands() {
-		if subCmd.Use == "list" {
-			listCmd = subCmd
-			break
-		}
-	}
-
-	if listCmd == nil {
-		t.Fatal("image list command not found")
-	}
-
-	// Test command metadata
-	if listCmd.Use != "list" {
-		t.Errorf("Expected Use to be 'list', got %q", listCmd.Use)
-	}
-
-	if listCmd.Short != "List available AgentBay images" {
-		t.Errorf("Expected Short description, got %q", listCmd.Short)
-	}
-
-	if !strings.Contains(listCmd.Long, "List available AgentBay images") {
-		t.Errorf("Expected Long description to contain usage info, got %q", listCmd.Long)
-	}
-
-	// Test that it has examples
-	if !strings.Contains(listCmd.Long, "Examples:") {
-		t.Errorf("Expected Long description to contain examples, got %q", listCmd.Long)
-	}
-}
-
-func TestImageActivateCommand(t *testing.T) {
+func TestImageActivateCommand_Integration(t *testing.T) {
 	tests := []struct {
 		name        string
 		args        []string
@@ -487,63 +346,7 @@ func TestImageActivateCommand(t *testing.T) {
 	}
 }
 
-func TestImageActivateCommandFlags(t *testing.T) {
-	// Find the activate command
-	var activateCmd *cobra.Command
-	for _, subCmd := range cmd.ImageCmd.Commands() {
-		if subCmd.Use == "activate <image-id>" {
-			activateCmd = subCmd
-			break
-		}
-	}
-
-	if activateCmd == nil {
-		t.Fatal("Could not find activate command")
-	}
-
-	// Check that the command exists and has the right properties
-	if activateCmd.Use != "activate <image-id>" {
-		t.Errorf("Expected Use to be 'activate <image-id>', got: %s", activateCmd.Use)
-	}
-
-	if activateCmd.Short != "Activate a User image" {
-		t.Errorf("Expected Short to be 'Activate a User image', got: %s", activateCmd.Short)
-	}
-
-	// Check that it requires exactly one argument
-	if activateCmd.Args == nil {
-		t.Error("Expected Args to be set")
-	}
-}
-
-func TestImageActivateCommandMetadata(t *testing.T) {
-	// Find the activate command
-	var activateCmd *cobra.Command
-	for _, subCmd := range cmd.ImageCmd.Commands() {
-		if subCmd.Use == "activate <image-id>" {
-			activateCmd = subCmd
-			break
-		}
-	}
-
-	if activateCmd == nil {
-		t.Fatal("Could not find activate command")
-	}
-
-	if !strings.Contains(activateCmd.Long, "User image") {
-		t.Error("Expected Long description to mention 'User image'")
-	}
-
-	if !strings.Contains(activateCmd.Long, "resource group") {
-		t.Error("Expected Long description to mention 'resource group'")
-	}
-
-	if !strings.Contains(activateCmd.Long, "Only User type images can be activated") {
-		t.Error("Expected Long description to mention User type restriction")
-	}
-}
-
-func TestImageDeactivateCommand(t *testing.T) {
+func TestImageDeactivateCommand_Integration(t *testing.T) {
 	tests := []struct {
 		name        string
 		args        []string
@@ -616,64 +419,5 @@ func TestImageDeactivateCommand(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-func TestImageDeactivateCommandFlags(t *testing.T) {
-	// Find the deactivate subcommand
-	var imageDeactivateCmd *cobra.Command
-	for _, subCmd := range cmd.ImageCmd.Commands() {
-		if strings.HasPrefix(subCmd.Use, "deactivate") {
-			imageDeactivateCmd = subCmd
-			break
-		}
-	}
-
-	if imageDeactivateCmd == nil {
-		t.Fatal("Could not find deactivate command")
-	}
-
-	// Test command properties
-	if imageDeactivateCmd.Use != "deactivate <image-id>" {
-		t.Errorf("Expected Use to be 'deactivate <image-id>', got '%s'", imageDeactivateCmd.Use)
-	}
-
-	if imageDeactivateCmd.Short != "Deactivate an activated User image" {
-		t.Errorf("Expected Short to be 'Deactivate an activated User image', got '%s'", imageDeactivateCmd.Short)
-	}
-
-	// Test that it accepts exactly 1 argument
-	if imageDeactivateCmd.Args == nil {
-		t.Error("Expected Args to be set")
-	}
-}
-
-func TestImageDeactivateCommandMetadata(t *testing.T) {
-	// Find the deactivate subcommand
-	var imageDeactivateCmd *cobra.Command
-	for _, subCmd := range cmd.ImageCmd.Commands() {
-		if strings.HasPrefix(subCmd.Use, "deactivate") {
-			imageDeactivateCmd = subCmd
-			break
-		}
-	}
-
-	if imageDeactivateCmd == nil {
-		t.Fatal("Could not find deactivate command")
-	}
-
-	// Test Long description content
-	expectedContent := []string{
-		"Deactivate an activated User image",
-		"deletes the resource group",
-		"Examples:",
-		"agentbay image deactivate imgc-xxxxxxxxxxxxxx",
-		"--verbose",
-	}
-
-	for _, content := range expectedContent {
-		if !strings.Contains(imageDeactivateCmd.Long, content) {
-			t.Errorf("Expected Long description to contain '%s'", content)
-		}
 	}
 }
