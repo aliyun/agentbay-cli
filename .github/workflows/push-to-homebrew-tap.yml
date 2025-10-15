@@ -1,0 +1,259 @@
+name: Push to Homebrew Tap
+
+# Support manual trigger with parameters to control whether to execute push
+on:
+  workflow_dispatch:
+    inputs:
+      push_to_tap:
+        description: 'Push rb file to homebrew-agentbay repository (true/false)'
+        required: true
+        type: boolean
+        default: false
+      version:
+        description: 'Version for the Formula (optional, will use latest tag if not provided)'
+        required: false
+        type: string
+        default: ''
+
+# Permission settings
+permissions:
+  contents: read
+  actions: read
+
+# Environment variables
+env:
+  HOMEBREW_TAP_REPO: 'homebrew-agentbay'  # Target repository name
+  SOURCE_RB_PATH: 'homebrew/agentbay.rb'  # Source rb file path
+  TARGET_RB_PATH: 'Formula/agentbay.rb'   # Target rb file path
+
+jobs:
+  push-to-homebrew-tap:
+    name: Push Formula to Homebrew Tap
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    # Only execute when parameter is true
+    if: ${{ github.event.inputs.push_to_tap == 'true' }}
+    
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Git configuration
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+
+      - name: Validate source rb file
+        run: |
+          echo "Checking source rb file..."
+          if [[ ! -f "${{ env.SOURCE_RB_PATH }}" ]]; then
+            echo "❌ Source rb file not found: ${{ env.SOURCE_RB_PATH }}"
+            exit 1
+          fi
+          
+          echo "✅ Source rb file found: ${{ env.SOURCE_RB_PATH }}"
+          echo "File content preview:"
+          head -10 "${{ env.SOURCE_RB_PATH }}"
+
+      - name: Determine version
+        id: version
+        env:
+          GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            INPUT_VERSION="${{ github.event.inputs.version }}"
+            echo "Validating input version: $INPUT_VERSION"
+            
+            # Verify if version exists in GitHub releases
+            RELEASE_EXISTS=$(gh api repos/${{ github.repository }}/releases/tags/v$INPUT_VERSION --silent 2>/dev/null && echo "true" || echo "false")
+            
+            if [[ "$RELEASE_EXISTS" == "true" ]]; then
+              VERSION="$INPUT_VERSION"
+              echo "✅ Version v$VERSION found in releases"
+            else
+              echo "❌ Version v$INPUT_VERSION not found in GitHub releases"
+              echo "Available releases:"
+              gh api repos/${{ github.repository }}/releases --jq '.[].tag_name' | head -10
+              exit 1
+            fi
+          else
+            # Read current version number from rb file
+            echo "Reading version from rb file: ${{ env.SOURCE_RB_PATH }}"
+            
+            if [[ ! -f "${{ env.SOURCE_RB_PATH }}" ]]; then
+              echo "❌ Source rb file not found: ${{ env.SOURCE_RB_PATH }}"
+              exit 1
+            fi
+            
+            # Extract version number from rb file (looking for url "...v1.2.3.tar.gz" format)
+            VERSION=$(grep -o 'tags/v[0-9]\+\.[0-9]\+\.[0-9]\+' "${{ env.SOURCE_RB_PATH }}" | head -1 | sed 's/tags\/v//')
+            
+            if [[ -z "$VERSION" ]]; then
+              echo "❌ Could not extract version from rb file"
+              echo "Rb file content:"
+              cat "${{ env.SOURCE_RB_PATH }}"
+              exit 1
+            fi
+            
+            echo "✅ Using version from rb file: $VERSION"
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Final version: $VERSION"
+
+      - name: Update rb file with current version
+        # Only execute update operation when user manually inputs version number
+        if: ${{ github.event.inputs.version != '' }}
+        run: |
+          echo "Updating rb file with version $VERSION..."
+          
+          # Create temporary file to update version information
+          cp "${{ env.SOURCE_RB_PATH }}" /tmp/agentbay.rb.tmp
+          
+          # Update version number (if version information exists in rb file)
+          sed -i "s/version \"[^\"]*\"/version \"$VERSION\"/g" /tmp/agentbay.rb.tmp
+          
+          # Update version tag in URL
+          sed -i "s|/tags/v[^/]*/|/tags/v$VERSION/|g" /tmp/agentbay.rb.tmp
+          
+          echo "Updated rb file content:"
+          echo "========================"
+          cat /tmp/agentbay.rb.tmp
+          echo "========================"
+
+      - name: Use existing rb file (no version update)
+        # When user doesn't input version number, use existing rb file directly
+        if: ${{ github.event.inputs.version == '' }}
+        run: |
+          echo "Using existing rb file without version update..."
+          echo "Version will be read from existing rb file: $VERSION"
+          
+          # Directly copy existing rb file
+          cp "${{ env.SOURCE_RB_PATH }}" /tmp/agentbay.rb.tmp
+          
+          echo "Existing rb file content:"
+          echo "========================"
+          cat /tmp/agentbay.rb.tmp
+          echo "========================"
+
+      - name: Clone or create homebrew-agentbay repository
+        env:
+          GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          echo "Cloning homebrew-agentbay repository..."
+          echo "Repository URL: https://github.com/agentbay/${{ env.HOMEBREW_TAP_REPO }}.git"
+          
+          # Clone target repository
+          git clone "https://x-access-token:${{ secrets.HOMEBREW_TAP_TOKEN }}@github.com/agentbay/${{ env.HOMEBREW_TAP_REPO }}.git" homebrew-tap
+          
+          echo "✅ Successfully cloned homebrew-agentbay repository"
+          
+          # Display repository information
+          cd homebrew-tap
+          echo "Current branch: $(git branch --show-current)"
+          echo "Repository structure:"
+          ls -la
+          cd ..
+
+      - name: Update Formula in homebrew-agentbay repository
+        run: |
+          echo "Updating Formula in homebrew-agentbay repository..."
+          
+          cd homebrew-tap
+          
+          # Check if Formula directory exists
+          if [[ -d "Formula" ]]; then
+            echo "✅ Formula directory already exists"
+          else
+            echo "📁 Formula directory not found, creating it..."
+            mkdir -p Formula
+            echo "✅ Formula directory created successfully"
+          fi
+          
+          # Verify Formula directory actually exists
+          if [[ ! -d "Formula" ]]; then
+            echo "❌ Failed to create Formula directory"
+            exit 1
+          fi
+          
+          # Copy updated rb file to target location
+          cp /tmp/agentbay.rb.tmp "${{ env.TARGET_RB_PATH }}"
+          
+          echo "✅ Formula file updated at ${{ env.TARGET_RB_PATH }}"
+          
+          # Display file content for confirmation
+          echo "Updated Formula content:"
+          echo "========================"
+          cat "${{ env.TARGET_RB_PATH }}"
+          echo "========================"
+
+      - name: Commit and push changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          cd homebrew-tap
+          
+          echo "📝 Preparing to commit and push Formula file..."
+          
+          # Add changes (regardless of whether there are actual changes)
+          git add "${{ env.TARGET_RB_PATH }}"
+          
+          # Create commit message
+          COMMIT_MSG="Update agentbay formula to version $VERSION
+          
+          - Updated from source repository: ${{ github.repository }}
+          - Source file: ${{ env.SOURCE_RB_PATH }}
+          - Target file: ${{ env.TARGET_RB_PATH }}
+          - Triggered by: ${{ github.actor }}
+          - Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          - Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          
+          # Commit changes (allow empty commit)
+          git commit -m "$COMMIT_MSG" --allow-empty
+          echo "✅ Formula committed successfully"
+          
+          # Push to remote repository
+          echo "Pushing changes to homebrew-agentbay repository..."
+          if git push origin main 2>/dev/null || git push origin master 2>/dev/null; then
+            echo "✅ Successfully pushed Formula to homebrew-agentbay repository"
+          else
+            echo "⚠️ Failed to push to existing branch, trying to create new branch..."
+            git push -u origin HEAD:main
+            echo "✅ Successfully created and pushed to main branch"
+          fi
+
+      - name: Summary
+        run: |
+          echo ""
+          echo "🎉 Formula push completed successfully!"
+          echo ""
+          echo "📋 Summary:"
+          echo "  - Source repository: ${{ github.repository }}"
+          echo "  - Target repository: agentbay/${{ env.HOMEBREW_TAP_REPO }}"
+          echo "  - Formula version: $VERSION"
+          echo "  - Source file: ${{ env.SOURCE_RB_PATH }}"
+          echo "  - Target file: ${{ env.TARGET_RB_PATH }}"
+          echo ""
+          echo "🍺 Users can now install with:"
+          echo "  brew tap agentbay/${{ env.HOMEBREW_TAP_REPO }}"
+          echo "  brew install agentbay"
+          echo ""
+          echo "🔗 Repository URL:"
+          echo "  https://github.com/agentbay/${{ env.HOMEBREW_TAP_REPO }}"
+
+  # Show skip information when parameter is false
+  skip-push:
+    name: Skip Push (Parameter is false)
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.push_to_tap != 'true' }}
+    
+    steps:
+      - name: Skip message
+        run: |
+          echo "⏭️ Skipping push to agentbay-homebrew repository"
+          echo "   Reason: push_to_tap parameter is set to '${{ github.event.inputs.push_to_tap }}'"
+          echo "   To enable push, set the parameter to 'true' when running this workflow manually"
