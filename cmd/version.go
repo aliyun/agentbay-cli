@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/agentbay/agentbay-cli/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -24,6 +25,13 @@ var VersionCmd = &cobra.Command{
 		fmt.Printf("AgentBay CLI version %s\n", Version)
 		fmt.Printf("Git commit: %s\n", GitCommit)
 		fmt.Printf("Build date: %s\n", BuildDate)
+
+		// Show environment information
+		env := config.GetEnvironment()
+		envConfig := config.GetEnvironmentConfig()
+		fmt.Printf("Environment: %s\n", env)
+		fmt.Printf("Endpoint: %s\n", envConfig.Endpoint)
+
 		return nil
 	},
 }

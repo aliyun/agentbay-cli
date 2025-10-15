@@ -3,9 +3,15 @@
 
 package cmd
 
+import "github.com/agentbay/agentbay-cli/internal/config"
+
 // OAuth constants
 const (
-	ClientID     = "4019057658592127596"
 	RedirectURI  = "http://localhost:3001/callback"
 	CallbackPort = "3001"
 )
+
+// GetClientID returns the OAuth client ID for the current environment
+func GetClientID() string {
+	return config.GetClientID()
+}

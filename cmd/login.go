@@ -50,7 +50,7 @@ func runLogin(cmd *cobra.Command) error {
 	}
 
 	// Build authorization URL
-	authURL := auth.BuildAuthURL(ClientID, RedirectURI, state)
+	authURL := auth.BuildAuthURL(GetClientID(), RedirectURI, state)
 
 	fmt.Println("Opening browser for authentication...")
 	fmt.Printf("If the browser doesn't open automatically, please visit:\n%s\n\n", authURL)
@@ -98,7 +98,7 @@ func runLogin(cmd *cobra.Command) error {
 		// Exchange code for token
 		fmt.Println("Exchanging authorization code for access token...")
 
-		tokenResponse, err := auth.ExchangeCodeForToken(ClientID, RedirectURI, code)
+		tokenResponse, err := auth.ExchangeCodeForToken(GetClientID(), RedirectURI, code)
 		if err != nil {
 			fmt.Printf("Debug: Token exchange failed with error: %v\n", err)
 			return fmt.Errorf("failed to exchange code for token: %w", err)

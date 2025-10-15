@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/agentbay/agentbay-cli/cmd"
 	"github.com/agentbay/agentbay-cli/internal/agentbay"
 	"github.com/agentbay/agentbay-cli/internal/auth"
 	"github.com/agentbay/agentbay-cli/internal/client"
@@ -63,7 +64,7 @@ func TestTokenRefreshIntegration(t *testing.T) {
 		assert.True(t, cfg.IsAuthenticated())
 
 		// Try to refresh (will fail with test tokens but we can verify the attempt)
-		err = auth.RefreshTokenIfNeeded(cfg, auth.DefaultClientID)
+		err = auth.RefreshTokenIfNeeded(cfg, cmd.GetClientID())
 
 		// We expect an error because test tokens are not valid
 		// But we can verify that the refresh mechanism was triggered
@@ -86,7 +87,7 @@ func TestTokenRefreshIntegration(t *testing.T) {
 		require.NoError(t, err)
 
 		// Try to refresh
-		err = auth.RefreshTokenIfNeeded(cfg, auth.DefaultClientID)
+		err = auth.RefreshTokenIfNeeded(cfg, cmd.GetClientID())
 
 		// Should not attempt refresh, so no error
 		assert.NoError(t, err, "should not refresh when token is still valid")
@@ -168,7 +169,7 @@ func TestTokenRefreshWithExpiredToken(t *testing.T) {
 		assert.True(t, cfg.IsTokenExpired())
 
 		// Try to refresh
-		err = auth.RefreshTokenIfNeeded(cfg, auth.DefaultClientID)
+		err = auth.RefreshTokenIfNeeded(cfg, cmd.GetClientID())
 
 		// We expect an error because test tokens are not valid
 		assert.Error(t, err, "expected error with test tokens")

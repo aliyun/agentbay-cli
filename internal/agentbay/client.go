@@ -156,11 +156,7 @@ func (cw *clientWrapper) getClient() (*client.Client, error) {
 	// Create an adapter to bridge config.Config to auth.TokenConfig
 	tokenCfgAdapter := auth.NewConfigAdapter(
 		func() (string, string, time.Time, error) {
-			token, err := cw.config.GetTokens()
-			if err != nil {
-				return "", "", time.Time{}, err
-			}
-			return token.AccessToken, token.RefreshToken, token.ExpiresAt, nil
+			return cw.config.GetTokens()
 		},
 		cw.config.RefreshTokens,
 		cw.config.IsTokenExpired,
@@ -175,7 +171,7 @@ func (cw *clientWrapper) getClient() (*client.Client, error) {
 
 	// Get authentication token (now guaranteed to be valid or refreshed)
 	log.Debugf("[DEBUG] getClient: Getting authentication token...")
-	token, err := cw.config.GetTokens()
+	token, err := cw.config.GetToken()
 	if err != nil {
 		log.Debugf("[DEBUG] getClient: Failed to get authentication token: %v", err)
 		return nil, fmt.Errorf("failed to get authentication token: %w", err)
@@ -192,13 +188,12 @@ func (cw *clientWrapper) getClient() (*client.Client, error) {
 	// For Alibaba Cloud SDK, we should pass only the hostname, not the full URL
 	endpoint := cw.apiConfig.Endpoint // Use raw endpoint without https:// prefix
 	log.Debugf("[DEBUG] getClient: Creating OpenAPI config with endpoint: %s", endpoint)
-	log.Debugf("[DEBUG] getClient: Region: %s, Timeout: %d ms", cw.apiConfig.RegionID, cw.apiConfig.TimeoutMs)
+	log.Debugf("[DEBUG] getClient: Timeout: %d ms", cw.apiConfig.TimeoutMs)
 
 	openapiConfig := &openapiutil.Config{
 		// Use BearerToken for OAuth authentication (backend now supports BearerToken)
 		BearerToken:    dara.String(token.AccessToken),
 		Endpoint:       dara.String(endpoint),
-		RegionId:       dara.String(cw.apiConfig.RegionID),
 		ReadTimeout:    dara.Int(cw.apiConfig.TimeoutMs),
 		ConnectTimeout: dara.Int(cw.apiConfig.TimeoutMs),
 		UserAgent:      dara.String("AgentBay-CLI/1.0"),

@@ -39,7 +39,7 @@ func runLogout(cmd *cobra.Command) error {
 		// Attempt to revoke server tokens
 		fmt.Println("Revoking server tokens...")
 
-		token, err := cfg.GetTokens()
+		token, err := cfg.GetToken()
 		if err != nil {
 			fmt.Printf("Warning: Could not get tokens for revocation: %v\n", err)
 		} else {
@@ -49,7 +49,7 @@ func runLogout(cmd *cobra.Command) error {
 
 			// Try to revoke refresh token
 			if token.RefreshToken != "" {
-				err = auth.RevokeTokenWithHint(ClientID, token.RefreshToken, "refresh_token")
+				err = auth.RevokeTokenWithHint(GetClientID(), token.RefreshToken, "refresh_token")
 				if err != nil {
 					fmt.Printf("Warning: Could not revoke refresh token: %v\n", err)
 				} else {

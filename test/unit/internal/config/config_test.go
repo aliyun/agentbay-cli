@@ -55,7 +55,7 @@ func TestConfig(t *testing.T) {
 		assert.True(t, cfg.IsAuthenticated())
 
 		// Verify tokens are saved correctly
-		token, err := cfg.GetTokens()
+		token, err := cfg.GetToken()
 		assert.NoError(t, err)
 		assert.Equal(t, accessToken, token.AccessToken)
 		assert.Equal(t, tokenType, token.TokenType)
@@ -78,7 +78,7 @@ func TestConfig(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, config2.IsAuthenticated())
 
-		token, err := config2.GetTokens()
+		token, err := config2.GetToken()
 		assert.NoError(t, err)
 		assert.Equal(t, accessToken, token.AccessToken)
 	})
@@ -98,7 +98,7 @@ func TestConfig(t *testing.T) {
 		assert.False(t, cfg.IsAuthenticated())
 
 		// Verify tokens are cleared
-		_, err = cfg.GetTokens()
+		_, err = cfg.GetToken()
 		assert.Error(t, err)
 		assert.Equal(t, config.ErrNoTokenFound, err)
 	})
@@ -117,7 +117,7 @@ func TestConfig(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify new token is saved
-		token, err := cfg.GetTokens()
+		token, err := cfg.GetToken()
 		assert.NoError(t, err)
 		assert.Equal(t, newAccessToken, token.AccessToken)
 		assert.Equal(t, "refresh-token", token.RefreshToken) // Should remain unchanged

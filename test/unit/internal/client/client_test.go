@@ -16,7 +16,6 @@ func TestClient(t *testing.T) {
 	t.Run("NewClient should create client with correct configuration", func(t *testing.T) {
 		cfg := &config.Config{}
 		apiConfig := &config.APIConfig{
-			RegionID:  "test-region",
 			Endpoint:  "api.example.com",
 			TimeoutMs: 30000,
 		}

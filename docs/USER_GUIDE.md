@@ -155,10 +155,64 @@ agentbay -v image list
 - Use `agentbay image list` to find valid IDs
 
 **Q: Where is config stored?**
-`~/.agentbay/config.json`
+`~/.config/agentbay/config.json` (macOS/Linux) or `%APPDATA%\agentbay\config.json` (Windows)
 
 **Q: Supported OS types?**
 Linux, Windows, Android
+
+---
+
+## Environment Switching (Internal Use Only)
+
+**Note: This section is for internal developers and testing purposes only.**
+
+AgentBay CLI supports switching between production and pre-release environments using the `AGENTBAY_ENV` environment variable.
+
+### Switch to Pre-release Environment
+
+```bash
+# Temporary (single command)
+AGENTBAY_ENV=prerelease agentbay login
+
+# Session-wide (current terminal)
+export AGENTBAY_ENV=prerelease
+agentbay login
+agentbay image list
+
+# Permanent (add to ~/.zshrc or ~/.bashrc)
+echo 'export AGENTBAY_ENV=prerelease' >> ~/.zshrc
+source ~/.zshrc
+```
+
+### Switch back to Production
+
+```bash
+# Remove environment variable
+unset AGENTBAY_ENV
+
+# Or explicitly set to production
+export AGENTBAY_ENV=production
+```
+
+### Verify Current Environment
+
+```bash
+agentbay version
+```
+
+**Output:**
+```
+AgentBay CLI version x.x.x
+Git commit: xxxxxxx
+Build date: 2025-xx-xx
+Environment: production
+Endpoint: xiaoying-share.cn-shanghai.aliyuncs.com
+```
+
+### Supported Environment Values
+
+- Production: `production`, `prod`, or not set (default)
+- Pre-release: `prerelease`, `pre`, `staging`
 
 ---
 

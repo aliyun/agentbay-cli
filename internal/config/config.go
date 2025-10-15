@@ -82,17 +82,17 @@ func (c *Config) Save() error {
 	return os.WriteFile(configFilePath, configContent, 0600) // More secure permissions for auth data
 }
 
-// GetTokens retrieves authentication tokens
-func (c *Config) GetTokens() (*Token, error) {
+// GetToken retrieves the authentication token object
+func (c *Config) GetToken() (*Token, error) {
 	if c.Token == nil {
 		return nil, ErrNoTokenFound
 	}
 	return c.Token, nil
 }
 
-// GetTokensForRefresh returns token information for the refresh mechanism
+// GetTokens returns token information for the refresh mechanism
 // This method implements the auth.TokenConfig interface
-func (c *Config) GetTokensForRefresh() (accessToken string, refreshToken string, expiresAt time.Time, err error) {
+func (c *Config) GetTokens() (accessToken string, refreshToken string, expiresAt time.Time, err error) {
 	if c.Token == nil {
 		return "", "", time.Time{}, ErrNoTokenFound
 	}

@@ -12,7 +12,6 @@ import (
 
 // APIConfig stores API configuration
 type APIConfig struct {
-	RegionID  string `json:"region_id"`
 	Endpoint  string `json:"endpoint"`
 	TimeoutMs int    `json:"timeout_ms"`
 }
@@ -20,8 +19,7 @@ type APIConfig struct {
 // DefaultAPIConfig returns the default API configuration
 func DefaultAPIConfig() APIConfig {
 	return APIConfig{
-		RegionID:  "cn-shanghai",
-		Endpoint:  "xiaoying-share.cn-shanghai.aliyuncs.com",
+		Endpoint:  GetDefaultEndpoint(),
 		TimeoutMs: 60000,
 	}
 }
@@ -31,7 +29,6 @@ func LoadAPIConfig(cfg *APIConfig) APIConfig {
 	if cfg != nil {
 		// If config is explicitly provided, use it directly
 		return APIConfig{
-			RegionID:  cfg.RegionID,
 			Endpoint:  cfg.Endpoint,
 			TimeoutMs: cfg.TimeoutMs,
 		}
@@ -40,18 +37,12 @@ func LoadAPIConfig(cfg *APIConfig) APIConfig {
 	// Use environment variables if set, otherwise use defaults
 	config := DefaultAPIConfig()
 
-	if regionID := os.Getenv("AGENTBAY_CLI_REGION_ID"); regionID != "" {
-		config.RegionID = regionID
-		log.Debugf("[DEBUG] Using region ID from environment: %s", regionID)
-	} else {
-		log.Debugf("[DEBUG] Using default region ID: %s", config.RegionID)
-	}
-
 	if endpoint := os.Getenv("AGENTBAY_CLI_ENDPOINT"); endpoint != "" {
 		config.Endpoint = endpoint
-		log.Debugf("[DEBUG] Using endpoint from environment: %s", endpoint)
+		log.Debugf("[DEBUG] Using endpoint from AGENTBAY_CLI_ENDPOINT: %s", endpoint)
 	} else {
-		log.Debugf("[DEBUG] Using default endpoint: %s", config.Endpoint)
+		log.Debugf("[DEBUG] Using default endpoint for %s environment: %s",
+			GetEnvironment(), config.Endpoint)
 	}
 
 	// Also check the legacy AGENTBAY_API_URL for backward compatibility
