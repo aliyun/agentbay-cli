@@ -91,12 +91,22 @@ var imageActivateCmd = &cobra.Command{
 This command creates a resource group for the specified User image, making it 
 available for deployment. Only User type images can be activated.
 
+Supported CPU and Memory combinations:
+  2c4g  - 2 CPU cores with 4 GB memory
+  4c8g  - 4 CPU cores with 8 GB memory
+  8c16g - 8 CPU cores with 16 GB memory
+
+If no CPU/memory is specified, default resources will be used.
+
 Examples:
-  # Activate a user image
+  # Activate a user image with default resources
   agentbay image activate imgc-xxxxxxxxxxxxxx
-  
+
+  # Activate with specific CPU and memory
+  agentbay image activate imgc-xxxxxxxxxxxxxx --cpu 2 --memory 4
+
   # Activate with verbose output
-  agentbay image activate imgc-xxxxxxxxxxxxxx --verbose`,
+  agentbay image activate imgc-xxxxxxxxxxxxxx --cpu 4 --memory 8 --verbose`,
 	Args: cobra.ExactArgs(1),
 	RunE: runImageActivate,
 }
@@ -127,6 +137,10 @@ func init() {
 	// Mark required flags
 	imageCreateCmd.MarkFlagRequired("dockerfile")
 	imageCreateCmd.MarkFlagRequired("imageId")
+
+	// Add flags to image activate command
+	imageActivateCmd.Flags().IntP("cpu", "c", 0, "CPU cores (e.g., 2, 4, 8)")
+	imageActivateCmd.Flags().IntP("memory", "m", 0, "Memory in GB (e.g., 4, 8, 16)")
 
 	// Add flags to image list command
 	imageListCmd.Flags().StringP("os-type", "o", "", "Filter by OS type: Linux, Android, or Windows (optional)")
@@ -726,6 +740,45 @@ func formatImageStatus(status string) string {
 	}
 }
 
+// ValidateCPUMemoryCombo validates that CPU and memory combination is supported
+func ValidateCPUMemoryCombo(cpu, memory int) error {
+	// If both are 0, use default (no validation needed)
+	if cpu == 0 && memory == 0 {
+		return nil
+	}
+
+	// If only one is specified, both must be specified
+	if (cpu == 0 && memory > 0) || (cpu > 0 && memory == 0) {
+		return fmt.Errorf("Both CPU and memory must be specified together. Supported combinations: 2c4g (--cpu 2 --memory 4), 4c8g (--cpu 4 --memory 8), 8c16g (--cpu 8 --memory 16)")
+	}
+
+	// Check supported combinations
+	validCombos := map[int]int{
+		2: 4,  // 2c4g
+		4: 8,  // 4c8g
+		8: 16, // 8c16g
+	}
+
+	expectedMemory, exists := validCombos[cpu]
+	if !exists || expectedMemory != memory {
+		return fmt.Errorf("Invalid CPU/Memory combination: %dc%dg. Supported combinations: 2c4g (--cpu 2 --memory 4), 4c8g (--cpu 4 --memory 8), 8c16g (--cpu 8 --memory 16)", cpu, memory)
+	}
+
+	return nil
+}
+
+// printCPUMemoryValidationError prints validation error with nice formatting
+func printCPUMemoryValidationError(err error) error {
+	if err == nil {
+		return nil
+	}
+	// Print formatted error message to stderr
+	lines := []string{
+		"[ERROR] " + err.Error(),
+	}
+	return printErrorMessage(lines...)
+}
+
 // formatOSInfo formats OS information for compact display
 func formatOSInfo(imageInfo *client.ListMcpImagesResponseBodyDataImageInfo) string {
 	if imageInfo == nil {
@@ -842,8 +895,18 @@ func uploadDockerfile(dockerfilePath, ossUrl string) error {
 
 func runImageActivate(cmd *cobra.Command, args []string) error {
 	imageId := args[0]
+	cpu, _ := cmd.Flags().GetInt("cpu")
+	memory, _ := cmd.Flags().GetInt("memory")
+
+	// Validate CPU and memory combination
+	if err := ValidateCPUMemoryCombo(cpu, memory); err != nil {
+		return printCPUMemoryValidationError(err)
+	}
 
 	fmt.Printf("[ACTIVATE] Activating image '%s'...\n", imageId)
+	if cpu > 0 || memory > 0 {
+		fmt.Printf("[RESOURCE] CPU: %d cores, Memory: %d GB\n", cpu, memory)
+	}
 
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
@@ -914,6 +977,14 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Creating resource group...")
 		createReq := &client.CreateResourceGroupRequest{
 			ImageId: dara.String(imageId),
+		}
+
+		// Add CPU and Memory if specified
+		if cpu > 0 {
+			createReq.SetCpu(int32(cpu))
+		}
+		if memory > 0 {
+			createReq.SetMemory(int32(memory))
 		}
 
 		// Debug: Print request details

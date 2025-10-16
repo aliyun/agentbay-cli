@@ -11,8 +11,12 @@ type iCreateResourceGroupRequest interface {
 	GoString() string
 	SetBizRegionId(v string) *CreateResourceGroupRequest
 	GetBizRegionId() *string
+	SetCpu(v int32) *CreateResourceGroupRequest
+	GetCpu() *int32
 	SetImageId(v string) *CreateResourceGroupRequest
 	GetImageId() *string
+	SetMemory(v int32) *CreateResourceGroupRequest
+	GetMemory() *int32
 	SetOfficeSiteId(v string) *CreateResourceGroupRequest
 	GetOfficeSiteId() *string
 	SetOfficeSiteType(v string) *CreateResourceGroupRequest
@@ -31,7 +35,9 @@ type iCreateResourceGroupRequest interface {
 
 type CreateResourceGroupRequest struct {
 	BizRegionId      *string `json:"BizRegionId,omitempty" xml:"BizRegionId,omitempty"`
+	Cpu              *int32  `json:"Cpu,omitempty" xml:"Cpu,omitempty"`
 	ImageId          *string `json:"ImageId,omitempty" xml:"ImageId,omitempty"`
+	Memory           *int32  `json:"Memory,omitempty" xml:"Memory,omitempty"`
 	OfficeSiteId     *string `json:"OfficeSiteId,omitempty" xml:"OfficeSiteId,omitempty"`
 	OfficeSiteType   *string `json:"OfficeSiteType,omitempty" xml:"OfficeSiteType,omitempty"`
 	PolicyId         *string `json:"PolicyId,omitempty" xml:"PolicyId,omitempty"`
@@ -53,8 +59,16 @@ func (s *CreateResourceGroupRequest) GetBizRegionId() *string {
 	return s.BizRegionId
 }
 
+func (s *CreateResourceGroupRequest) GetCpu() *int32 {
+	return s.Cpu
+}
+
 func (s *CreateResourceGroupRequest) GetImageId() *string {
 	return s.ImageId
+}
+
+func (s *CreateResourceGroupRequest) GetMemory() *int32 {
+	return s.Memory
 }
 
 func (s *CreateResourceGroupRequest) GetOfficeSiteId() *string {
@@ -90,8 +104,18 @@ func (s *CreateResourceGroupRequest) SetBizRegionId(v string) *CreateResourceGro
 	return s
 }
 
+func (s *CreateResourceGroupRequest) SetCpu(v int32) *CreateResourceGroupRequest {
+	s.Cpu = &v
+	return s
+}
+
 func (s *CreateResourceGroupRequest) SetImageId(v string) *CreateResourceGroupRequest {
 	s.ImageId = &v
+	return s
+}
+
+func (s *CreateResourceGroupRequest) SetMemory(v int32) *CreateResourceGroupRequest {
+	s.Memory = &v
 	return s
 }
 

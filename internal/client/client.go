@@ -641,8 +641,16 @@ func (client *Client) CreateResourceGroupWithOptions(request *CreateResourceGrou
 		body["BizRegionId"] = request.BizRegionId
 	}
 
+	if !dara.IsNil(request.Cpu) {
+		body["Cpu"] = request.Cpu
+	}
+
 	if !dara.IsNil(request.ImageId) {
 		body["ImageId"] = request.ImageId
+	}
+
+	if !dara.IsNil(request.Memory) {
+		body["Memory"] = request.Memory
 	}
 
 	if !dara.IsNil(request.OfficeSiteId) {
