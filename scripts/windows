@@ -97,7 +97,7 @@ if ($version -eq "latest") {
 # Construct download URL
 # Remove 'v' prefix from version for binary name, but keep original version for download tag
 $versionForBinary = $version.TrimStart('v')
-$binaryName = "agb-$versionForBinary-windows-$Architecture.exe"
+$binaryName = "agentbay-$versionForBinary-windows-$Architecture.exe"
 $downloadUrl = "https://github.com/$repoOwner/$repoName/releases/download/$version/$binaryName"
 
 # Display installation info
@@ -122,7 +122,7 @@ try {
 }
 
 # File to download
-$outputFile = "$destination\agb.exe"
+$outputFile = "$destination\agentbay.exe"
 
 # Check if already installed and get current version
 $upgrading = $false
@@ -135,7 +135,7 @@ if (Test-Path $outputFile) {
                 Write-Host "[SUCCESS] Agentbay CLI $version is already installed!"
                 Write-Host "   Location: $outputFile"
                 Write-Host ""
-                Write-Host "[INFO] You're all set! Use 'agb --help' to get started."
+                Write-Host "[INFO] You're all set! Use 'agentbay --help' to get started."
                 exit 0
             } else {
                 Write-Host "[INFO] Upgrading from $currentVersion to $version"
@@ -240,9 +240,9 @@ try {
         Write-Host "   Version: $installedVersion"
         Write-Host ""
         Write-Host "Quick Start:"
-        Write-Host "   agb --help          # Show help"
-        Write-Host "   agb version         # Show version"
-        Write-Host "   agb login           # Login to Agentbay"
+        Write-Host "   agentbay --help          # Show help"
+        Write-Host "   agentbay version         # Show version"
+        Write-Host "   agentbay login           # Login to Agentbay"
         Write-Host ""
         Write-Host "Documentation:"
         Write-Host "   https://github.com/$repoOwner/$repoName"

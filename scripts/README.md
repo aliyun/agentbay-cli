@@ -35,7 +35,7 @@ The installation script will:
 1. **Detect system architecture** (amd64/arm64)
 2. **Download the latest version** from GitHub Releases
 3. **Create installation directory** (`%LOCALAPPDATA%\agentbay` by default)
-4. **Install the binary** as `agb.exe`
+4. **Install the binary** as `agentbay.exe`
 5. **Update PATH environment variable** (user-level)
 6. **Verify installation** automatically
 
@@ -53,8 +53,8 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";"
 
 ### Step 2: Check Installation
 ```powershell
-# Check if agb command is available
-agb --version
+# Check if agentbay command is available
+agentbay --version
 ```
 
 **Expected Output:**
@@ -67,7 +67,7 @@ Build date: 2025-01-15T10:30:00Z
 ### Step 3: Verify Command Help
 ```powershell
 # Display help information
-agb --help
+agentbay --help
 ```
 
 **Expected Output:**
@@ -75,7 +75,7 @@ agb --help
 Command line interface for Agentbay services
 
 Usage:
-  agb [command]
+  agentbay [command]
 
 Available Commands:
   image       Manage images
@@ -85,19 +85,19 @@ Available Commands:
   help        Help about any command
 
 Flags:
-  -h, --help      help for agb
+  -h, --help      help for agentbay
   -v, --verbose   Enable verbose output
 
-Use "agb [command] --help" for more information about a command.
+Use "agentbay [command] --help" for more information about a command.
 ```
 
 ### Step 4: Test Core Functionality
 ```powershell
 # Test image command
-agb image --help
+agentbay image --help
 
 # Test version command
-agb version
+agentbay version
 ```
 
 ## Usage
@@ -106,32 +106,32 @@ agb version
 
 ```powershell
 # Show help
-agb --help
+agentbay --help
 
 # Show version
-agb version
+agentbay version
 
 # Login to Agentbay
-agb login
+agentbay login
 
 # List available images
-agb image list
+agentbay image list
 
 # Create a custom image
-agb image create myImage --dockerfile ./Dockerfile --imageId agb-code-space-1
+agentbay image create myImage --dockerfile ./Dockerfile --imageId agentbay-code-space-1
 
 # Activate an image
-agb image activate img-7a8b9c1d0e
+agentbay image activate img-7a8b9c1d0e
 
 # Deactivate an image
-agb image deactivate img-7a8b9c1d0e
+agentbay image deactivate img-7a8b9c1d0e
 ```
 
 ### Enable Verbose Output
 ```powershell
 # Use -v flag for detailed output
-agb -v image list
-agb --verbose login
+agentbay -v image list
+agentbay --verbose login
 ```
 
 ## Troubleshooting
@@ -140,7 +140,7 @@ agb --verbose login
 
 #### Issue 1: Command Not Found
 ```powershell
-# Error: 'agb' is not recognized as an internal or external command
+# Error: 'agentbay' is not recognized as an internal or external command
 ```
 
 **Solutions:**
@@ -203,16 +203,16 @@ Remove-Item -Path "$env:LOCALAPPDATA\agentbay" -Recurse -Force
 ### Step 2: Clean PATH
 ```powershell
 # Remove from user PATH
-$agbPath = "$env:LOCALAPPDATA\agentbay"
+$agentbayPath = "$env:LOCALAPPDATA\agentbay"
 $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
-$newPath = ($currentPath.Split(';') | Where-Object { $_ -ne $agbPath }) -join ';'
+$newPath = ($currentPath.Split(';') | Where-Object { $_ -ne $agentbayPath }) -join ';'
 [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
 ```
 
 ### Step 3: Verify Removal
 ```powershell
 # This should return an error
-agb --version
+agentbay --version
 ```
 
 ---
@@ -227,7 +227,7 @@ agb --version
 - **Network**: Internet connection for download
 
 ### Installation Locations
-- **Default**: `%LOCALAPPDATA%\agentbay\agb.exe`
+- **Default**: `%LOCALAPPDATA%\agentbay\agentbay.exe`
 
 ### Links
 - **GitHub Repository**: https://github.com/agentbay/agentbay-cli
