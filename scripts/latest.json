@@ -1,0 +1,24 @@
+{
+  "version": "v0.1.0",
+  "tag_name": "v0.1.0",
+  "name": "Agentbay CLI v0.1.0",
+  "published_at": "2025-01-16T00:00:00Z",
+  "assets": {
+    "windows": {
+      "amd64": {
+        "name": "agb-v0.1.0-windows-amd64.exe",
+        "download_url": "https://github.com/agentbay/agentbay-cli/releases/download/v0.1.0/agb-v0.1.0-windows-amd64.exe",
+        "size": 0
+      },
+      "arm64": {
+        "name": "agb-v0.1.0-windows-arm64.exe", 
+        "download_url": "https://github.com/agentbay/agentbay-cli/releases/download/v0.1.0/agb-v0.1.0-windows-arm64.exe",
+        "size": 0
+      }
+    }
+  },
+  "install_commands": {
+    "windows": "powershell -Command \"irm https://get.agentbay.io/windows | iex\"",
+    "windows_with_version": "powershell -Command \"irm https://get.agentbay.io/windows | iex\" -Version v0.1.0"
+  }
+}
