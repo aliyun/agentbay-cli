@@ -1,0 +1,263 @@
+# PowerShell script to download and install Agentbay CLI binary from GitHub Releases
+
+param(
+    [string]$Version = "",
+    [string]$Architecture = "",
+    [string]$InstallPath = "",
+    [switch]$Help
+)
+
+# Show help information
+if ($Help) {
+    Write-Host "Agentbay CLI Installation Script"
+    Write-Host ""
+    Write-Host "Usage:"
+    Write-Host "  powershell -Command `"irm https://agentbay.github.io/agentbay-cli/windows | iex`""
+    Write-Host ""
+    Write-Host "Options:"
+    Write-Host "  -Version <version>      Specify version to install (e.g., 'v1.0.0', 'v1.2.3', 'latest')"
+    Write-Host "  -Architecture <arch>    Specify architecture ('amd64' or 'arm64')"
+    Write-Host "  -InstallPath <path>     Specify custom installation directory"
+    Write-Host "  -Help                   Show this help message"
+    Write-Host ""
+    Write-Host "Environment Variables:"
+    Write-Host "  Agentbay_VERSION        Default version to install"
+    Write-Host "  Agentbay_PATH           Default installation directory"
+    Write-Host ""
+    Write-Host "Examples:"
+    Write-Host "  # Install default version (v1.0.0)"
+    Write-Host "  powershell -Command `"irm https://agentbay.github.io/agentbay-cli/windows | iex`""
+    Write-Host ""
+    exit 0
+}
+
+# Determine architecture
+if (-not $Architecture) {
+    $Architecture = if ($env:PROCESSOR_ARCHITECTURE -eq "AMD64") { 
+        "amd64" 
+    } elseif ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { 
+        "arm64" 
+    } else { 
+        "amd64" 
+    }
+}
+
+# GitHub repository information
+$repoOwner = "agentbay"
+$repoName = "agentbay-cli"
+$githubApiUrl = "https://api.github.com/repos/$repoOwner/$repoName"
+
+# Installation directory
+$destination = if ($InstallPath) { 
+    $InstallPath 
+} elseif ($env:AGENTBAY_PATH) {
+    $env:AGENTBAY_PATH
+} else {
+    "$env:LOCALAPPDATA\agentbay"
+}
+
+Write-Host "[INFO] Installing Agentbay CLI..."
+Write-Host ""
+
+# Determine version with parameter priority
+$version = if ($Version) { 
+    $Version 
+} elseif ($env:AGENTBAY_VERSION) { 
+    $env:AGENTBAY_VERSION 
+} else { 
+    "latest"  # Default to latest version
+}
+
+# Get latest version if needed
+if ($version -eq "latest") {
+    Write-Host "[INFO] Fetching latest version..."
+    
+    # Try using git to get latest tag (no API calls, no 403 errors)
+    try {
+        Write-Host "[INFO] Getting latest tag using git..."
+        $gitVersion = git ls-remote --tags --sort=-version:refname "https://github.com/$repoOwner/$repoName.git" | Select-Object -First 1 | ForEach-Object { ($_ -split '\s+')[1] -replace 'refs/tags/', '' }
+        if ($gitVersion -and $gitVersion -match '^v?\d+\.\d+\.\d+') {
+            $version = $gitVersion
+            Write-Host "[SUCCESS] Found latest version: $version"
+        } else {
+            throw "Git method failed or returned invalid version"
+        }
+    } catch {
+        Write-Host "[WARN] Git method failed: $($_.Exception.Message)"
+        Write-Host "[INFO] Using fallback version v1.0.0"
+        Write-Host "[TIP] You can specify a version manually using: -Version v1.2.3"
+        Write-Host "[TIP] Check available versions at: https://github.com/$repoOwner/$repoName/releases"
+        $version = "v1.0.0"
+    }
+    
+} else {
+    Write-Host "[INFO] Installing specified version: $version"
+}
+
+# Construct download URL
+# Remove 'v' prefix from version for binary name, but keep original version for download tag
+$versionForBinary = $version.TrimStart('v')
+$binaryName = "agb-$versionForBinary-windows-$Architecture.exe"
+$downloadUrl = "https://github.com/$repoOwner/$repoName/releases/download/$version/$binaryName"
+
+# Display installation info
+Write-Host "Installation Details:"
+Write-Host "   Repository: https://github.com/$repoOwner/$repoName"
+Write-Host "   Version: $version"
+Write-Host "   Architecture: $Architecture"
+Write-Host "   Binary: $binaryName"
+Write-Host "   Installation directory: $destination"
+Write-Host "   Download URL: $downloadUrl"
+Write-Host ""
+
+# Create destination directory if it doesn't exist
+try {
+    if (!(Test-Path -Path $destination)) {
+        Write-Host "[INFO] Creating installation directory at $destination"
+        New-Item -ItemType Directory -Force -Path $destination -ErrorAction Stop | Out-Null
+    }
+} catch {
+    Write-Error "[ERROR] Failed to create installation directory: $_"
+    exit 1
+}
+
+# File to download
+$outputFile = "$destination\agb.exe"
+
+# Check if already installed and get current version
+$upgrading = $false
+if (Test-Path $outputFile) {
+    try {
+        $currentVersionOutput = & $outputFile version 2>$null
+        if ($currentVersionOutput -match "version\s+([v\d\.]+)") {
+            $currentVersion = $matches[1]
+            if ($currentVersion -eq $version.TrimStart('v')) {
+                Write-Host "[SUCCESS] Agentbay CLI $version is already installed!"
+                Write-Host "   Location: $outputFile"
+                Write-Host ""
+                Write-Host "[INFO] You're all set! Use 'agb --help' to get started."
+                exit 0
+            } else {
+                Write-Host "[INFO] Upgrading from $currentVersion to $version"
+                $upgrading = $true
+            }
+        } else {
+            Write-Host "[INFO] Existing installation found, upgrading..."
+            $upgrading = $true
+        }
+    } catch {
+        Write-Host "[INFO] Existing installation found, upgrading..."
+        $upgrading = $true
+    }
+    Write-Host ""
+}
+
+# Download the file with progress
+try {
+    if ($upgrading) {
+        Write-Host "[INFO] Downloading Agentbay CLI update..."
+    } else {
+        Write-Host "[INFO] Downloading Agentbay CLI..."
+    }
+    Write-Host "   From: $downloadUrl"
+    Write-Host "   To: $outputFile"
+
+    # Use Invoke-WebRequest with progress
+    $ProgressPreference = 'Continue'
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $outputFile -UseBasicParsing -ErrorAction Stop
+
+    Write-Host ""
+    Write-Host "[SUCCESS] Download complete!"
+} catch {
+    Write-Error "[ERROR] Failed to download Agentbay CLI: $_"
+    Write-Host ""
+    Write-Host "Troubleshooting:"
+    Write-Host "   1. Check your internet connection"
+    Write-Host "   2. Verify the version exists: https://github.com/$repoOwner/$repoName/releases"
+    Write-Host "   3. Try the default version: -Version v1.0.0"
+    Write-Host "   4. Try a different version: -Version v1.2.3"
+    Write-Host "   5. Check if the architecture is correct: -Architecture amd64"
+    Write-Host "   6. Use custom install path: -InstallPath C:\MyTools"
+    exit 1
+}
+
+# Set executable permissions (Windows doesn't need this, but good practice)
+try {
+    Write-Host "[INFO] Setting up binary permissions..."
+    Set-ItemProperty -Path $outputFile -Name IsReadOnly -Value $false -ErrorAction SilentlyContinue
+} catch {
+    Write-Host "   [WARN] Could not set binary permissions (this is usually fine on Windows)"
+}
+
+# Add to PATH if not already present
+try {
+    Write-Host "[INFO] Updating PATH environment variable..."
+    
+    $currentPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
+    if (-not $currentPath) { $currentPath = "" }
+    
+    $pathEntries = $currentPath -split ';' | ForEach-Object { $_.TrimEnd('\') }
+    
+    if (-not ($pathEntries | Where-Object { $_ -eq $destination })) {
+        Write-Host "   Adding $destination to user PATH..."
+        $newPath = if ($currentPath.EndsWith(';')) { "$currentPath$destination" } else { "$currentPath;$destination" }
+        [System.Environment]::SetEnvironmentVariable("Path", $newPath, [System.EnvironmentVariableTarget]::User)
+        Write-Host "[SUCCESS] PATH updated successfully!"
+        Write-Host "   [TIP] Please restart your terminal or run a new PowerShell session"
+    } else {
+        Write-Host "[SUCCESS] Already in PATH"
+    }
+} catch {
+    Write-Host "   [WARN] Could not automatically update PATH"
+    Write-Host "   [MANUAL] Please manually add the following to your PATH:"
+    Write-Host "      $destination"
+    Write-Host ""
+    Write-Host "   [STEPS] To add manually:"
+    Write-Host "      1. Press Win+R, type 'sysdm.cpl', press Enter"
+    Write-Host "      2. Click 'Environment Variables'"
+    Write-Host "      3. Under 'User variables', select 'Path' and click 'Edit'"
+    Write-Host "      4. Click 'New' and add: $destination"
+    Write-Host "      5. Click OK to save"
+}
+
+Write-Host ""
+
+# Test installation
+Write-Host "[INFO] Testing installation..."
+try {
+    $installedVersion = & $outputFile version 2>$null
+    if ($installedVersion) {
+        Write-Host "[SUCCESS] Installation test successful!"
+        Write-Host ""
+        
+        if ($upgrading) {
+            Write-Host "[SUCCESS] Agentbay CLI successfully upgraded to $version!"
+        } else {
+            Write-Host "[SUCCESS] Agentbay CLI $version installed successfully!"
+        }
+        
+        Write-Host "   Location: $outputFile"
+        Write-Host "   Version: $installedVersion"
+        Write-Host ""
+        Write-Host "Quick Start:"
+        Write-Host "   agb --help          # Show help"
+        Write-Host "   agb version         # Show version"
+        Write-Host "   agb login           # Login to Agentbay"
+        Write-Host ""
+        Write-Host "Documentation:"
+        Write-Host "   https://github.com/$repoOwner/$repoName"
+        Write-Host ""
+        Write-Host "[SUCCESS] Installation completed! "
+    } else {
+        Write-Host "[WARN] Installation completed but version check failed"
+        Write-Host "   This might be normal if the binary requires additional setup"
+        Write-Host "   Try running: $outputFile --help"
+    }
+} catch {
+    Write-Host "[WARN] Installation completed but test failed: $_"
+    Write-Host "   This might be normal if the binary requires additional setup"
+    Write-Host "   Try running: $outputFile --help"
+}
+
+Write-Host ""
+Write-Host "Thank you for using Agentbay CLI! "

@@ -19,6 +19,8 @@ permissions:
   contents: write
   packages: write
   actions: read
+  pages: write
+  id-token: write
 
 # Global environment variables
 env:
@@ -534,6 +536,45 @@ jobs:
           echo "   ✅ Multi-platform support"
           echo ""
           echo "🔗 Homebrew Guidelines: https://docs.brew.sh/Adding-Software-to-Homebrew"
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Prepare deployment files
+        run: |
+          echo "📁 Preparing GitHub Pages deployment from scripts directory..."
+          
+          # Ensure scripts directory exists
+          if [ ! -d "scripts" ]; then
+            echo "❌ scripts directory not found!"
+            exit 1
+          fi
+          
+          # Display files to be deployed
+          echo "Files to be deployed:"
+          ls -la scripts/
+          
+          # Verify critical files exist
+          if [ ! -f "scripts/windows" ]; then
+            echo "❌ scripts/windows file not found!"
+            exit 1
+          fi
+          
+          echo "✅ All required files found"
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./scripts
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Deployment summary
+        run: |
+          echo "🎉 GitHub Pages deployment completed!"
+          echo "📄 Site URL: ${{ steps.deployment.outputs.page_url }}"
+          echo "🔗 Install command: powershell -Command \"irm https://agentbay.github.io/agentbay-cli/windows | iex\""
 
       - name: Validate Official Formula
         run: |
