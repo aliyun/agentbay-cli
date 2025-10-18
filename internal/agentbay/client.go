@@ -927,6 +927,26 @@ func (cw *clientWrapper) ListMcpImages(ctx context.Context, request *client.List
 func (cw *clientWrapper) CreateResourceGroup(ctx context.Context, request *client.CreateResourceGroupRequest) (*client.CreateResourceGroupResponse, error) {
 	log.Debugf("[DEBUG] ClientWrapper: CreateResourceGroup called")
 
+	// Log request details in verbose mode
+	if log.GetLevel() >= log.DebugLevel {
+		log.Debugf("[DEBUG] CreateResourceGroup request parameters:")
+		if request.ImageId != nil {
+			log.Debugf("[DEBUG]   - ImageId: %s", *request.ImageId)
+		}
+		if request.Cpu != nil {
+			log.Debugf("[DEBUG]   - Cpu: %d", *request.Cpu)
+		}
+		if request.Memory != nil {
+			log.Debugf("[DEBUG]   - Memory: %d", *request.Memory)
+		}
+		if request.BizRegionId != nil {
+			log.Debugf("[DEBUG]   - BizRegionId: %s", *request.BizRegionId)
+		}
+		if request.RegionId != nil {
+			log.Debugf("[DEBUG]   - RegionId: %s", *request.RegionId)
+		}
+	}
+
 	// Get SDK client
 	sdkClient, err := cw.getClient()
 	if err != nil {

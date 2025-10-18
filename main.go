@@ -18,8 +18,8 @@ var rootCmd = &cobra.Command{
 	Short:             "AgentBay CLI",
 	Long:              "Command line interface for AgentBay services",
 	DisableAutoGenTag: true,
-	SilenceUsage:      true,
-	SilenceErrors:     true,
+	SilenceUsage:      false,
+	SilenceErrors:     false,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
 	},
@@ -79,8 +79,7 @@ func main() {
 	// Execute root command
 	err := rootCmd.Execute()
 	if err != nil {
-		// Exit with error code without logging the error again
-		// Error messages are already handled by individual commands
+		// Error messages are already displayed by cobra
 		os.Exit(1)
 	}
 }

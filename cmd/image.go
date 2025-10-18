@@ -981,10 +981,14 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 
 		// Add CPU and Memory if specified
 		if cpu > 0 {
+			log.Debugf("[DEBUG] Setting Cpu to %d", cpu)
 			createReq.SetCpu(int32(cpu))
+			log.Debugf("[DEBUG] After SetCpu, createReq.Cpu = %v", createReq.Cpu)
 		}
 		if memory > 0 {
+			log.Debugf("[DEBUG] Setting Memory to %d", memory)
 			createReq.SetMemory(int32(memory))
+			log.Debugf("[DEBUG] After SetMemory, createReq.Memory = %v", createReq.Memory)
 		}
 
 		// Debug: Print request details
@@ -992,6 +996,16 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 			log.Debugf("[DEBUG] CreateResourceGroup Request:")
 			if createReq.ImageId != nil {
 				log.Debugf("[DEBUG] - ImageId: %s", *createReq.ImageId)
+			}
+			if createReq.Cpu != nil {
+				log.Debugf("[DEBUG] - Cpu: %d", *createReq.Cpu)
+			} else {
+				log.Debugf("[DEBUG] - Cpu: nil")
+			}
+			if createReq.Memory != nil {
+				log.Debugf("[DEBUG] - Memory: %d", *createReq.Memory)
+			} else {
+				log.Debugf("[DEBUG] - Memory: nil")
 			}
 		}
 
@@ -1011,22 +1025,29 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("invalid response from server")
 		}
 
+		// Log Request ID for debugging
+		if createResp.Body.GetRequestId() != nil {
+			log.Debugf("[DEBUG] CreateResourceGroup Request ID: %s", *createResp.Body.GetRequestId())
+		}
+
 		success := createResp.Body.GetSuccess()
 		if success == nil || !*success {
 			fmt.Printf(" Failed.\n")
 			code := createResp.Body.GetCode()
 			message := createResp.Body.GetMessage()
 			if code != nil && message != nil {
+				if log.GetLevel() >= log.DebugLevel && createResp.Body.GetRequestId() != nil {
+					return fmt.Errorf("failed to create resource group: %s - %s (Request ID: %s)", *code, *message, *createResp.Body.GetRequestId())
+				}
 				return fmt.Errorf("failed to create resource group: %s - %s", *code, *message)
+			}
+			if log.GetLevel() >= log.DebugLevel && createResp.Body.GetRequestId() != nil {
+				return fmt.Errorf("failed to create resource group (Request ID: %s)", *createResp.Body.GetRequestId())
 			}
 			return fmt.Errorf("failed to create resource group")
 		}
 
 		fmt.Printf(" Done.\n")
-
-		if createResp.Body.GetRequestId() != nil {
-			log.Debugf("[DEBUG] Request ID: %s", *createResp.Body.GetRequestId())
-		}
 	}
 
 	// Poll for activation completion
@@ -1141,22 +1162,29 @@ func runImageDeactivate(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("invalid response from server")
 		}
 
+		// Log Request ID for debugging
+		if deleteResp.Body.GetRequestId() != nil {
+			log.Debugf("[DEBUG] DeleteResourceGroup Request ID: %s", *deleteResp.Body.GetRequestId())
+		}
+
 		success := deleteResp.Body.GetSuccess()
 		if success == nil || !*success {
 			fmt.Printf(" Failed.\n")
 			code := deleteResp.Body.GetCode()
 			message := deleteResp.Body.GetMessage()
 			if code != nil && message != nil {
+				if log.GetLevel() >= log.DebugLevel && deleteResp.Body.GetRequestId() != nil {
+					return fmt.Errorf("failed to delete resource group: %s - %s (Request ID: %s)", *code, *message, *deleteResp.Body.GetRequestId())
+				}
 				return fmt.Errorf("failed to delete resource group: %s - %s", *code, *message)
+			}
+			if log.GetLevel() >= log.DebugLevel && deleteResp.Body.GetRequestId() != nil {
+				return fmt.Errorf("failed to delete resource group (Request ID: %s)", *deleteResp.Body.GetRequestId())
 			}
 			return fmt.Errorf("failed to delete resource group")
 		}
 
 		fmt.Printf(" Done.\n")
-
-		if deleteResp.Body.GetRequestId() != nil {
-			log.Debugf("[DEBUG] Request ID: %s", *deleteResp.Body.GetRequestId())
-		}
 	}
 
 	// Poll for deactivation completion
