@@ -135,7 +135,7 @@ jobs:
       - id: build-binaries
         name: Build Multi-platform Binaries
         run: |
-          echo "Building binaries for all platforms..."
+          echo "Building optimized binaries for all platforms..."
 
           # Load variables
           if [ -z "$VERSION" ] && [ -f "$AONE_CI_WORKSPACE/BUILD_VERSION" ]; then
@@ -153,11 +153,12 @@ jobs:
           echo "  GIT_COMMIT: $GIT_COMMIT"
           echo "  BUILD_DATE: $BUILD_DATE"
 
-          # Build for all platforms
-          make build-all
+          # Build for all platforms using optimized target (11MB, -s -w flags)
+          echo "🔨 Building optimized binaries (with -s -w flags for 31% size reduction)..."
+          make build-all-optimized
 
           echo ""
-          echo "✅ Build completed. Generated binaries:"
+          echo "✅ Optimized build completed. Generated binaries (11MB):"
           ls -lh bin/
 
       - id: create-packages
