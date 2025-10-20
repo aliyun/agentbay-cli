@@ -6,6 +6,8 @@ A command-line interface for AgentBay services.
 
 AgentBay CLI provides comprehensive image management capabilities:
 
+**Note**: The current version of the CLI tool supports creating and activating CodeSpace type images only.
+
 - **Authentication**: Secure OAuth-based login with Google account integration
 - **Image Creation**: Build custom images from Dockerfiles with base image support
 - **Image Management**: Activate, deactivate, and monitor image instances

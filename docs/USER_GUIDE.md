@@ -8,6 +8,8 @@ Quick guide to get you started with AgentBay CLI.
 - Aliyun account
 - Network connection
 
+**Supported Image Types**: The current version of the CLI tool supports creating and activating **CodeSpace** type images only.
+
 ## 1. Login
 
 ```bash
@@ -93,6 +95,26 @@ agentbay image activate imgc-xxxxx...xxx
 ```
 
 Starts the image instance.
+
+**Options:**
+- `--cpu, -c`: CPU cores (2, 4, or 8) - must be paired with memory
+- `--memory, -m`: Memory in GB (4, 8, or 16) - must be paired with CPU
+
+**Supported Resource Combinations:**
+- `2c4g` - 2 CPU cores with 4 GB memory
+- `4c8g` - 4 CPU cores with 8 GB memory
+- `8c16g` - 8 CPU cores with 16 GB memory
+
+**Examples:**
+```bash
+# Activate with default resources
+agentbay image activate imgc-xxxxx...xxx
+
+# Activate with specific resources
+agentbay image activate imgc-xxxxx...xxx --cpu 2 --memory 4
+agentbay image activate imgc-xxxxx...xxx --cpu 4 --memory 8
+agentbay image activate imgc-xxxxx...xxx --cpu 8 --memory 16
+```
 
 **Output:**
 ```
