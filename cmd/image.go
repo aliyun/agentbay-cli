@@ -816,7 +816,7 @@ func formatOSInfo(imageInfo *client.ListMcpImagesResponseBodyDataImageInfo) stri
 	return osName
 }
 
-// uploadDockerfile uploads the Dockerfile to the provided OSS URL
+// uploadDockerfile uploads the Dockerfile to the provided OSS URL with retry mechanism
 func uploadDockerfile(dockerfilePath, ossUrl string) error {
 	log.Debugf("[DEBUG] Starting Dockerfile upload...")
 	log.Debugf("[DEBUG] - Dockerfile path: %s", dockerfilePath)
@@ -836,61 +836,114 @@ func uploadDockerfile(dockerfilePath, ossUrl string) error {
 	}
 	log.Debugf("[DEBUG] Dockerfile content preview: %s", string(dockerfileContent[:previewLen]))
 
-	// Create HTTP request
-	req, err := http.NewRequest("PUT", ossUrl, strings.NewReader(string(dockerfileContent)))
-	if err != nil {
-		log.Debugf("[DEBUG] Failed to create upload request: %v", err)
-		return fmt.Errorf("failed to create upload request: %w", err)
+	// Create retry configuration for upload
+	retryConfig := &client.RetryConfig{
+		MaxRetries:    3,
+		InitialDelay:  1 * time.Second,
+		MaxDelay:      10 * time.Second,
+		BackoffFactor: 2.0,
 	}
 
-	// Set appropriate headers
-	req.Header.Set("Content-Type", "application/octet-stream")
-	req.Header.Set("User-Agent", "AgentBay-CLI/1.0")
+	var lastErr error
+	delay := retryConfig.InitialDelay
 
-	log.Debugf("[DEBUG] Upload request headers:")
-	for key, values := range req.Header {
-		for _, value := range values {
-			log.Debugf("[DEBUG] - %s: %s", key, value)
+	for attempt := 0; attempt <= retryConfig.MaxRetries; attempt++ {
+		fmt.Printf("[UPLOAD] Dockerfile upload attempt %d/%d...\n", attempt+1, retryConfig.MaxRetries+1)
+		log.Debugf("[DEBUG] Attempt %d/%d for uploading Dockerfile", attempt+1, retryConfig.MaxRetries+1)
+
+		// Create HTTP PUT request for each attempt
+		req, err := http.NewRequest(http.MethodPut, ossUrl, strings.NewReader(string(dockerfileContent)))
+		if err != nil {
+			log.Debugf("[DEBUG] Failed to create upload request: %v", err)
+			return fmt.Errorf("failed to create upload request: %w", err)
+		}
+
+		// Set appropriate headers
+		req.Header.Set("Content-Type", "application/octet-stream")
+		req.Header.Set("User-Agent", "AgentBay-CLI/1.0")
+		req.ContentLength = int64(len(dockerfileContent))
+
+		log.Debugf("[DEBUG] Upload request headers:")
+		for key, values := range req.Header {
+			for _, value := range values {
+				log.Debugf("[DEBUG] - %s: %s", key, value)
+			}
+		}
+
+		// Perform the upload
+		httpClient := &http.Client{
+			Timeout: 60 * time.Second,
+		}
+
+		log.Debugf("[DEBUG] Sending upload request...")
+		resp, err := httpClient.Do(req)
+
+		// Success case
+		if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			resp.Body.Close()
+			log.Debugf("[DEBUG] Upload response received:")
+			log.Debugf("[DEBUG] - Status: %s", resp.Status)
+			log.Debugf("[DEBUG] - Status Code: %d", resp.StatusCode)
+			if attempt > 0 {
+				fmt.Printf("[OK] Dockerfile upload succeeded on attempt %d\n", attempt+1)
+				log.Infof("[RETRY] Request succeeded on attempt %d", attempt+1)
+			}
+			return nil
+		}
+
+		// Handle error cases
+		if err != nil {
+			lastErr = fmt.Errorf("failed to upload dockerfile: %w", err)
+			log.Debugf("[DEBUG] Attempt %d failed with error: %v", attempt+1, err)
+		} else {
+			// Read response body for error details
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			lastErr = fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
+			log.Debugf("[DEBUG] Attempt %d failed with HTTP status: %d", attempt+1, resp.StatusCode)
+			log.Debugf("[DEBUG] Response body: %s", string(body))
+		}
+
+		// Don't retry if this is the last attempt
+		if attempt == retryConfig.MaxRetries {
+			break
+		}
+
+		// Check if the error is retryable
+		shouldRetry := false
+		if err != nil {
+			// Use the same retry logic as the API client
+			shouldRetry = client.IsRetryableError(err)
+		} else if resp != nil {
+			// Check if HTTP status is retryable
+			shouldRetry = client.IsRetryableHTTPStatus(resp.StatusCode)
+		}
+
+		if !shouldRetry {
+			log.Debugf("[DEBUG] Error is not retryable, stopping attempts")
+			fmt.Printf("[WARN] Upload error is not retryable, stopping attempts\n")
+			break
+		}
+
+		// Wait before retrying
+		fmt.Printf("[RETRY] Upload failed (attempt %d/%d), retrying in %v...\n",
+			attempt+1, retryConfig.MaxRetries+1, delay)
+		log.Infof("[RETRY] Request failed (attempt %d/%d), retrying in %v...",
+			attempt+1, retryConfig.MaxRetries+1, delay)
+
+		time.Sleep(delay)
+
+		// Calculate next delay with exponential backoff
+		delay = time.Duration(float64(delay) * retryConfig.BackoffFactor)
+		if delay > retryConfig.MaxDelay {
+			delay = retryConfig.MaxDelay
 		}
 	}
 
-	// Perform the upload
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
-
-	log.Debugf("[DEBUG] Sending upload request...")
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Debugf("[DEBUG] Upload request failed: %v", err)
-		return fmt.Errorf("failed to upload Dockerfile: %w", err)
-	}
-	defer resp.Body.Close()
-
-	log.Debugf("[DEBUG] Upload response received:")
-	log.Debugf("[DEBUG] - Status: %s", resp.Status)
-	log.Debugf("[DEBUG] - Status Code: %d", resp.StatusCode)
-	log.Debugf("[DEBUG] - Response headers:")
-	for key, values := range resp.Header {
-		for _, value := range values {
-			log.Debugf("[DEBUG] - %s: %s", key, value)
-		}
-	}
-
-	// Check response status
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, _ := io.ReadAll(resp.Body)
-		log.Debugf("[DEBUG] Upload failed with status %d", resp.StatusCode)
-		log.Debugf("[DEBUG] Response body: %s", string(body))
-		return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	// Read response body for debugging
-	body, _ := io.ReadAll(resp.Body)
-	log.Debugf("[DEBUG] Upload successful!")
-	log.Debugf("[DEBUG] Response body: %s", string(body))
-
-	return nil
+	fmt.Printf("[ERROR] All %d upload attempts failed\n", retryConfig.MaxRetries+1)
+	log.Warnf("[RETRY] All %d attempts failed, giving up", retryConfig.MaxRetries+1)
+	return fmt.Errorf("dockerfile upload failed after %d attempts, last error: %w",
+		retryConfig.MaxRetries+1, lastErr)
 }
 
 func runImageActivate(cmd *cobra.Command, args []string) error {
