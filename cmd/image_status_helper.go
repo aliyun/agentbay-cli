@@ -6,6 +6,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/agentbay/agentbay-cli/internal/agentbay"
@@ -89,6 +90,42 @@ func IsTerminalState(status string) bool {
 		s == StatusImageCreateFailed ||
 		s == StatusResourceFailed ||
 		s == StatusResourceCeased
+}
+
+// IsAuthenticationError checks if the error is an authentication error
+// This helps distinguish between "not authenticated" and "image not found" errors
+func IsAuthenticationError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	errMsg := strings.ToLower(err.Error())
+
+	// Check for various authentication-related error indicators
+	authErrorPatterns := []string{
+		"401",
+		"403",
+		"unauthorized",
+		"authentication",
+		"authentication failed",
+		"not authenticated",
+		"token",
+		"expired",
+		"invalid token",
+		"access denied",
+		"invalidaccesskeyid",
+		"invalidsecretkey",
+		"signaturedoesnotmatch",
+	}
+
+	for _, pattern := range authErrorPatterns {
+		if strings.Contains(errMsg, strings.ToLower(pattern)) {
+			log.Debugf("[DEBUG] Detected authentication error pattern '%s' in: %s", pattern, err.Error())
+			return true
+		}
+	}
+
+	return false
 }
 
 // PollingConfig defines the configuration for status polling

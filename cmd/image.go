@@ -218,6 +218,13 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 
 	_, err = GetImageInfo(validateCtx, apiClient, sourceImageId)
 	if err != nil {
+		// Check if the error is an authentication error
+		if IsAuthenticationError(err) {
+			return printErrorMessage(
+				fmt.Sprintf("[ERROR] Authentication failed. Please run 'agentbay login' first."),
+				"",
+			)
+		}
 		return printErrorMessage(
 			fmt.Sprintf("[ERROR] Source image not found: %s", sourceImageId),
 			"",
