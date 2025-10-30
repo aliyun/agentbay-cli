@@ -12,7 +12,7 @@ Install AgentBay CLI using PowerShell:
 powershell -Command "irm https://aliyun.github.io/agentbay-cli/windows | iex"
 ```
 
-For detailed Windows installation instructions, troubleshooting, and system requirements, see [scripts/README.md](../scripts/README.md).
+For detailed Windows installation instructions, troubleshooting, and system requirements, see [WINDOWS_INSTALL](./WINDOWS_INSTALL.md).
 
 ### macOS/Linux
 
@@ -29,7 +29,7 @@ brew install agentbay
 agentbay version
 ```
 
-For more details about Homebrew installation, visit the [ Homebrew-agentbay tap repository](https://github.com/aliyun/homebrew-agentbay).
+For more details about Homebrew installation, visit the [LINUX&MAC_INSTALL](./LINUX&MAC_INSTALL.md).
 
 ### Uninstallation
 

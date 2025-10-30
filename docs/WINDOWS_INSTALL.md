@@ -225,7 +225,6 @@ agentbay --version
 
 ### Links
 - **GitHub Repository**: https://github.com/aliyun/agentbay-cli
-- **Releases**: https://github.com/aliyun/agentbay-cli/releases
 - **Documentation**:  [USER_GUIDE.md](../docs/USER_GUIDE.md)
 - **Issues**: https://github.com/aliyun/agentbay-cli/issues
 
