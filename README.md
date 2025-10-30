@@ -33,7 +33,7 @@ agentbay image activate imgc-xxxxx...xxx
 agentbay image deactivate imgc-xxxxx...xxx
 ```
 
-For detailed usage instructions and examples, see the [User Guide](docs/USER_GUIDE.md).
+For detailed installation steps, usage instructions and examples, see the [User Guide](docs/USER_GUIDE.md).
 
 
 ## License

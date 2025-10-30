@@ -59,9 +59,9 @@ agentbay --version
 
 **Expected Output:**
 ```
-Agentbay CLI version 1.0.0
-Git commit: abc1234
-Build date: 2025-01-15T10:30:00Z
+Agentbay CLI version current_version
+Git commit: current_commit_id
+Build date: current_build_date
 ```
 
 ### Step 3: Verify Command Help
@@ -116,16 +116,10 @@ agentbay login
 
 # List available images
 agentbay image list
-
-# Create a custom image
-agentbay image create myImage --dockerfile ./Dockerfile --imageId agentbay-code-space-1
-
-# Activate an image
-agentbay image activate img-7a8b9c1d0e
-
-# Deactivate an image
-agentbay image deactivate img-7a8b9c1d0e
 ```
+
+For more detailed usage instructions, examples, and advanced features, see the [User Guide](../docs/USER_GUIDE.md).
+
 
 ### Enable Verbose Output
 ```powershell
@@ -230,10 +224,10 @@ agentbay --version
 - **Default**: `%LOCALAPPDATA%\agentbay\agentbay.exe`
 
 ### Links
-- **GitHub Repository**: https://github.com/agentbay/agentbay-cli
-- **Releases**: https://github.com/agentbay/agentbay-cli/releases
-- **Documentation**: https://github.com/agentbay/agentbay-cli/blob/main/docs/USER_GUIDE.md
-- **Issues**: https://github.com/agentbay/agentbay-cli/issues
+- **GitHub Repository**: https://github.com/aliyun/agentbay-cli
+- **Releases**: https://github.com/aliyun/agentbay-cli/releases
+- **Documentation**:  [USER_GUIDE.md](../docs/USER_GUIDE.md)
+- **Issues**: https://github.com/aliyun/agentbay-cli/issues
 
 ---
 

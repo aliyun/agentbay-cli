@@ -2,9 +2,55 @@
 
 Quick guide to get you started with AgentBay CLI.
 
+## Installation
+
+### Windows
+
+Install AgentBay CLI using PowerShell:
+
+```powershell
+powershell -Command "irm https://aliyun.github.io/agentbay-cli/windows | iex"
+```
+
+For detailed Windows installation instructions, troubleshooting, and system requirements, see [scripts/README.md](../scripts/README.md).
+
+### macOS/Linux
+
+Install AgentBay CLI using Homebrew:
+
+```bash
+# 1. Add Agentbay Cloud's Homebrew tap
+brew tap aliyun/agentbay
+
+# 2. Install agentbay command-line tool
+brew install agentbay
+
+# 3. Verify installation
+agentbay version
+```
+
+For more details about Homebrew installation, visit the [ Homebrew-agentbay tap repository](https://github.com/aliyun/homebrew-agentbay).
+
+### Uninstallation
+
+#### Windows
+```powershell
+# Remove installation directory
+Remove-Item -Path "$env:LOCALAPPDATA\agentbay" -Recurse -Force
+```
+
+#### macOS/Linux
+```bash
+# Uninstall agentbay
+brew uninstall agentbay
+
+# Remove tap (optional)
+brew untap aliyun/agentbay
+```
+
 ## Prerequisites
 
-- AgentBay CLI installed
+- AgentBay CLI installed (see Installation section above)
 - Aliyun account
 - Network connection
 
