@@ -11,7 +11,7 @@ AgentBay CLI provides comprehensive image management capabilities:
 - **Authentication**: Secure OAuth-based login with Google account integration
 - **Image Creation**: Build custom images from Dockerfiles with base image support
 - **Image Management**: Activate, deactivate, and monitor image instances
-- **Image Listing**: Browse user and system images with pagination and filtering support
+- **Image Listing**: Browse user and system images with separated display, pagination and filtering support
 - **Configuration Management**: Secure token storage and automatic token refresh
 
 ## Installation
@@ -53,11 +53,13 @@ agentbay version
 # 1. Log in to AgentBay
 agentbay login
 
-# 2. List available user images
-agentbay image list
+# 2. List available images
+agentbay image list                    # List user images (default)
+agentbay image list --include-system   # List both user and system images
+agentbay image list --system-only      # List only system images
 
-# 3. Create a custom image
-agentbay image create myapp --dockerfile ./Dockerfile --imageId code_latest
+# 3. Create a custom image (using system image as base)
+agentbay image create myapp --dockerfile ./Dockerfile --imageId code-space-debian-12
 
 # 4. Activate the image
 agentbay image activate imgc-xxxxx...xxx
