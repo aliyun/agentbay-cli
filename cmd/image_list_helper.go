@@ -14,7 +14,7 @@ import (
 )
 
 // runImageListWithBothTypes handles querying both user and system images
-func runImageListWithBothTypes(ctx context.Context, apiClient *agentbay.Client, osType string, page, pageSize int) error {
+func runImageListWithBothTypes(ctx context.Context, apiClient agentbay.Client, osType string, page, pageSize int) error {
 	var allImages []*client.ListMcpImagesResponseBodyData
 	var totalCount int32
 
