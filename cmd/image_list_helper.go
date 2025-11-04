@@ -6,6 +6,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 
@@ -87,7 +88,24 @@ func runImageListWithBothTypes(ctx context.Context, apiClient agentbay.Client, o
 		}
 	}
 
-	// Display merged results
+	// Separate user and system images
+	var userImages []*client.ListMcpImagesResponseBodyData
+	var systemImages []*client.ListMcpImagesResponseBodyData
+
+	for _, image := range allImages {
+		if image == nil {
+			continue
+		}
+		// Check if this is a user image (starts with "imgc-") or system image
+		imageId := getStringValue(image.GetImageId())
+		if strings.HasPrefix(imageId, "imgc-") {
+			userImages = append(userImages, image)
+		} else {
+			systemImages = append(systemImages, image)
+		}
+	}
+
+	// Display results
 	if len(allImages) == 0 {
 		fmt.Printf("\n[EMPTY] No images found.\n")
 		return nil
@@ -95,7 +113,24 @@ func runImageListWithBothTypes(ctx context.Context, apiClient agentbay.Client, o
 
 	fmt.Printf("\n[OK] Found %d images (Total: %d)\n", len(allImages), totalCount)
 
-	// Display image table with consistent formatting
+	// Display user images first
+	if len(userImages) > 0 {
+		fmt.Printf("\n=== USER IMAGES (%d) ===\n", len(userImages))
+		printImageTable(userImages)
+	}
+
+	// Display system images
+	if len(systemImages) > 0 {
+		fmt.Printf("\n=== SYSTEM IMAGES (%d) ===\n", len(systemImages))
+		printImageTable(systemImages)
+	}
+
+	return nil
+}
+
+// printImageTable prints a formatted table of images
+func printImageTable(images []*client.ListMcpImagesResponseBodyData) {
+	// Print header
 	fmt.Printf("%s %s %s %s %s %s\n",
 		padString("IMAGE ID", 25),
 		padString("IMAGE NAME", 30),
@@ -112,7 +147,7 @@ func runImageListWithBothTypes(ctx context.Context, apiClient agentbay.Client, o
 		"-----------")
 
 	// Print each image
-	for _, image := range allImages {
+	for _, image := range images {
 		if image == nil {
 			continue
 		}
@@ -133,6 +168,4 @@ func runImageListWithBothTypes(ctx context.Context, apiClient agentbay.Client, o
 			padString(osInfo, 18),
 			applyScene)
 	}
-
-	return nil
 }
