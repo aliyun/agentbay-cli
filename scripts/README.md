@@ -78,9 +78,9 @@ Usage:
   agentbay [command]
 
 Available Commands:
-  image       Manage images
-  login       Log in to Agentbay
-  logout      Log out from Agentbay
+  image       Manage AgentBay images (create, list, activate, deactivate)
+  login       Log in to AgentBay
+  logout      Log out from AgentBay
   version     Show version information
   help        Help about any command
 
@@ -95,6 +95,9 @@ Use "agentbay [command] --help" for more information about a command.
 ```powershell
 # Test image command
 agentbay image --help
+
+# Test listing images (requires login)
+agentbay image list --system-only
 
 # Test version command
 agentbay version
@@ -115,10 +118,12 @@ agentbay version
 agentbay login
 
 # List available images
-agentbay image list
+agentbay image list                    # List user images (default)
+agentbay image list --include-system   # List both user and system images
+agentbay image list --system-only      # List only system images
 
-# Create a custom image
-agentbay image create myImage --dockerfile ./Dockerfile --imageId agentbay-code-space-1
+# Create a custom image using system image as base
+agentbay image create myImage --dockerfile ./Dockerfile --imageId code-space-debian-12
 
 # Activate an image
 agentbay image activate img-7a8b9c1d0e
@@ -127,11 +132,15 @@ agentbay image activate img-7a8b9c1d0e
 agentbay image deactivate img-7a8b9c1d0e
 ```
 
-### Enable Verbose Output
+### Advanced Image Management
 ```powershell
 # Use -v flag for detailed output
-agentbay -v image list
-agentbay --verbose login
+agentbay -v image list --include-system
+agentbay --verbose image create myapp --dockerfile ./Dockerfile --imageId code-space-debian-12
+
+# Filter by OS type
+agentbay image list --system-only --os-type Linux
+agentbay image list --include-system --os-type Windows
 ```
 
 ## Troubleshooting
