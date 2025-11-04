@@ -14,6 +14,39 @@ AgentBay CLI provides comprehensive image management capabilities:
 - **Image Listing**: Browse user and system images with pagination and filtering support
 - **Configuration Management**: Secure token storage and automatic token refresh
 
+## Installation
+
+### Prerequisites
+- Go 1.23.0 or higher
+- Make
+
+### Build from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/agentbay/agentbay-cli.git
+cd agentbay-cli
+
+# Install dependencies and build
+make install
+```
+
+Alternatively, you can build without installing:
+
+```bash
+# Build the binary
+make build
+
+# Run directly
+./agentbay --help
+```
+
+### Verify Installation
+
+```bash
+agentbay version
+```
+
 ## Quick Start
 
 ```bash
