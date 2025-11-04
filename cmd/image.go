@@ -63,7 +63,7 @@ var imageListCmd = &cobra.Command{
 	Short: "List available AgentBay images",
 	Long: `List available AgentBay images that can be used as base images for custom builds.
 
-This command queries the AgentBay platform for available User images and displays
+This command queries the AgentBay platform for available User images by default and displays
 their details including image ID, name, type, and description.
 
 OS types:
@@ -72,8 +72,14 @@ OS types:
   Windows - Windows-based images
 
 Examples:
-  # List all user images
+  # List user images (default)
   agentbay image list
+  
+  # Include system images
+  agentbay image list --include-system
+  
+  # Show only system images
+  agentbay image list --system-only
   
   # List Linux images only
   agentbay image list --os-type Linux
@@ -144,6 +150,8 @@ func init() {
 
 	// Add flags to image list command
 	imageListCmd.Flags().StringP("os-type", "o", "", "Filter by OS type: Linux, Android, or Windows (optional)")
+	imageListCmd.Flags().Bool("include-system", false, "Include system images in addition to user images")
+	imageListCmd.Flags().Bool("system-only", false, "Show only system images")
 	imageListCmd.Flags().IntP("page", "p", 1, "Page number (default: 1)")
 	imageListCmd.Flags().IntP("size", "s", 10, "Page size (default: 10)")
 
@@ -493,10 +501,21 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 func runImageList(cmd *cobra.Command, args []string) error {
 	// Get flag values
 	osType, _ := cmd.Flags().GetString("os-type")
+	includeSystem, _ := cmd.Flags().GetBool("include-system")
+	systemOnly, _ := cmd.Flags().GetBool("system-only")
 	page, _ := cmd.Flags().GetInt("page")
 	pageSize, _ := cmd.Flags().GetInt("size")
 
-	fmt.Printf("[LIST] Fetching available AgentBay user images...\n")
+	// Determine what type of images to fetch
+	var fetchMessage string
+	if systemOnly {
+		fetchMessage = "[LIST] Fetching available AgentBay system images...\n"
+	} else if includeSystem {
+		fetchMessage = "[LIST] Fetching available AgentBay images (user + system)...\n"
+	} else {
+		fetchMessage = "[LIST] Fetching available AgentBay user images...\n"
+	}
+	fmt.Printf(fetchMessage)
 
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
@@ -518,9 +537,21 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	// Prepare request
 	req := &client.ListMcpImagesRequest{}
 
-	// Set image type to User (fixed)
-	imageType := "User"
-	req.ImageType = &imageType
+	// Determine image type based on flags
+	var imageType string
+	if systemOnly {
+		imageType = "System"
+	} else if includeSystem {
+		// Don't set imageType to query all types
+		imageType = ""
+	} else {
+		// Default behavior: only user images
+		imageType = "User"
+	}
+	// Only set ImageType if it's not empty (empty means query all types)
+	if imageType != "" {
+		req.ImageType = &imageType
+	}
 	if osType != "" {
 		req.OsType = &osType
 	}
@@ -536,7 +567,11 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	// Debug: Print request details
 	if log.GetLevel() >= log.DebugLevel {
 		log.Debugf("[DEBUG] ListMcpImages Request:")
-		log.Debugf("[DEBUG] - ImageType: %s", imageType)
+		if imageType != "" {
+			log.Debugf("[DEBUG] - ImageType: %s", imageType)
+		} else {
+			log.Debugf("[DEBUG] - ImageType: (all types)")
+		}
 		if req.OsType != nil {
 			log.Debugf("[DEBUG] - OsType: %s", *req.OsType)
 		}
