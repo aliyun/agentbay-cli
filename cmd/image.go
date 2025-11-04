@@ -537,21 +537,24 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	// Prepare request
 	req := &client.ListMcpImagesRequest{}
 
-	// Determine image type based on flags
+	// Handle different image type queries
+	if includeSystem {
+		// For include-system, we need to make two API calls and merge results
+		return runImageListWithBothTypes(ctx, apiClient, osType, page, pageSize)
+	}
+
+	// Single query for system-only or user-only (default)
 	var imageType string
 	if systemOnly {
 		imageType = "System"
-	} else if includeSystem {
-		// Don't set imageType to query all types
-		imageType = ""
 	} else {
 		// Default behavior: only user images
 		imageType = "User"
 	}
-	// Only set ImageType if it's not empty (empty means query all types)
-	if imageType != "" {
-		req.ImageType = &imageType
-	}
+
+	// Prepare request
+	req = &client.ListMcpImagesRequest{}
+	req.ImageType = &imageType
 	if osType != "" {
 		req.OsType = &osType
 	}
