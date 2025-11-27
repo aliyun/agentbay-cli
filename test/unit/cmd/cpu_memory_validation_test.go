@@ -111,10 +111,10 @@ func TestValidateCPUMemoryCombo(t *testing.T) {
 // TestValidateCPUMemoryCombo_ErrorMessages tests error message formatting
 func TestValidateCPUMemoryCombo_ErrorMessages(t *testing.T) {
 	tests := []struct {
-		name           string
-		cpu            int
-		memory         int
-		expectedInMsg  []string
+		name          string
+		cpu           int
+		memory        int
+		expectedInMsg []string
 	}{
 		{
 			name:   "cpu_only_error_contains_hints",
@@ -205,4 +205,3 @@ func TestValidateCPUMemoryCombo_BoundaryValues(t *testing.T) {
 		})
 	}
 }
-
