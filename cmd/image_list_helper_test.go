@@ -203,9 +203,9 @@ func TestRunImageListWithBothTypes(t *testing.T) {
 			userImages: []*client.ListMcpImagesResponseBodyData{
 				createMockImage("imgc-1234567890", "my-user-image", "User", "IMAGE_AVAILABLE"),
 			},
-			systemError:  fmt.Errorf("system API error"),
-			userTotal:    1,
-			systemTotal:  0,
+			systemError: fmt.Errorf("system API error"),
+			userTotal:   1,
+			systemTotal: 0,
 		}
 
 		err := runImageListWithBothTypes(ctx, mockClient, "", 1, 10)
@@ -395,7 +395,7 @@ func TestPrintImageTable(t *testing.T) {
 		systemImage := createMockImage("code-space-debian-12", "system-image", "System", "IMAGE_AVAILABLE")
 
 		mockClient := &mockImageListClient{
-			userImages: []*client.ListMcpImagesResponseBodyData{userImage},
+			userImages:   []*client.ListMcpImagesResponseBodyData{userImage},
 			systemImages: []*client.ListMcpImagesResponseBodyData{systemImage},
 			userTotal:    1,
 			systemTotal:  1,
@@ -418,4 +418,3 @@ func TestPrintImageTable(t *testing.T) {
 		assert.Greater(t, systemSectionIndex, userSectionIndex, "system section should come after user section")
 	})
 }
-
