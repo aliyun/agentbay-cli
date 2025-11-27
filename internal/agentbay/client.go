@@ -120,6 +120,7 @@ type Client interface {
 	GetMcpImageInfo(ctx context.Context, request *client.GetMcpImageInfoRequest) (*client.GetMcpImageInfoResponse, error)
 	CreateResourceGroup(ctx context.Context, request *client.CreateResourceGroupRequest) (*client.CreateResourceGroupResponse, error)
 	DeleteResourceGroup(ctx context.Context, request *client.DeleteResourceGroupRequest) (*client.DeleteResourceGroupResponse, error)
+	GetDockerfileTemplate(ctx context.Context, request *client.GetDockerfileTemplateRequest) (*client.GetDockerfileTemplateResponse, error)
 }
 
 // clientWrapper wraps the generated SDK client with additional functionality
@@ -1254,4 +1255,110 @@ func (cw *clientWrapper) GetMcpImageInfo(ctx context.Context, request *client.Ge
 
 	log.Debugf("[DEBUG] ClientWrapper: GetMcpImageInfo completed successfully")
 	return resp, nil
+}
+
+// GetDockerfileTemplate wraps the SDK client method (mock implementation)
+func (cw *clientWrapper) GetDockerfileTemplate(ctx context.Context, request *client.GetDockerfileTemplateRequest) (*client.GetDockerfileTemplateResponse, error) {
+	log.Debugf("[DEBUG] ClientWrapper: GetDockerfileTemplate called (mock)")
+
+	// Get template name from request, default to "default" if not specified
+	templateName := "default"
+	if request != nil && request.Template != nil && *request.Template != "" {
+		templateName = *request.Template
+	}
+
+	log.Debugf("[DEBUG] Requested template: %s", templateName)
+
+	// Mock dockerfile templates
+	templates := map[string]string{
+		"default": `# Default AgentBay Dockerfile Template
+FROM code_latest
+
+# Install your custom dependencies here
+# RUN apt-get update && apt-get install -y <package-name>
+
+# Copy your application files
+# COPY . /app
+
+# Set working directory
+# WORKDIR /app
+
+# Run your application
+# CMD ["your-command"]
+`,
+		"python": `# Python AgentBay Dockerfile Template
+FROM code_latest
+
+# Install Python dependencies
+RUN apt-get update && apt-get install -y python3 python3-pip
+
+# Copy your Python application
+COPY . /app
+WORKDIR /app
+
+# Install Python packages
+RUN pip3 install -r requirements.txt
+
+# Run your Python application
+CMD ["python3", "app.py"]
+`,
+		"nodejs": `# Node.js AgentBay Dockerfile Template
+FROM code_latest
+
+# Install Node.js
+RUN apt-get update && apt-get install -y nodejs npm
+
+# Copy your Node.js application
+COPY . /app
+WORKDIR /app
+
+# Install Node.js dependencies
+RUN npm install
+
+# Run your Node.js application
+CMD ["node", "index.js"]
+`,
+		"go": `# Go AgentBay Dockerfile Template
+FROM code_latest
+
+# Install Go
+RUN apt-get update && apt-get install -y golang-go
+
+# Copy your Go application
+COPY . /app
+WORKDIR /app
+
+# Build your Go application
+RUN go build -o app .
+
+# Run your Go application
+CMD ["./app"]
+`,
+	}
+
+	// Get template content, use default if template not found
+	content, exists := templates[templateName]
+	if !exists {
+		log.Debugf("[DEBUG] Template '%s' not found, using default template", templateName)
+		content = templates["default"]
+	}
+
+	// Create mock response
+	response := &client.GetDockerfileTemplateResponse{
+		Headers:    make(map[string]*string),
+		StatusCode: dara.Int32(200),
+		Body: &client.GetDockerfileTemplateResponseBody{
+			RequestId:      dara.String("mock-request-id"),
+			HttpStatusCode: dara.Int32(200),
+			Code:           dara.String("Success"),
+			Success:        dara.Bool(true),
+			Message:        dara.String("Template retrieved successfully"),
+			Data: &client.GetDockerfileTemplateResponseBodyData{
+				Content: dara.String(content),
+			},
+		},
+	}
+
+	log.Debugf("[DEBUG] ClientWrapper: GetDockerfileTemplate completed successfully (mock)")
+	return response, nil
 }

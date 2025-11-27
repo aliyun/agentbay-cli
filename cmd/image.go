@@ -135,6 +135,33 @@ Examples:
 	RunE: runImageDeactivate,
 }
 
+var imageInitCmd = &cobra.Command{
+	Use:   "init [template]",
+	Short: "Download a Dockerfile template from the cloud",
+	Long: `Download a Dockerfile template from the cloud to the local root directory.
+
+This command fetches a Dockerfile template from AgentBay and saves it as 'Dockerfile' 
+in the current directory. You can specify a template name to get a specific template.
+
+Available templates:
+  default - Basic Dockerfile template (default)
+  python  - Python application template
+  nodejs  - Node.js application template
+  go      - Go application template
+
+Examples:
+  # Download default template
+  agentbay image init
+  
+  # Download Python template
+  agentbay image init python
+  
+  # Download Node.js template
+  agentbay image init nodejs`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: runImageInit,
+}
+
 func init() {
 	// Add flags to image create command
 	imageCreateCmd.Flags().StringP("dockerfile", "f", "", "Path to the Dockerfile (required)")
@@ -160,6 +187,7 @@ func init() {
 	ImageCmd.AddCommand(imageListCmd)
 	ImageCmd.AddCommand(imageActivateCmd)
 	ImageCmd.AddCommand(imageDeactivateCmd)
+	ImageCmd.AddCommand(imageInitCmd)
 }
 
 func runImageCreate(cmd *cobra.Command, args []string) error {
@@ -1377,4 +1405,97 @@ func pollImageDeactivationStatus(ctx context.Context, apiClient agentbay.Client,
 			}
 		}
 	}
+}
+
+func runImageInit(cmd *cobra.Command, args []string) error {
+	// Get template name from args, default to "default"
+	templateName := "default"
+	if len(args) > 0 && args[0] != "" {
+		templateName = args[0]
+	}
+
+	fmt.Printf("[INIT] Downloading Dockerfile template '%s'...\n", templateName)
+
+	// Load configuration and check authentication
+	cfg, err := config.GetConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[ERROR] Failed to load configuration: %v\n", err)
+		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	if !cfg.IsAuthenticated() {
+		fmt.Fprintf(os.Stderr, "[ERROR] Not authenticated. Please run 'agentbay login' first\n")
+		return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
+	}
+
+	// Create API client
+	apiClient := agentbay.NewClientFromConfig(cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Prepare request
+	req := &client.GetDockerfileTemplateRequest{}
+	if templateName != "" {
+		req.Template = &templateName
+	}
+
+	// Debug: Print request details
+	if log.GetLevel() >= log.DebugLevel {
+		log.Debugf("[DEBUG] GetDockerfileTemplate Request:")
+		if req.Template != nil {
+			log.Debugf("[DEBUG] - Template: %s", *req.Template)
+		}
+	}
+
+	// Make API call
+	fmt.Printf("Fetching template from cloud...")
+	resp, err := apiClient.GetDockerfileTemplate(ctx, req)
+	if err != nil {
+		log.Debugf("[DEBUG] GetDockerfileTemplate API call failed: %v", err)
+		fmt.Printf("[ERROR] Failed to fetch Dockerfile template. Please check your authentication and try again.\n")
+		if log.GetLevel() >= log.DebugLevel {
+			fmt.Printf("[DEBUG] Error details: %v\n", err)
+		}
+		return fmt.Errorf("failed to fetch Dockerfile template: %w", err)
+	}
+	fmt.Printf(" Done.\n")
+
+	// Validate response
+	if resp.Body == nil || resp.Body.Data == nil {
+		return fmt.Errorf("invalid response: missing template data")
+	}
+
+	content := resp.Body.Data.GetContent()
+	if content == nil || *content == "" {
+		return fmt.Errorf("invalid response: empty template content")
+	}
+
+	// Get current working directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current working directory: %w", err)
+	}
+
+	// Write Dockerfile to current directory
+	dockerfilePath := filepath.Join(cwd, "Dockerfile")
+	fmt.Printf("Writing Dockerfile to %s...", dockerfilePath)
+
+	// Check if Dockerfile already exists
+	if _, err := os.Stat(dockerfilePath); err == nil {
+		fmt.Printf("\n[WARN] Dockerfile already exists at %s\n", dockerfilePath)
+		fmt.Printf("[INFO] The existing file will be overwritten.\n")
+	}
+
+	// Write the content to file
+	err = os.WriteFile(dockerfilePath, []byte(*content), 0644)
+	if err != nil {
+		fmt.Printf(" Failed.\n")
+		return fmt.Errorf("failed to write Dockerfile: %w", err)
+	}
+	fmt.Printf(" Done.\n")
+
+	fmt.Printf("[SUCCESS] ✅ Dockerfile template '%s' downloaded successfully!\n", templateName)
+	fmt.Printf("[INFO] Dockerfile saved to: %s\n", dockerfilePath)
+
+	return nil
 }
