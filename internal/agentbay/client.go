@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
@@ -111,59 +109,6 @@ type debugHttpClient struct {
 func (dhc *debugHttpClient) Call(request *http.Request, transport *http.Transport) (*http.Response, error) {
 	// Use our debug client to make the request
 	return dhc.client.Do(request)
-}
-
-// fixOSSEndpoint corrects the OSS endpoint in the URL based on the bucket name's region
-// This is a workaround for backend API returning URLs with incorrect regional endpoints
-func fixOSSEndpoint(ossURL string) string {
-	// Parse the URL
-	parsedURL, err := url.Parse(ossURL)
-	if err != nil {
-		log.Debugf("[DEBUG] Failed to parse OSS URL: %v", err)
-		return ossURL
-	}
-
-	// Extract bucket name and current endpoint from the host
-	// Format: bucket-name.oss-region.aliyuncs.com
-	host := parsedURL.Host
-	parts := strings.SplitN(host, ".", 2)
-	if len(parts) != 2 {
-		log.Debugf("[DEBUG] Unexpected OSS URL host format: %s", host)
-		return ossURL
-	}
-
-	bucketName := parts[0]
-	currentEndpoint := parts[1]
-
-	// Extract region from bucket name (e.g., "wuying-mcp-service-cn-shanghai" -> "cn-shanghai")
-	// Region pattern: cn-xxx, us-xxx, ap-xxx, eu-xxx, etc.
-	regionPattern := regexp.MustCompile(`(cn|us|ap|eu|me|sa)-[a-z0-9-]+`)
-	matches := regionPattern.FindStringSubmatch(bucketName)
-	if len(matches) == 0 {
-		log.Debugf("[DEBUG] Could not extract region from bucket name: %s", bucketName)
-		return ossURL
-	}
-
-	extractedRegion := matches[0]
-	log.Debugf("[DEBUG] Extracted region from bucket name: %s", extractedRegion)
-
-	// Check if the current endpoint matches the extracted region
-	expectedEndpoint := fmt.Sprintf("oss-%s.aliyuncs.com", extractedRegion)
-	if currentEndpoint == expectedEndpoint {
-		// Endpoint is already correct
-		return ossURL
-	}
-
-	// Fix the endpoint
-	parsedURL.Host = fmt.Sprintf("%s.%s", bucketName, expectedEndpoint)
-	fixedURL := parsedURL.String()
-
-	log.Debugf("[DEBUG] OSS endpoint mismatch detected and fixed:")
-	log.Debugf("[DEBUG]   Bucket: %s (region: %s)", bucketName, extractedRegion)
-	log.Debugf("[DEBUG]   Wrong endpoint: %s", currentEndpoint)
-	log.Debugf("[DEBUG]   Correct endpoint: %s", expectedEndpoint)
-
-	return fixedURL
 }
 
 // Client interface defines the methods available for AgentBay API operations
@@ -765,18 +710,6 @@ func (cw *clientWrapper) GetDockerFileStoreCredential(ctx context.Context, reque
 
 				log.Debugf("[DEBUG] XML response parsed successfully")
 
-				// Fix OSS URL endpoint if needed (workaround for backend issue)
-				if customResponse != nil && customResponse.Body != nil && customResponse.Body.Data != nil && customResponse.Body.Data.OssUrl != nil {
-					originalUrl := *customResponse.Body.Data.OssUrl
-					fixedUrl := fixOSSEndpoint(originalUrl)
-					if fixedUrl != originalUrl {
-						log.Debugf("[DEBUG] Fixed OSS URL endpoint:")
-						log.Debugf("[DEBUG]   Original: %s", originalUrl)
-						log.Debugf("[DEBUG]   Fixed:    %s", fixedUrl)
-						customResponse.Body.Data.OssUrl = &fixedUrl
-					}
-				}
-
 				return customResponse, nil
 			} else {
 				log.Debugf("[DEBUG] No cached XML response available")
@@ -788,18 +721,6 @@ func (cw *clientWrapper) GetDockerFileStoreCredential(ctx context.Context, reque
 		return nil, err
 	}
 	log.Debugf("[DEBUG] ClientWrapper: SDK API call completed successfully")
-
-	// Fix OSS URL endpoint if needed (workaround for backend issue)
-	if resp != nil && resp.Body != nil && resp.Body.Data != nil && resp.Body.Data.OssUrl != nil {
-		originalUrl := *resp.Body.Data.OssUrl
-		fixedUrl := fixOSSEndpoint(originalUrl)
-		if fixedUrl != originalUrl {
-			log.Debugf("[DEBUG] Fixed OSS URL endpoint:")
-			log.Debugf("[DEBUG]   Original: %s", originalUrl)
-			log.Debugf("[DEBUG]   Fixed:    %s", fixedUrl)
-			resp.Body.Data.OssUrl = &fixedUrl
-		}
-	}
 
 	return resp, nil
 }
