@@ -18,9 +18,9 @@ type iGetDockerfileTemplateResponse interface {
 }
 
 type GetDockerfileTemplateResponse struct {
-	Headers    map[string]*string                    `json:"headers,omitempty" xml:"headers,omitempty"`
-	StatusCode *int32                                `json:"statusCode,omitempty" xml:"statusCode,omitempty"`
-	Body       *GetDockerfileTemplateResponseBody    `json:"body,omitempty" xml:"body,omitempty"`
+	Headers    map[string]*string                 `json:"headers,omitempty" xml:"headers,omitempty"`
+	StatusCode *int32                             `json:"statusCode,omitempty" xml:"statusCode,omitempty"`
+	Body       *GetDockerfileTemplateResponseBody `json:"body,omitempty" xml:"body,omitempty"`
 }
 
 func (s GetDockerfileTemplateResponse) String() string {
@@ -61,4 +61,3 @@ func (s *GetDockerfileTemplateResponse) SetBody(v *GetDockerfileTemplateResponse
 func (s *GetDockerfileTemplateResponse) Validate() error {
 	return dara.Validate(s)
 }
-
