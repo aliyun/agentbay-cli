@@ -59,7 +59,7 @@ agentbay image list                    # List user images (default)
 agentbay image list --include-system   # List both user and system images
 agentbay image list --system-only      # List only system images
 
-# 3. Download Dockerfile template (optional)
+# 3. Download Dockerfile templat
 agentbay image init                    # Download Dockerfile template to current directory
 
 # 4. Create a custom image (using system image as base)

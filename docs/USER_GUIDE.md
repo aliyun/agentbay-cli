@@ -109,7 +109,29 @@ imgc-xxxxx...xxx      test-img         ImageBuilder    Creating      Windows 202
 - **Activated**: Running
 - **Create Failed**: Build failed
 
-## 4. Create Image
+## 4. Download Dockerfile Template
+
+```bash
+agentbay image init
+```
+
+Downloads a Dockerfile template from the cloud and saves it as `Dockerfile` in the current directory.
+
+**Output:**
+```
+[INIT] Downloading Dockerfile template...
+Getting download URL from cloud... Done.
+Downloading Dockerfile from OSS... Done.
+Writing Dockerfile to /path/to/current/directory/Dockerfile... Done.
+[SUCCESS] ✅ Dockerfile template downloaded successfully!
+[INFO] Dockerfile saved to: /path/to/current/directory/Dockerfile
+```
+
+**Note**: If a `Dockerfile` already exists in the current directory, it will be overwritten. The command will warn you before overwriting.
+
+This is an optional step. You can also create your own Dockerfile manually or use an existing one.
+
+## 5. Create Image
 
 ```bash
 agentbay image create my-app --dockerfile ./Dockerfile --imageId code_latest
@@ -134,7 +156,7 @@ agentbay image create my-app --dockerfile ./Dockerfile --imageId code_latest
 
 Build time varies based on image size. Use `-v` for detailed logs.
 
-## 5. Activate Image
+## 6. Activate Image
 
 ```bash
 agentbay image activate imgc-xxxxx...xxx
@@ -175,7 +197,7 @@ Waiting for activation to complete...
 
 Activation typically takes 1-2 minutes. If already activated, you'll see "No action needed."
 
-## 6. Deactivate Image
+## 7. Deactivate Image
 
 ```bash
 agentbay image deactivate imgc-xxxxx...xxx
@@ -221,6 +243,7 @@ agentbay -v image list
 - Verify Dockerfile syntax
 - Check base image ID is valid
 - Use `agentbay image list` to find valid IDs
+- Use `agentbay image init` to download a template Dockerfile
 
 **Q: Where is config stored?**
 `~/.config/agentbay/config.json` (macOS/Linux) or `%APPDATA%\agentbay\config.json` (Windows)
