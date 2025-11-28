@@ -136,29 +136,17 @@ Examples:
 }
 
 var imageInitCmd = &cobra.Command{
-	Use:   "init [template]",
+	Use:   "init",
 	Short: "Download a Dockerfile template from the cloud",
 	Long: `Download a Dockerfile template from the cloud to the local root directory.
 
 This command fetches a Dockerfile template from AgentBay and saves it as 'Dockerfile' 
-in the current directory. You can specify a template name to get a specific template.
+in the current directory.
 
-Available templates:
-  default - Basic Dockerfile template (default)
-  python  - Python application template
-  nodejs  - Node.js application template
-  go      - Go application template
-
-Examples:
-  # Download default template
-  agentbay image init
-  
-  # Download Python template
-  agentbay image init python
-  
-  # Download Node.js template
-  agentbay image init nodejs`,
-	Args: cobra.MaximumNArgs(1),
+Example:
+  # Download Dockerfile template
+  agentbay image init`,
+	Args: cobra.NoArgs,
 	RunE: runImageInit,
 }
 
@@ -1408,13 +1396,7 @@ func pollImageDeactivationStatus(ctx context.Context, apiClient agentbay.Client,
 }
 
 func runImageInit(cmd *cobra.Command, args []string) error {
-	// Get template name from args, default to "default"
-	templateName := "default"
-	if len(args) > 0 && args[0] != "" {
-		templateName = args[0]
-	}
-
-	fmt.Printf("[INIT] Downloading Dockerfile template '%s'...\n", templateName)
+	fmt.Printf("[INIT] Downloading Dockerfile template...\n")
 
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
@@ -1433,30 +1415,36 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Prepare request
-	req := &client.GetDockerfileTemplateRequest{}
-	if templateName != "" {
-		req.Template = &templateName
+	// Prepare request - Source is required, use "AgentBay" as default
+	// Template parameter is reserved for future extension (not used currently)
+	sourceAgentBay := "AgentBay"
+	req := &client.GetDockerfileTemplateRequest{
+		Source: &sourceAgentBay,
+		// Template field is reserved for future extension when multiple templates are available
+		// Currently only one template is provided, so Template is not set
 	}
 
 	// Debug: Print request details
 	if log.GetLevel() >= log.DebugLevel {
 		log.Debugf("[DEBUG] GetDockerfileTemplate Request:")
+		if req.Source != nil {
+			log.Debugf("[DEBUG] - Source: %s", *req.Source)
+		}
 		if req.Template != nil {
-			log.Debugf("[DEBUG] - Template: %s", *req.Template)
+			log.Debugf("[DEBUG] - Template: %s (reserved for future extension)", *req.Template)
 		}
 	}
 
-	// Make API call
-	fmt.Printf("Fetching template from cloud...")
+	// Make API call to get OSS download URL
+	fmt.Printf("Getting download URL from cloud...")
 	resp, err := apiClient.GetDockerfileTemplate(ctx, req)
 	if err != nil {
 		log.Debugf("[DEBUG] GetDockerfileTemplate API call failed: %v", err)
-		fmt.Printf("[ERROR] Failed to fetch Dockerfile template. Please check your authentication and try again.\n")
+		fmt.Printf("[ERROR] Failed to get Dockerfile template download URL. Please check your authentication and try again.\n")
 		if log.GetLevel() >= log.DebugLevel {
 			fmt.Printf("[DEBUG] Error details: %v\n", err)
 		}
-		return fmt.Errorf("failed to fetch Dockerfile template: %w", err)
+		return fmt.Errorf("failed to get Dockerfile template download URL: %w", err)
 	}
 	fmt.Printf(" Done.\n")
 
@@ -1465,10 +1453,21 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid response: missing template data")
 	}
 
-	content := resp.Body.Data.GetContent()
-	if content == nil || *content == "" {
-		return fmt.Errorf("invalid response: empty template content")
+	ossUrl := resp.Body.Data.GetOssDownloadUrl()
+	if ossUrl == nil || *ossUrl == "" {
+		return fmt.Errorf("invalid response: missing OSS download URL")
 	}
+
+	log.Debugf("[DEBUG] OSS Download URL: %s", *ossUrl)
+
+	// Download Dockerfile from OSS URL
+	fmt.Printf("Downloading Dockerfile from OSS...")
+	dockerfileContent, err := downloadDockerfileFromOSS(*ossUrl)
+	if err != nil {
+		fmt.Printf(" Failed.\n")
+		return fmt.Errorf("failed to download Dockerfile from OSS: %w", err)
+	}
+	fmt.Printf(" Done.\n")
 
 	// Get current working directory
 	cwd, err := os.Getwd()
@@ -1487,15 +1486,55 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Write the content to file
-	err = os.WriteFile(dockerfilePath, []byte(*content), 0644)
+	err = os.WriteFile(dockerfilePath, dockerfileContent, 0644)
 	if err != nil {
 		fmt.Printf(" Failed.\n")
 		return fmt.Errorf("failed to write Dockerfile: %w", err)
 	}
 	fmt.Printf(" Done.\n")
 
-	fmt.Printf("[SUCCESS] ✅ Dockerfile template '%s' downloaded successfully!\n", templateName)
+	fmt.Printf("[SUCCESS] ✅ Dockerfile template downloaded successfully!\n")
 	fmt.Printf("[INFO] Dockerfile saved to: %s\n", dockerfilePath)
 
 	return nil
+}
+
+// downloadDockerfileFromOSS downloads Dockerfile content from OSS URL
+func downloadDockerfileFromOSS(ossUrl string) ([]byte, error) {
+	// Download from OSS URL using HTTP GET
+	log.Debugf("[DEBUG] Downloading from OSS URL: %s", ossUrl)
+
+	// Create HTTP request
+	httpClient := &http.Client{
+		Timeout: 60 * time.Second,
+	}
+
+	req, err := http.NewRequest(http.MethodGet, ossUrl, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create download request: %w", err)
+	}
+
+	req.Header.Set("User-Agent", "AgentBay-CLI/1.0")
+
+	// Perform the download
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to download from OSS: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check response status
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("download failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Read the content
+	content, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read downloaded content: %w", err)
+	}
+
+	log.Debugf("[DEBUG] Downloaded %d bytes from OSS", len(content))
+	return content, nil
 }

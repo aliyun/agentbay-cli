@@ -24,12 +24,12 @@ type iGetDockerfileTemplateResponseBody interface {
 }
 
 type GetDockerfileTemplateResponseBody struct {
-	Code           *string                                   `json:"Code,omitempty" xml:"Code,omitempty"`
-	Data           *GetDockerfileTemplateResponseBodyData   `json:"Data,omitempty" xml:"Data,omitempty" type:"Struct"`
-	HttpStatusCode *int32                                    `json:"HttpStatusCode,omitempty" xml:"HttpStatusCode,omitempty"`
-	Message        *string                                   `json:"Message,omitempty" xml:"Message,omitempty"`
-	RequestId      *string                                   `json:"RequestId,omitempty" xml:"RequestId,omitempty"`
-	Success        *bool                                     `json:"Success,omitempty" xml:"Success,omitempty"`
+	Code           *string                                `json:"Code,omitempty" xml:"Code,omitempty"`
+	Data           *GetDockerfileTemplateResponseBodyData `json:"Data,omitempty" xml:"Data,omitempty" type:"Struct"`
+	HttpStatusCode *int32                                 `json:"HttpStatusCode,omitempty" xml:"HttpStatusCode,omitempty"`
+	Message        *string                                `json:"Message,omitempty" xml:"Message,omitempty"`
+	RequestId      *string                                `json:"RequestId,omitempty" xml:"RequestId,omitempty"`
+	Success        *bool                                  `json:"Success,omitempty" xml:"Success,omitempty"`
 }
 
 func (s GetDockerfileTemplateResponseBody) String() string {
@@ -95,15 +95,14 @@ func (s *GetDockerfileTemplateResponseBody) SetSuccess(v bool) *GetDockerfileTem
 }
 
 type GetDockerfileTemplateResponseBodyData struct {
-	Content *string `json:"Content,omitempty" xml:"Content,omitempty"`
+	OssDownloadUrl *string `json:"OssDownloadUrl,omitempty" xml:"OssDownloadUrl,omitempty"`
 }
 
-func (s *GetDockerfileTemplateResponseBodyData) GetContent() *string {
-	return s.Content
+func (s *GetDockerfileTemplateResponseBodyData) GetOssDownloadUrl() *string {
+	return s.OssDownloadUrl
 }
 
-func (s *GetDockerfileTemplateResponseBodyData) SetContent(v string) *GetDockerfileTemplateResponseBodyData {
-	s.Content = &v
+func (s *GetDockerfileTemplateResponseBodyData) SetOssDownloadUrl(v string) *GetDockerfileTemplateResponseBodyData {
+	s.OssDownloadUrl = &v
 	return s
 }
-

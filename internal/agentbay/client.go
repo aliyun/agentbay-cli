@@ -87,7 +87,7 @@ func (dt *debugTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		body, err := io.ReadAll(resp.Body)
 		if err == nil {
 			// Cache XML responses for fallback parsing
-			if bytes.Contains(body, []byte("<?xml")) && (bytes.Contains(body, []byte("GetDockerFileStoreCredentialResponse")) || bytes.Contains(body, []byte("CreateDockerImageTaskResponse")) || bytes.Contains(body, []byte("GetDockerImageTaskResponse")) || bytes.Contains(body, []byte("ListMcpImagesResponse")) || bytes.Contains(body, []byte("GetMcpImageInfoResponse")) || bytes.Contains(body, []byte("CreateResourceGroupResponse")) || bytes.Contains(body, []byte("DeleteResourceGroupResponse"))) {
+			if bytes.Contains(body, []byte("<?xml")) && (bytes.Contains(body, []byte("GetDockerFileStoreCredentialResponse")) || bytes.Contains(body, []byte("CreateDockerImageTaskResponse")) || bytes.Contains(body, []byte("GetDockerImageTaskResponse")) || bytes.Contains(body, []byte("ListMcpImagesResponse")) || bytes.Contains(body, []byte("GetMcpImageInfoResponse")) || bytes.Contains(body, []byte("CreateResourceGroupResponse")) || bytes.Contains(body, []byte("DeleteResourceGroupResponse")) || bytes.Contains(body, []byte("GetDockerfileTemplateResponse"))) {
 				xmlResponseCache = string(body)
 				log.Debugf("[DEBUG] Cached XML response for fallback parsing")
 			}
@@ -1257,108 +1257,147 @@ func (cw *clientWrapper) GetMcpImageInfo(ctx context.Context, request *client.Ge
 	return resp, nil
 }
 
-// GetDockerfileTemplate wraps the SDK client method (mock implementation)
-func (cw *clientWrapper) GetDockerfileTemplate(ctx context.Context, request *client.GetDockerfileTemplateRequest) (*client.GetDockerfileTemplateResponse, error) {
-	log.Debugf("[DEBUG] ClientWrapper: GetDockerfileTemplate called (mock)")
+// XMLGetDockerfileTemplateResponse represents the XML response structure for GetDockerfileTemplate
+type XMLGetDockerfileTemplateResponse struct {
+	XMLName        xml.Name `xml:"GetDockerfileTemplateResponse"`
+	RequestId      string   `xml:"RequestId"`
+	HttpStatusCode int      `xml:"HttpStatusCode"`
+	Data           struct {
+		OssDownloadUrl string `xml:"OssDownloadUrl"`
+	} `xml:"Data"`
+	Code    string `xml:"Code"`
+	Success bool   `xml:"Success"`
+	Message string `xml:"Message"`
+}
 
-	// Get template name from request, default to "default" if not specified
-	templateName := "default"
-	if request != nil && request.Template != nil && *request.Template != "" {
-		templateName = *request.Template
+// parseGetDockerfileTemplateXMLResponse parses XML response and converts it to SDK response format
+func (cw *clientWrapper) parseGetDockerfileTemplateXMLResponse(xmlData []byte) (*client.GetDockerfileTemplateResponse, error) {
+	log.Debugf("[DEBUG] Parsing GetDockerfileTemplate XML data: %s", string(xmlData))
+
+	var xmlResp XMLGetDockerfileTemplateResponse
+	if err := xml.Unmarshal(xmlData, &xmlResp); err != nil {
+		log.Debugf("[DEBUG] GetDockerfileTemplate XML unmarshal failed: %v", err)
+		return nil, fmt.Errorf("failed to parse GetDockerfileTemplate XML response: %w", err)
 	}
 
-	log.Debugf("[DEBUG] Requested template: %s", templateName)
+	log.Debugf("[DEBUG] Parsed GetDockerfileTemplate XML data:")
+	log.Debugf("[DEBUG] - RequestId: %s", xmlResp.RequestId)
+	log.Debugf("[DEBUG] - HttpStatusCode: %d", xmlResp.HttpStatusCode)
+	log.Debugf("[DEBUG] - Code: %s", xmlResp.Code)
+	log.Debugf("[DEBUG] - Success: %t", xmlResp.Success)
+	log.Debugf("[DEBUG] - Message: %s", xmlResp.Message)
+	log.Debugf("[DEBUG] - OssDownloadUrl: %s", xmlResp.Data.OssDownloadUrl)
 
-	// Mock dockerfile templates
-	templates := map[string]string{
-		"default": `# Default AgentBay Dockerfile Template
-FROM code_latest
-
-# Install your custom dependencies here
-# RUN apt-get update && apt-get install -y <package-name>
-
-# Copy your application files
-# COPY . /app
-
-# Set working directory
-# WORKDIR /app
-
-# Run your application
-# CMD ["your-command"]
-`,
-		"python": `# Python AgentBay Dockerfile Template
-FROM code_latest
-
-# Install Python dependencies
-RUN apt-get update && apt-get install -y python3 python3-pip
-
-# Copy your Python application
-COPY . /app
-WORKDIR /app
-
-# Install Python packages
-RUN pip3 install -r requirements.txt
-
-# Run your Python application
-CMD ["python3", "app.py"]
-`,
-		"nodejs": `# Node.js AgentBay Dockerfile Template
-FROM code_latest
-
-# Install Node.js
-RUN apt-get update && apt-get install -y nodejs npm
-
-# Copy your Node.js application
-COPY . /app
-WORKDIR /app
-
-# Install Node.js dependencies
-RUN npm install
-
-# Run your Node.js application
-CMD ["node", "index.js"]
-`,
-		"go": `# Go AgentBay Dockerfile Template
-FROM code_latest
-
-# Install Go
-RUN apt-get update && apt-get install -y golang-go
-
-# Copy your Go application
-COPY . /app
-WORKDIR /app
-
-# Build your Go application
-RUN go build -o app .
-
-# Run your Go application
-CMD ["./app"]
-`,
-	}
-
-	// Get template content, use default if template not found
-	content, exists := templates[templateName]
-	if !exists {
-		log.Debugf("[DEBUG] Template '%s' not found, using default template", templateName)
-		content = templates["default"]
-	}
-
-	// Create mock response
+	// Convert to SDK response format
 	response := &client.GetDockerfileTemplateResponse{
 		Headers:    make(map[string]*string),
-		StatusCode: dara.Int32(200),
+		StatusCode: dara.Int32(int32(xmlResp.HttpStatusCode)),
 		Body: &client.GetDockerfileTemplateResponseBody{
-			RequestId:      dara.String("mock-request-id"),
-			HttpStatusCode: dara.Int32(200),
-			Code:           dara.String("Success"),
-			Success:        dara.Bool(true),
-			Message:        dara.String("Template retrieved successfully"),
+			RequestId:      dara.String(xmlResp.RequestId),
+			HttpStatusCode: dara.Int32(int32(xmlResp.HttpStatusCode)),
+			Code:           dara.String(xmlResp.Code),
+			Success:        dara.Bool(xmlResp.Success),
+			Message:        dara.String(xmlResp.Message),
 			Data: &client.GetDockerfileTemplateResponseBodyData{
-				Content: dara.String(content),
+				OssDownloadUrl: dara.String(xmlResp.Data.OssDownloadUrl),
 			},
 		},
 	}
 
-	log.Debugf("[DEBUG] ClientWrapper: GetDockerfileTemplate completed successfully (mock)")
+	log.Debugf("[DEBUG] Created GetDockerfileTemplate SDK response with OssDownloadUrl: %s", xmlResp.Data.OssDownloadUrl)
 	return response, nil
+}
+
+// GetDockerfileTemplate wraps the SDK client method
+func (cw *clientWrapper) GetDockerfileTemplate(ctx context.Context, request *client.GetDockerfileTemplateRequest) (*client.GetDockerfileTemplateResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Get runtime options with debug enabled if verbose
+	runtimeOptions := cw.getRuntimeOptions()
+
+	// Log basic request information in verbose mode
+	if log.GetLevel() >= log.DebugLevel {
+		log.Debugf("[DEBUG] Making GetDockerfileTemplate request...")
+	}
+
+	// Validate request
+	if err := request.Validate(); err != nil {
+		return nil, err
+	}
+
+	// Prepare query parameters
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.Source) {
+		query["Source"] = request.Source
+	}
+	// Template is reserved for future extension
+	if !dara.IsNil(request.Template) {
+		query["Template"] = request.Template
+	}
+
+	// Prepare API request
+	apiRequest := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+
+	// Prepare API parameters
+	params := &openapiutil.Params{
+		Action:      dara.String("GetDockerfileTemplate"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("GET"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("json"),
+	}
+
+	// Call API
+	result := &client.GetDockerfileTemplateResponse{}
+	body, err := sdkClient.CallApi(params, apiRequest, runtimeOptions)
+	if err != nil {
+		log.Debugf("[DEBUG] GetDockerfileTemplate API call failed: %v", err)
+
+		// Check if this is an XML parsing error (in case API returns XML instead of JSON)
+		errStr := err.Error()
+		if bytes.Contains([]byte(errStr), []byte("readObjectStart: expect { or n, but found")) || bytes.Contains([]byte(errStr), []byte("invalid character '<' looking for beginning of value")) {
+			log.Debugf("[DEBUG] SDK returned XML response, using custom XML parser...")
+
+			// Use cached XML response if available
+			if xmlResponseCache != "" {
+				log.Debugf("[DEBUG] Parsing cached XML response...")
+
+				// Parse the cached XML directly
+				customResponse, parseErr := cw.parseGetDockerfileTemplateXMLResponse([]byte(xmlResponseCache))
+				if parseErr != nil {
+					log.Debugf("[DEBUG] Custom XML parsing failed: %v", parseErr)
+					return nil, fmt.Errorf("XML parsing failed: %w", parseErr)
+				}
+
+				log.Debugf("[DEBUG] XML response parsed successfully")
+				return customResponse, nil
+			} else {
+				log.Debugf("[DEBUG] No cached XML response available")
+				return nil, fmt.Errorf("XML parsing failed and no cached response available: %w", err)
+			}
+		}
+
+		return nil, err
+	}
+
+	// Convert response body to result
+	if err := dara.Convert(body, &result); err != nil {
+		log.Debugf("[DEBUG] Failed to convert response: %v", err)
+		return nil, fmt.Errorf("failed to convert response: %w", err)
+	}
+
+	log.Debugf("[DEBUG] ClientWrapper: GetDockerfileTemplate completed successfully")
+	return result, nil
 }
