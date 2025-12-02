@@ -145,7 +145,10 @@ in the current directory.
 
 Example:
   # Download Dockerfile template
-  agentbay image init`,
+  agentbay image init --source-image-id code_latest --source AgentBay
+  
+  # Short form
+  agentbay image init -i code_latest -s AgentBay`,
 	Args: cobra.NoArgs,
 	RunE: runImageInit,
 }
@@ -169,6 +172,11 @@ func init() {
 	imageListCmd.Flags().Bool("system-only", false, "Show only system images")
 	imageListCmd.Flags().IntP("page", "p", 1, "Page number (default: 1)")
 	imageListCmd.Flags().IntP("size", "s", 10, "Page size (default: 10)")
+
+	// Add flags to image init command
+	imageInitCmd.Flags().StringP("source-image-id", "i", "", "Source image ID (required)")
+	imageInitCmd.Flags().StringP("source", "s", "AgentBay", "Source: AGB.cloud or AgentBay (default: AgentBay)")
+	imageInitCmd.MarkFlagRequired("source-image-id")
 
 	// Add subcommands to image command
 	ImageCmd.AddCommand(imageCreateCmd)
@@ -1398,6 +1406,26 @@ func pollImageDeactivationStatus(ctx context.Context, apiClient agentbay.Client,
 func runImageInit(cmd *cobra.Command, args []string) error {
 	fmt.Printf("[INIT] Downloading Dockerfile template...\n")
 
+	// Get command flags
+	sourceImageId, _ := cmd.Flags().GetString("source-image-id")
+	source, _ := cmd.Flags().GetString("source")
+
+	// Validate required flags
+	if sourceImageId == "" {
+		return printErrorMessage(
+			"[ERROR] Missing required flag: --source-image-id",
+			"",
+			"[TIP] Usage: agentbay image init --source-image-id <id> [--source <source>]",
+			"[NOTE] Example: agentbay image init --source-image-id code_latest --source AgentBay",
+			"[NOTE] Short form: agentbay image init -i code_latest -s AgentBay",
+		)
+	}
+
+	// Validate source value
+	if source != "AGB.cloud" && source != "AgentBay" {
+		return fmt.Errorf("invalid source value: %s. Must be either 'AGB.cloud' or 'AgentBay'", source)
+	}
+
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
 	if err != nil {
@@ -1415,13 +1443,10 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Prepare request - Source is required, use "AgentBay" as default
-	// Template parameter is reserved for future extension (not used currently)
-	sourceAgentBay := "AgentBay"
+	// Prepare request - Source and SourceImageId are required
 	req := &client.GetDockerfileTemplateRequest{
-		Source: &sourceAgentBay,
-		// Template field is reserved for future extension when multiple templates are available
-		// Currently only one template is provided, so Template is not set
+		Source:        &source,
+		SourceImageId: &sourceImageId,
 	}
 
 	// Debug: Print request details
@@ -1430,21 +1455,21 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 		if req.Source != nil {
 			log.Debugf("[DEBUG] - Source: %s", *req.Source)
 		}
-		if req.Template != nil {
-			log.Debugf("[DEBUG] - Template: %s (reserved for future extension)", *req.Template)
+		if req.SourceImageId != nil {
+			log.Debugf("[DEBUG] - SourceImageId: %s", *req.SourceImageId)
 		}
 	}
 
-	// Make API call to get OSS download URL
-	fmt.Printf("Getting download URL from cloud...")
+	// Make API call to get Dockerfile template
+	fmt.Printf("Getting Dockerfile template from cloud...")
 	resp, err := apiClient.GetDockerfileTemplate(ctx, req)
 	if err != nil {
 		log.Debugf("[DEBUG] GetDockerfileTemplate API call failed: %v", err)
-		fmt.Printf("[ERROR] Failed to get Dockerfile template download URL. Please check your authentication and try again.\n")
+		fmt.Printf("[ERROR] Failed to get Dockerfile template. Please check your authentication and try again.\n")
 		if log.GetLevel() >= log.DebugLevel {
 			fmt.Printf("[DEBUG] Error details: %v\n", err)
 		}
-		return fmt.Errorf("failed to get Dockerfile template download URL: %w", err)
+		return fmt.Errorf("failed to get Dockerfile template: %w", err)
 	}
 	fmt.Printf(" Done.\n")
 
@@ -1453,21 +1478,38 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid response: missing template data")
 	}
 
-	ossUrl := resp.Body.Data.GetOssDownloadUrl()
-	if ossUrl == nil || *ossUrl == "" {
-		return fmt.Errorf("invalid response: missing OSS download URL")
+	var dockerfileContent []byte
+
+	// Prefer DockerfileContent if available, otherwise fall back to OSS download
+	dockerfileContentStr := resp.Body.Data.GetDockerfileContent()
+	if dockerfileContentStr != nil && *dockerfileContentStr != "" {
+		log.Debugf("[DEBUG] Using DockerfileContent from response")
+		dockerfileContent = []byte(*dockerfileContentStr)
+	} else {
+		// Fall back to OSS download
+		ossUrl := resp.Body.Data.GetOssDownloadUrl()
+		if ossUrl == nil || *ossUrl == "" {
+			return fmt.Errorf("invalid response: missing both DockerfileContent and OSS download URL")
+		}
+
+		log.Debugf("[DEBUG] OSS Download URL: %s", *ossUrl)
+
+		// Download Dockerfile from OSS URL
+		fmt.Printf("Downloading Dockerfile from OSS...")
+		var err error
+		dockerfileContent, err = downloadDockerfileFromOSS(*ossUrl)
+		if err != nil {
+			fmt.Printf(" Failed.\n")
+			return fmt.Errorf("failed to download Dockerfile from OSS: %w", err)
+		}
+		fmt.Printf(" Done.\n")
 	}
 
-	log.Debugf("[DEBUG] OSS Download URL: %s", *ossUrl)
-
-	// Download Dockerfile from OSS URL
-	fmt.Printf("Downloading Dockerfile from OSS...")
-	dockerfileContent, err := downloadDockerfileFromOSS(*ossUrl)
-	if err != nil {
-		fmt.Printf(" Failed.\n")
-		return fmt.Errorf("failed to download Dockerfile from OSS: %w", err)
+	// Log NonEditLineNum if available
+	nonEditLineNum := resp.Body.Data.GetNonEditLineNum()
+	if nonEditLineNum != nil {
+		log.Debugf("[DEBUG] NonEditLineNum: %d", *nonEditLineNum)
 	}
-	fmt.Printf(" Done.\n")
 
 	// Get current working directory
 	cwd, err := os.Getwd()
