@@ -95,7 +95,9 @@ func (s *GetDockerfileTemplateResponseBody) SetSuccess(v bool) *GetDockerfileTem
 }
 
 type GetDockerfileTemplateResponseBodyData struct {
-	OssDownloadUrl *string `json:"OssDownloadUrl,omitempty" xml:"OssDownloadUrl,omitempty"`
+	OssDownloadUrl    *string `json:"OssDownloadUrl,omitempty" xml:"OssDownloadUrl,omitempty"`
+	NonEditLineNum    *int32  `json:"NonEditLineNum,omitempty" xml:"NonEditLineNum,omitempty"`
+	DockerfileContent *string `json:"DockerfileContent,omitempty" xml:"DockerfileContent,omitempty"`
 }
 
 func (s *GetDockerfileTemplateResponseBodyData) GetOssDownloadUrl() *string {
@@ -104,5 +106,23 @@ func (s *GetDockerfileTemplateResponseBodyData) GetOssDownloadUrl() *string {
 
 func (s *GetDockerfileTemplateResponseBodyData) SetOssDownloadUrl(v string) *GetDockerfileTemplateResponseBodyData {
 	s.OssDownloadUrl = &v
+	return s
+}
+
+func (s *GetDockerfileTemplateResponseBodyData) GetNonEditLineNum() *int32 {
+	return s.NonEditLineNum
+}
+
+func (s *GetDockerfileTemplateResponseBodyData) SetNonEditLineNum(v int32) *GetDockerfileTemplateResponseBodyData {
+	s.NonEditLineNum = &v
+	return s
+}
+
+func (s *GetDockerfileTemplateResponseBodyData) GetDockerfileContent() *string {
+	return s.DockerfileContent
+}
+
+func (s *GetDockerfileTemplateResponseBodyData) SetDockerfileContent(v string) *GetDockerfileTemplateResponseBodyData {
+	s.DockerfileContent = &v
 	return s
 }
