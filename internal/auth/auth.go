@@ -17,6 +17,8 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+
+	"github.com/agentbay/agentbay-cli/internal/client"
 )
 
 // OAuth endpoints and constants
@@ -148,10 +150,61 @@ func RevokeTokenWithHint(clientID, token, tokenTypeHint string) error {
 	return nil
 }
 
+// PortRetryConfig returns retry configuration for port availability checks
+func PortRetryConfig() *client.RetryConfig {
+	return &client.RetryConfig{
+		MaxRetries:    2,                      // Retry 2 times (3 total attempts)
+		InitialDelay:  500 * time.Millisecond, // Start with 500ms
+		MaxDelay:      2 * time.Second,        // Max 2 seconds
+		BackoffFactor: 2.0,                    // Double each time
+	}
+}
+
+// checkPortAvailabilityWithRetry checks if a port is available with exponential backoff retry
+// Returns true if port becomes available, false if still occupied after retries
+func checkPortAvailabilityWithRetry(port string, retryConfig *client.RetryConfig) (bool, error) {
+	delay := retryConfig.InitialDelay
+
+	for attempt := 0; attempt <= retryConfig.MaxRetries; attempt++ {
+		if !IsPortOccupied(port) {
+			if attempt > 0 {
+				log.Debugf("[RETRY] Port %s is now available after %d attempt(s)", port, attempt)
+			}
+			return true, nil
+		}
+
+		// Port is still occupied
+		if attempt < retryConfig.MaxRetries {
+			log.Debugf("[RETRY] Port %s is occupied (attempt %d/%d), retrying in %v...",
+				port, attempt+1, retryConfig.MaxRetries+1, delay)
+			time.Sleep(delay)
+
+			// Calculate next delay with exponential backoff
+			delay = time.Duration(float64(delay) * retryConfig.BackoffFactor)
+			if delay > retryConfig.MaxDelay {
+				delay = retryConfig.MaxDelay
+			}
+		}
+	}
+
+	return false, fmt.Errorf("port %s is still occupied after %d attempts", port, retryConfig.MaxRetries+1)
+}
+
 // StartCallbackServer starts a local HTTP server to handle OAuth callbacks
+// It uses exponential backoff retry to handle temporary port occupancy
 func StartCallbackServer(ctx context.Context, port string) (string, error) {
+	// Check port availability with retry before starting server
+	retryConfig := PortRetryConfig()
+	available, err := checkPortAvailabilityWithRetry(port, retryConfig)
+	if err != nil {
+		return "", err
+	}
+	if !available {
+		return "", fmt.Errorf("port %s is occupied. Please close the program using this port and try again", port)
+	}
+
 	var code string
-	var err error
+	var serverErr error
 	var wg sync.WaitGroup
 	wg.Add(1)
 
@@ -162,13 +215,16 @@ func StartCallbackServer(ctx context.Context, port string) (string, error) {
 		Handler: mux,
 	}
 
+	// Channel to capture server startup errors
+	serverStartErr := make(chan error, 1)
+
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
 		defer wg.Done()
 
 		// Get authorization code
 		code = r.URL.Query().Get("code")
 		if code == "" {
-			err = fmt.Errorf("no code in callback")
+			serverErr = fmt.Errorf("no code in callback")
 			http.Error(w, "No code", http.StatusBadRequest)
 			return
 		}
@@ -188,13 +244,18 @@ func StartCallbackServer(ctx context.Context, port string) (string, error) {
 	// Start server in background
 	go func() {
 		if err := server.ListenAndServe(); err != http.ErrServerClosed {
-			// Only set error if it's not the expected server closed error
-			if err != nil {
-				// Use a channel or other mechanism to communicate startup errors
-				// For now, we'll let the timeout handle startup failures
-			}
+			// Capture startup errors (e.g., port still occupied)
+			serverStartErr <- err
 		}
 	}()
+
+	// Give server a moment to start and check for immediate errors
+	select {
+	case err := <-serverStartErr:
+		return "", fmt.Errorf("failed to start callback server on port %s: %w. Port may be occupied", port, err)
+	case <-time.After(100 * time.Millisecond):
+		// Server started successfully, continue
+	}
 
 	// Wait for callback or timeout
 	done := make(chan struct{})
@@ -206,8 +267,8 @@ func StartCallbackServer(ctx context.Context, port string) (string, error) {
 	select {
 	case <-done:
 		// Callback received
-		if err != nil {
-			return "", err
+		if serverErr != nil {
+			return "", serverErr
 		}
 		return code, nil
 	case <-ctx.Done():
