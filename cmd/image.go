@@ -141,14 +141,12 @@ var imageInitCmd = &cobra.Command{
 	Long: `Download a Dockerfile template from the cloud to the local root directory.
 
 This command fetches a Dockerfile template from AgentBay and saves it as 'Dockerfile' 
-in the current directory.
+in the current directory. The source image ID is automatically determined based on 
+your environment and region configuration.
 
 Example:
   # Download Dockerfile template
-  agentbay image init --source-image-id code_latest --source AgentBay
-  
-  # Short form
-  agentbay image init -i code_latest -s AgentBay`,
+  agentbay image init`,
 	Args: cobra.NoArgs,
 	RunE: runImageInit,
 }
@@ -174,9 +172,7 @@ func init() {
 	imageListCmd.Flags().IntP("size", "s", 10, "Page size (default: 10)")
 
 	// Add flags to image init command
-	imageInitCmd.Flags().StringP("source-image-id", "i", "", "Source image ID (required)")
 	imageInitCmd.Flags().StringP("source", "s", "AgentBay", "Source: AGB.cloud or AgentBay (default: AgentBay)")
-	imageInitCmd.MarkFlagRequired("source-image-id")
 
 	// Add subcommands to image command
 	ImageCmd.AddCommand(imageCreateCmd)
@@ -1328,19 +1324,7 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 	fmt.Printf("[INIT] Downloading Dockerfile template...\n")
 
 	// Get command flags
-	sourceImageId, _ := cmd.Flags().GetString("source-image-id")
 	source, _ := cmd.Flags().GetString("source")
-
-	// Validate required flags
-	if sourceImageId == "" {
-		return printErrorMessage(
-			"[ERROR] Missing required flag: --source-image-id",
-			"",
-			"[TIP] Usage: agentbay image init --source-image-id <id> [--source <source>]",
-			"[NOTE] Example: agentbay image init --source-image-id code_latest --source AgentBay",
-			"[NOTE] Short form: agentbay image init -i code_latest -s AgentBay",
-		)
-	}
 
 	// Validate source value
 	if source != "AGB.cloud" && source != "AgentBay" {
@@ -1358,6 +1342,17 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(os.Stderr, "[ERROR] Not authenticated. Please run 'agentbay login' first\n")
 		return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
 	}
+
+	// Get environment and endpoint to determine default SourceImageId
+	env := config.GetEnvironment()
+	apiConfig := config.LoadAPIConfig(nil)
+	endpoint := apiConfig.Endpoint
+
+	// Auto-detect SourceImageId based on environment and endpoint
+	sourceImageId := config.GetDefaultSourceImageId(env, endpoint)
+	isDomestic := config.IsDomesticEndpoint(endpoint)
+	log.Debugf("[DEBUG] Auto-detected SourceImageId: %s (env: %s, endpoint: %s, domestic: %v)",
+		sourceImageId, env, endpoint, isDomestic)
 
 	// Create API client
 	apiClient := agentbay.NewClientFromConfig(cfg)
