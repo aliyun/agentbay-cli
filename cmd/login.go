@@ -54,10 +54,7 @@ func runLogin(cmd *cobra.Command) error {
 	// Build authorization URL
 	authURL := auth.BuildAuthURL(GetClientID(), RedirectURI, state)
 
-	fmt.Println("Opening browser for authentication...")
-	fmt.Printf("If the browser doesn't open automatically, please visit:\n%s\n\n", authURL)
-
-	// Start local callback server
+	// Start local callback server first
 	fmt.Printf("Starting local callback server on port %s...\n", CallbackPort)
 
 	// Create context with timeout for callback server
@@ -77,10 +74,28 @@ func runLogin(cmd *cobra.Command) error {
 		codeChan <- code
 	}()
 
-	// Give server time to start
-	time.Sleep(100 * time.Millisecond)
+	// Wait for server to start or fail (with timeout)
+	select {
+	case err := <-errChan:
+		// Server failed to start (e.g., port occupied)
+		errStr := err.Error()
+		if contains(errStr, "port") && contains(errStr, "occupied") {
+			fmt.Fprintf(os.Stderr, "\n[ERROR] Port %s is occupied.\n", CallbackPort)
+			fmt.Fprintf(os.Stderr, "Please close the program using this port and try again.\n")
+			fmt.Fprintf(os.Stderr, "You can check which process is using the port with:\n")
+			fmt.Fprintf(os.Stderr, "  - macOS/Linux: lsof -i :%s\n", CallbackPort)
+			fmt.Fprintf(os.Stderr, "  - Windows: netstat -ano | findstr :%s\n", CallbackPort)
+			return fmt.Errorf("port %s is occupied", CallbackPort)
+		}
+		return fmt.Errorf("failed to start callback server: %v", err)
+	case <-time.After(500 * time.Millisecond):
+		// Server should be ready by now (port check and startup completed)
+	}
 
-	// Open browser
+	// Server is ready, now open browser
+	fmt.Println("Opening browser for authentication...")
+	fmt.Printf("If the browser doesn't open automatically, please visit:\n%s\n\n", authURL)
+
 	err = browser.OpenURL(authURL)
 	if err != nil {
 		fmt.Printf("Warning: Failed to open browser automatically: %v\n", err)
