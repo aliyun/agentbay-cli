@@ -1377,11 +1377,18 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Make API call to get Dockerfile template
-	fmt.Printf("Getting Dockerfile template from cloud...")
+	fmt.Printf("Requesting Dockerfile template...")
 	resp, err := apiClient.GetDockerfileTemplate(ctx, req)
 	if err != nil {
 		log.Debugf("[DEBUG] GetDockerfileTemplate API call failed: %v", err)
-		fmt.Printf("[ERROR] Failed to get Dockerfile template. Please check your authentication and try again.\n")
+
+		// Check if the error is an authentication error
+		if IsAuthenticationError(err) {
+			fmt.Fprintf(os.Stderr, "\n[ERROR] Not authenticated. Please run 'agentbay login' first\n")
+			return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
+		}
+
+		fmt.Printf("\n[ERROR] Failed to get Dockerfile template. Please check your authentication and try again.\n")
 		if log.GetLevel() >= log.DebugLevel {
 			fmt.Printf("[DEBUG] Error details: %v\n", err)
 		}
