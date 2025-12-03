@@ -253,7 +253,7 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 		// Check if the error is an authentication error
 		if IsAuthenticationError(err) {
 			return printErrorMessage(
-				fmt.Sprintf("[ERROR] Authentication failed. Please run 'agentbay login' first."),
+				"[ERROR] Authentication failed. Please run 'agentbay login' first.",
 				"",
 			)
 		}
@@ -539,7 +539,7 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	} else {
 		fetchMessage = "[LIST] Fetching available AgentBay user images...\n"
 	}
-	fmt.Printf(fetchMessage)
+	fmt.Print(fetchMessage)
 
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
@@ -818,7 +818,7 @@ func ValidateCPUMemoryCombo(cpu, memory int) error {
 
 	// If only one is specified, both must be specified
 	if (cpu == 0 && memory > 0) || (cpu > 0 && memory == 0) {
-		return fmt.Errorf("Both CPU and memory must be specified together. Supported combinations: 2c4g (--cpu 2 --memory 4), 4c8g (--cpu 4 --memory 8), 8c16g (--cpu 8 --memory 16)")
+		return fmt.Errorf("both CPU and memory must be specified together. Supported combinations: 2c4g (--cpu 2 --memory 4), 4c8g (--cpu 4 --memory 8), 8c16g (--cpu 8 --memory 16)")
 	}
 
 	// Check supported combinations
@@ -830,7 +830,7 @@ func ValidateCPUMemoryCombo(cpu, memory int) error {
 
 	expectedMemory, exists := validCombos[cpu]
 	if !exists || expectedMemory != memory {
-		return fmt.Errorf("Invalid CPU/Memory combination: %dc%dg. Supported combinations: 2c4g (--cpu 2 --memory 4), 4c8g (--cpu 4 --memory 8), 8c16g (--cpu 8 --memory 16)", cpu, memory)
+		return fmt.Errorf("invalid CPU/Memory combination: %dc%dg. Supported combinations: 2c4g (--cpu 2 --memory 4), 4c8g (--cpu 4 --memory 8), 8c16g (--cpu 8 --memory 16)", cpu, memory)
 	}
 
 	return nil
@@ -1324,85 +1324,6 @@ func runImageDeactivate(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// pollImageDeactivationStatus polls the image deactivation status until completion or failure
-func pollImageDeactivationStatus(ctx context.Context, apiClient agentbay.Client, imageId string) error {
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	// Create a new context with longer timeout for polling
-	pollCtx, pollCancel := context.WithTimeout(context.Background(), 45*time.Minute)
-	defer pollCancel()
-
-	for {
-		select {
-		case <-pollCtx.Done():
-			fmt.Printf("[INFO] Image ID: %s\n", imageId)
-			return fmt.Errorf("timeout waiting for image deactivation to complete")
-		case <-ticker.C:
-			// Query specific image status using ListMcpImages
-			listReq := &client.ListMcpImagesRequest{
-				ImageType: dara.String("User"),
-				PageSize:  dara.Int32(100),
-			}
-
-			listResp, err := apiClient.ListMcpImages(pollCtx, listReq)
-			if err != nil {
-				fmt.Printf("[WARN] Warning: Failed to check image status: %v\n", err)
-				fmt.Printf("[INFO] Image ID: %s\n", imageId)
-				continue // Continue polling on API errors
-			}
-
-			if listResp.Body == nil || listResp.Body.Data == nil {
-				fmt.Printf("[WARN] Warning: Invalid response format\n")
-				fmt.Printf("[INFO] Image ID: %s\n", imageId)
-				continue
-			}
-
-			// Find the specified image
-			var targetImage *client.ListMcpImagesResponseBodyData
-			for _, image := range listResp.Body.Data {
-				if image.ImageId != nil && *image.ImageId == imageId {
-					targetImage = image
-					break
-				}
-			}
-
-			if targetImage == nil {
-				fmt.Printf("[WARN] Warning: Image not found: %s\n", imageId)
-				continue // Continue polling
-			}
-
-			status := getStringValue(targetImage.ImageResourceStatus)
-			formattedStatus := formatImageStatus(status)
-
-			fmt.Printf("[STATUS] Status: %s\n", formattedStatus)
-
-			switch status {
-			case "IMAGE_AVAILABLE":
-				fmt.Printf("[SUCCESS] Image deactivated successfully! Image ID: %s\n", imageId)
-				fmt.Printf("[INFO] Final Status: %s\n", formattedStatus)
-				return nil
-			case "RESOURCE_FAILED":
-				fmt.Printf("[INFO] Image ID: %s\n", imageId)
-				if listResp.Body.GetRequestId() != nil {
-					fmt.Printf("[INFO] Request ID: %s\n", *listResp.Body.GetRequestId())
-				}
-				return fmt.Errorf("image deactivation failed with status: %s", formattedStatus)
-			case "RESOURCE_DELETING":
-				// Continue polling - deactivation in progress
-				continue
-			case "RESOURCE_PUBLISHED":
-				// Image is still activated, continue polling in case deactivation is delayed
-				fmt.Printf("[REFRESH] Image still activated, continuing to monitor deactivation...\n")
-				continue
-			default:
-				fmt.Printf("[REFRESH] Unknown status '%s', continuing to monitor...\n", formattedStatus)
-				continue
-			}
-		}
-	}
-}
-
 func runImageInit(cmd *cobra.Command, args []string) error {
 	fmt.Printf("[INIT] Downloading Dockerfile template...\n")
 
@@ -1541,42 +1462,78 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// downloadDockerfileFromOSS downloads Dockerfile content from OSS URL
+// downloadDockerfileFromOSS downloads Dockerfile content from OSS URL with retry mechanism
 func downloadDockerfileFromOSS(ossUrl string) ([]byte, error) {
-	// Download from OSS URL using HTTP GET
 	log.Debugf("[DEBUG] Downloading from OSS URL: %s", ossUrl)
 
-	// Create HTTP request
+	retryConfig := client.DefaultRetryConfig()
 	httpClient := &http.Client{
 		Timeout: 60 * time.Second,
 	}
 
-	req, err := http.NewRequest(http.MethodGet, ossUrl, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create download request: %w", err)
+	var lastErr error
+	delay := retryConfig.InitialDelay
+
+	for attempt := 0; attempt <= retryConfig.MaxRetries; attempt++ {
+		req, err := http.NewRequest(http.MethodGet, ossUrl, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create download request: %w", err)
+		}
+		req.Header.Set("User-Agent", "AgentBay-CLI/1.0")
+
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("failed to download from OSS: %w", err)
+			log.Debugf("[DEBUG] Attempt %d failed: %v", attempt+1, err)
+
+			if !client.IsRetryableError(err) || attempt == retryConfig.MaxRetries {
+				return nil, lastErr
+			}
+
+			time.Sleep(delay)
+			delay = calculateNextDelay(delay, retryConfig)
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			body, _ := io.ReadAll(resp.Body)
+			lastErr = fmt.Errorf("download failed with status %d: %s", resp.StatusCode, string(body))
+			log.Debugf("[DEBUG] Attempt %d failed with status: %d", attempt+1, resp.StatusCode)
+
+			if !client.IsRetryableHTTPStatus(resp.StatusCode) || attempt == retryConfig.MaxRetries {
+				return nil, lastErr
+			}
+
+			time.Sleep(delay)
+			delay = calculateNextDelay(delay, retryConfig)
+			continue
+		}
+
+		content, err := io.ReadAll(resp.Body)
+		if err != nil {
+			lastErr = fmt.Errorf("failed to read downloaded content: %w", err)
+			if attempt == retryConfig.MaxRetries {
+				return nil, lastErr
+			}
+
+			time.Sleep(delay)
+			delay = calculateNextDelay(delay, retryConfig)
+			continue
+		}
+
+		log.Debugf("[DEBUG] Downloaded %d bytes from OSS", len(content))
+		return content, nil
 	}
 
-	req.Header.Set("User-Agent", "AgentBay-CLI/1.0")
+	return nil, lastErr
+}
 
-	// Perform the download
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to download from OSS: %w", err)
+// calculateNextDelay calculates the next retry delay with exponential backoff
+func calculateNextDelay(currentDelay time.Duration, config *client.RetryConfig) time.Duration {
+	nextDelay := time.Duration(float64(currentDelay) * config.BackoffFactor)
+	if nextDelay > config.MaxDelay {
+		return config.MaxDelay
 	}
-	defer resp.Body.Close()
-
-	// Check response status
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("download failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	// Read the content
-	content, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read downloaded content: %w", err)
-	}
-
-	log.Debugf("[DEBUG] Downloaded %d bytes from OSS", len(content))
-	return content, nil
+	return nextDelay
 }
