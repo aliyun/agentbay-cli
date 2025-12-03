@@ -6,7 +6,9 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pkg/browser"
@@ -133,6 +135,16 @@ func runLogin(cmd *cobra.Command) error {
 
 		return nil
 	case err := <-errChan:
+		// Check if error is related to port occupancy
+		errStr := err.Error()
+		if contains(errStr, "port") && contains(errStr, "occupied") {
+			fmt.Fprintf(os.Stderr, "\n[ERROR] Port %s is occupied.\n", CallbackPort)
+			fmt.Fprintf(os.Stderr, "Please close the program using this port and try again.\n")
+			fmt.Fprintf(os.Stderr, "You can check which process is using the port with:\n")
+			fmt.Fprintf(os.Stderr, "  - macOS/Linux: lsof -i :%s\n", CallbackPort)
+			fmt.Fprintf(os.Stderr, "  - Windows: netstat -ano | findstr :%s\n", CallbackPort)
+			return fmt.Errorf("port %s is occupied", CallbackPort)
+		}
 		return fmt.Errorf("authentication failed: %v", err)
 	case <-ctx.Done():
 		return fmt.Errorf("authentication timeout: please try again")
@@ -145,4 +157,9 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// contains checks if a string contains a substring (case-insensitive)
+func contains(s, substr string) bool {
+	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
