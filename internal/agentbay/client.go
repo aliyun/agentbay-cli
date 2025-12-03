@@ -1263,9 +1263,7 @@ type XMLGetDockerfileTemplateResponse struct {
 	RequestId      string   `xml:"RequestId"`
 	HttpStatusCode int      `xml:"HttpStatusCode"`
 	Data           struct {
-		OssDownloadUrl    string `xml:"OssDownloadUrl"`
-		NonEditLineNum    int32  `xml:"NonEditLineNum"`
-		DockerfileContent string `xml:"DockerfileContent"`
+		OssDownloadUrl string `xml:"OssDownloadUrl"`
 	} `xml:"Data"`
 	Code    string `xml:"Code"`
 	Success bool   `xml:"Success"`
@@ -1289,8 +1287,6 @@ func (cw *clientWrapper) parseGetDockerfileTemplateXMLResponse(xmlData []byte) (
 	log.Debugf("[DEBUG] - Success: %t", xmlResp.Success)
 	log.Debugf("[DEBUG] - Message: %s", xmlResp.Message)
 	log.Debugf("[DEBUG] - OssDownloadUrl: %s", xmlResp.Data.OssDownloadUrl)
-	log.Debugf("[DEBUG] - NonEditLineNum: %d", xmlResp.Data.NonEditLineNum)
-	log.Debugf("[DEBUG] - DockerfileContent length: %d", len(xmlResp.Data.DockerfileContent))
 
 	// Convert to SDK response format
 	response := &client.GetDockerfileTemplateResponse{
@@ -1303,14 +1299,12 @@ func (cw *clientWrapper) parseGetDockerfileTemplateXMLResponse(xmlData []byte) (
 			Success:        dara.Bool(xmlResp.Success),
 			Message:        dara.String(xmlResp.Message),
 			Data: &client.GetDockerfileTemplateResponseBodyData{
-				OssDownloadUrl:    dara.String(xmlResp.Data.OssDownloadUrl),
-				NonEditLineNum:    dara.Int32(xmlResp.Data.NonEditLineNum),
-				DockerfileContent: dara.String(xmlResp.Data.DockerfileContent),
+				OssDownloadUrl: dara.String(xmlResp.Data.OssDownloadUrl),
 			},
 		},
 	}
 
-	log.Debugf("[DEBUG] Created GetDockerfileTemplate SDK response with OssDownloadUrl: %s, NonEditLineNum: %d", xmlResp.Data.OssDownloadUrl, xmlResp.Data.NonEditLineNum)
+	log.Debugf("[DEBUG] Created GetDockerfileTemplate SDK response with OssDownloadUrl: %s", xmlResp.Data.OssDownloadUrl)
 	return response, nil
 }
 
@@ -1338,9 +1332,6 @@ func (cw *clientWrapper) GetDockerfileTemplate(ctx context.Context, request *cli
 	query := map[string]interface{}{}
 	if !dara.IsNil(request.Source) {
 		query["Source"] = request.Source
-	}
-	if !dara.IsNil(request.SourceImageId) {
-		query["SourceImageId"] = request.SourceImageId
 	}
 	// Template is reserved for future extension
 	if !dara.IsNil(request.Template) {
