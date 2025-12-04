@@ -171,8 +171,7 @@ func init() {
 	imageListCmd.Flags().IntP("page", "p", 1, "Page number (default: 1)")
 	imageListCmd.Flags().IntP("size", "s", 10, "Page size (default: 10)")
 
-	// Add flags to image init command
-	imageInitCmd.Flags().StringP("source", "s", "AgentBay", "Source: AGB.cloud or AgentBay (default: AgentBay)")
+	// No flags for image init command - source is always AgentBay
 
 	// Add subcommands to image command
 	ImageCmd.AddCommand(imageCreateCmd)
@@ -1323,13 +1322,8 @@ func runImageDeactivate(cmd *cobra.Command, args []string) error {
 func runImageInit(cmd *cobra.Command, args []string) error {
 	fmt.Printf("[INIT] Downloading Dockerfile template...\n")
 
-	// Get command flags
-	source, _ := cmd.Flags().GetString("source")
-
-	// Validate source value
-	if source != "AGB.cloud" && source != "AgentBay" {
-		return fmt.Errorf("invalid source value: %s. Must be either 'AGB.cloud' or 'AgentBay'", source)
-	}
+	// Source is always AgentBay
+	source := "AgentBay"
 
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
@@ -1428,10 +1422,12 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 		fmt.Printf(" Done.\n")
 	}
 
-	// Log NonEditLineNum if available
+	// Get NonEditLineNum if available
 	nonEditLineNum := resp.Body.Data.GetNonEditLineNum()
 	if nonEditLineNum != nil {
 		log.Debugf("[DEBUG] NonEditLineNum: %d", *nonEditLineNum)
+	} else {
+		log.Debugf("[DEBUG] NonEditLineNum is nil or not present in response")
 	}
 
 	// Get current working directory
@@ -1460,6 +1456,12 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("[SUCCESS] ✅ Dockerfile template downloaded successfully!\n")
 	fmt.Printf("[INFO] Dockerfile saved to: %s\n", dockerfilePath)
+
+	// Display non-editable lines information if available
+	if nonEditLineNum != nil && *nonEditLineNum > 0 {
+		fmt.Printf("[IMPORTANT] The first %d line(s) of the Dockerfile are system-defined and cannot be modified.\n", *nonEditLineNum)
+		fmt.Printf("[IMPORTANT] Please only modify content after line %d.\n", *nonEditLineNum)
+	}
 
 	return nil
 }
