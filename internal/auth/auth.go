@@ -191,15 +191,11 @@ func checkPortAvailabilityWithRetry(port string, retryConfig *client.RetryConfig
 }
 
 // StartCallbackServer starts a local HTTP server to handle OAuth callbacks
-// It uses exponential backoff retry to handle temporary port occupancy
+// It binds the port first to ensure atomic port acquisition
 func StartCallbackServer(ctx context.Context, port string) (string, error) {
-	// Check port availability with retry before starting server
-	retryConfig := PortRetryConfig()
-	available, err := checkPortAvailabilityWithRetry(port, retryConfig)
+	// Bind port first (atomic operation - binding means we own the port)
+	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		return "", err
-	}
-	if !available {
 		return "", fmt.Errorf("port %s is occupied. Please close the program using this port and try again", port)
 	}
 
@@ -211,12 +207,8 @@ func StartCallbackServer(ctx context.Context, port string) (string, error) {
 	// Create a new ServeMux to avoid conflicts with global handlers
 	mux := http.NewServeMux()
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%s", port),
 		Handler: mux,
 	}
-
-	// Channel to capture server startup errors
-	serverStartErr := make(chan error, 1)
 
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
 		defer wg.Done()
@@ -238,24 +230,16 @@ func StartCallbackServer(ctx context.Context, port string) (string, error) {
 		go func() {
 			time.Sleep(500 * time.Millisecond)
 			server.Close()
+			listener.Close()
 		}()
 	})
 
-	// Start server in background
+	// Start server using the already-bound listener
 	go func() {
-		if err := server.ListenAndServe(); err != http.ErrServerClosed {
-			// Capture startup errors (e.g., port still occupied)
-			serverStartErr <- err
+		if err := server.Serve(listener); err != http.ErrServerClosed && err != nil {
+			log.Debugf("[DEBUG] Server error: %v", err)
 		}
 	}()
-
-	// Give server a moment to start and check for immediate errors
-	select {
-	case err := <-serverStartErr:
-		return "", fmt.Errorf("failed to start callback server on port %s: %w. Port may be occupied", port, err)
-	case <-time.After(100 * time.Millisecond):
-		// Server started successfully, continue
-	}
 
 	// Wait for callback or timeout
 	done := make(chan struct{})
@@ -268,11 +252,14 @@ func StartCallbackServer(ctx context.Context, port string) (string, error) {
 	case <-done:
 		// Callback received
 		if serverErr != nil {
+			server.Close()
+			listener.Close()
 			return "", serverErr
 		}
 		return code, nil
 	case <-ctx.Done():
 		server.Close()
+		listener.Close()
 		return "", fmt.Errorf("callback timeout: %v", ctx.Err())
 	}
 }

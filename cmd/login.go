@@ -51,45 +51,95 @@ func runLogin(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to generate OAuth state: %w", err)
 	}
 
-	// Build authorization URL
-	authURL := auth.BuildAuthURL(GetClientID(), RedirectURI, state)
-
-	// Start local callback server first
-	fmt.Printf("Starting local callback server on port %s...\n", CallbackPort)
+	// Try to start callback server on available port
+	var selectedPort string
+	var authURL string
+	var codeChan chan string
+	var errChan chan error
 
 	// Create context with timeout for callback server
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	// Start callback server in background
-	codeChan := make(chan string, 1)
-	errChan := make(chan error, 1)
-
-	go func() {
-		code, err := auth.StartCallbackServer(ctx, CallbackPort)
-		if err != nil {
-			errChan <- err
-			return
+	// Try each port in order
+	portFound := false
+	for i, port := range CallbackPorts {
+		// Quick check: skip occupied ports immediately
+		if auth.IsPortOccupied(port) {
+			fmt.Printf("Trying to start callback server on port %s... Port is occupied.\n", port)
+			// Try next port
+			if i < len(CallbackPorts)-1 {
+				continue
+			} else {
+				// All ports exhausted
+				fmt.Fprintf(os.Stderr, "\n[ERROR] All callback ports are occupied.\n")
+				fmt.Fprintf(os.Stderr, "Tried ports: %s\n", strings.Join(CallbackPorts, ", "))
+				fmt.Fprintf(os.Stderr, "Please close the programs using these ports and try again.\n")
+				fmt.Fprintf(os.Stderr, "You can check which process is using a port with:\n")
+				fmt.Fprintf(os.Stderr, "  - macOS/Linux: lsof -i :<port>\n")
+				fmt.Fprintf(os.Stderr, "  - Windows: netstat -ano | findstr :<port>\n")
+				return fmt.Errorf("all callback ports are occupied")
+			}
 		}
-		codeChan <- code
-	}()
 
-	// Wait for server to start or fail (with timeout)
-	select {
-	case err := <-errChan:
-		// Server failed to start (e.g., port occupied)
-		errStr := err.Error()
-		if contains(errStr, "port") && contains(errStr, "occupied") {
-			fmt.Fprintf(os.Stderr, "\n[ERROR] Port %s is occupied.\n", CallbackPort)
-			fmt.Fprintf(os.Stderr, "Please close the program using this port and try again.\n")
-			fmt.Fprintf(os.Stderr, "You can check which process is using the port with:\n")
-			fmt.Fprintf(os.Stderr, "  - macOS/Linux: lsof -i :%s\n", CallbackPort)
-			fmt.Fprintf(os.Stderr, "  - Windows: netstat -ano | findstr :%s\n", CallbackPort)
-			return fmt.Errorf("port %s is occupied", CallbackPort)
+		// Port is available, try to start server
+		fmt.Printf("Trying to start callback server on port %s...", port)
+
+		codeChan = make(chan string, 1)
+		errChan = make(chan error, 1)
+
+		// Build authorization URL with current port
+		redirectURI := GetRedirectURI(port)
+		authURL = auth.BuildAuthURL(GetClientID(), redirectURI, state)
+
+		// Start callback server in background
+		go func(p string) {
+			code, err := auth.StartCallbackServer(ctx, p)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			codeChan <- code
+		}(port)
+
+		// Wait for server to start or fail (with timeout)
+		select {
+		case err := <-errChan:
+			// Server failed to start (e.g., port occupied)
+			errStr := err.Error()
+			if contains(errStr, "port") && contains(errStr, "occupied") {
+				fmt.Printf(" Port %s is occupied.\n", port)
+				// Try next port
+				if i < len(CallbackPorts)-1 {
+					continue
+				} else {
+					// All ports exhausted
+					fmt.Fprintf(os.Stderr, "\n[ERROR] All callback ports are occupied.\n")
+					fmt.Fprintf(os.Stderr, "Tried ports: %s\n", strings.Join(CallbackPorts, ", "))
+					fmt.Fprintf(os.Stderr, "Please close the programs using these ports and try again.\n")
+					fmt.Fprintf(os.Stderr, "You can check which process is using a port with:\n")
+					fmt.Fprintf(os.Stderr, "  - macOS/Linux: lsof -i :<port>\n")
+					fmt.Fprintf(os.Stderr, "  - Windows: netstat -ano | findstr :<port>\n")
+					return fmt.Errorf("all callback ports are occupied")
+				}
+			}
+			// Other error, return immediately
+			return fmt.Errorf("failed to start callback server: %v", err)
+		case <-time.After(500 * time.Millisecond):
+			// Server started successfully
+			selectedPort = port
+			fmt.Printf(" Success!\n")
+			portFound = true
 		}
-		return fmt.Errorf("failed to start callback server: %v", err)
-	case <-time.After(500 * time.Millisecond):
-		// Server should be ready by now (port check and startup completed)
+
+		// If we found a port, break out of the loop
+		if portFound {
+			break
+		}
+	}
+
+	if selectedPort == "" {
+		return fmt.Errorf("failed to start callback server on any available port")
 	}
 
 	// Server is ready, now open browser
@@ -104,7 +154,7 @@ func runLogin(cmd *cobra.Command) error {
 		fmt.Println("Browser opened successfully!")
 	}
 
-	fmt.Printf("Waiting for callback on http://localhost:%s/callback...\n", CallbackPort)
+	fmt.Printf("Waiting for callback on http://localhost:%s/callback...\n", selectedPort)
 
 	// Wait for callback
 	select {
@@ -115,7 +165,8 @@ func runLogin(cmd *cobra.Command) error {
 		// Exchange code for token
 		fmt.Println("Exchanging authorization code for access token...")
 
-		tokenResponse, err := auth.ExchangeCodeForToken(GetClientID(), RedirectURI, code)
+		redirectURI := GetRedirectURI(selectedPort)
+		tokenResponse, err := auth.ExchangeCodeForToken(GetClientID(), redirectURI, code)
 		if err != nil {
 			fmt.Printf("Debug: Token exchange failed with error: %v\n", err)
 			return fmt.Errorf("failed to exchange code for token: %w", err)
@@ -153,12 +204,12 @@ func runLogin(cmd *cobra.Command) error {
 		// Check if error is related to port occupancy
 		errStr := err.Error()
 		if contains(errStr, "port") && contains(errStr, "occupied") {
-			fmt.Fprintf(os.Stderr, "\n[ERROR] Port %s is occupied.\n", CallbackPort)
+			fmt.Fprintf(os.Stderr, "\n[ERROR] Port %s became occupied during authentication.\n", selectedPort)
 			fmt.Fprintf(os.Stderr, "Please close the program using this port and try again.\n")
 			fmt.Fprintf(os.Stderr, "You can check which process is using the port with:\n")
-			fmt.Fprintf(os.Stderr, "  - macOS/Linux: lsof -i :%s\n", CallbackPort)
-			fmt.Fprintf(os.Stderr, "  - Windows: netstat -ano | findstr :%s\n", CallbackPort)
-			return fmt.Errorf("port %s is occupied", CallbackPort)
+			fmt.Fprintf(os.Stderr, "  - macOS/Linux: lsof -i :%s\n", selectedPort)
+			fmt.Fprintf(os.Stderr, "  - Windows: netstat -ano | findstr :%s\n", selectedPort)
+			return fmt.Errorf("port %s is occupied", selectedPort)
 		}
 		return fmt.Errorf("authentication failed: %v", err)
 	case <-ctx.Done():
