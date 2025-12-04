@@ -84,23 +84,34 @@ Clears your authentication tokens.
 ## 3. List Images
 
 ```bash
-agentbay image list
+agentbay image list                    # List user images (default)
+agentbay image list --include-system   # List both user and system images
+agentbay image list --system-only      # List only system images
 agentbay image list --os-type Android --size 5
 ```
 
 **Options:**
 - `--os-type, -o`: Filter by OS (Linux, Windows, Android)
+- `--include-system`: Include system images in addition to user images
+- `--system-only`: Show only system images
 - `--page, -p`: Page number (default: 1)
 - `--size, -s`: Items per page (default: 10)
 
 **Example output:**
 ```
-[OK] Found 5 images (Total: 17)
-IMAGE ID              IMAGE NAME       TYPE            STATUS        OS
---------              ----------       ----            ------        --
-imgc-xxxxx...xxx      my-app           ImageBuilder    Available     Android 14
-imgc-xxxxx...xxx      web-server       ImageBuilder    Activated     Linux Ubuntu
-imgc-xxxxx...xxx      test-img         ImageBuilder    Creating      Windows 2022
+=== USER IMAGES (17) ===
+IMAGE ID              IMAGE NAME       TYPE                 STATUS        OS                 APPLY SCENE
+--------              ----------       ----                 ------        --                 -----------
+imgc-xxxxx...xxx      my-app           DockerBuilder        Available     Android 14         CodeSpace
+imgc-xxxxx...xxx      web-server       DockerBuilder        Available     Linux Ubuntu       CodeSpace
+imgc-xxxxx...xxx      test-img         DockerBuilder        Creating      Windows 2022       CodeSpace
+
+=== SYSTEM IMAGES (3) ===
+IMAGE ID                  IMAGE NAME                     TYPE                 STATUS        OS                 APPLY SCENE
+--------                  ----------                     ----                 ------        --                 -----------
+mobile-use-android-14     Mobile Use Android 14          DedicatedDesktop     Available     Android 14         MobileUse
+computer-use-windows-2022 Computer Use Windows Server... DedicatedDesktop     Available     Windows 2022       ComputerUse
+computer-use-ubuntu-2204  Computer Use Linux Ubuntu 2... DedicatedDesktop     Available     Linux Ubuntu 2204  ComputerUse
 ```
 
 **Status meanings:**
@@ -108,6 +119,13 @@ imgc-xxxxx...xxx      test-img         ImageBuilder    Creating      Windows 202
 - **Available**: Ready to activate
 - **Activated**: Running
 - **Create Failed**: Build failed
+
+**Type meanings:**
+- **DockerBuilder**: User-created images built from Dockerfile
+- **DedicatedDesktop**: System images or dedicated desktop images
+
+
+**Note**: System images are always available and don't require activation. Only user-created images need to be activated before use.
 
 ## 4. Download Dockerfile Template
 
@@ -120,21 +138,27 @@ Downloads a Dockerfile template from the cloud and saves it as `Dockerfile` in t
 **Output:**
 ```
 [INIT] Downloading Dockerfile template...
-Getting download URL from cloud... Done.
+Requesting Dockerfile template... Done.
 Downloading Dockerfile from OSS... Done.
-Writing Dockerfile to /path/to/current/directory/Dockerfile... Done.
-[SUCCESS] ✅ Dockerfile template downloaded successfully!
+Writing Dockerfile to /path/to/current/directory/Dockerfile...
+[WARN] Dockerfile already exists at /path/to/current/directory/Dockerfile
+[INFO] The existing file will be overwritten.
+ Done.
+[SUCCESS] Dockerfile template downloaded successfully!
 [INFO] Dockerfile saved to: /path/to/current/directory/Dockerfile
+[IMPORTANT] The first 5 line(s) of the Dockerfile are system-defined and cannot be modified.
+[IMPORTANT] Please only modify content after line 5.
 ```
 
-**Note**: If a `Dockerfile` already exists in the current directory, it will be overwritten. The command will warn you before overwriting.
-
-This is an optional step. You can also create your own Dockerfile manually or use an existing one.
+**Note**: 
+- If a `Dockerfile` already exists in the current directory, it will be overwritten. The command will warn you before overwriting.
+- **Important**: The first N lines (N is returned by the system) of the Dockerfile template are system-defined and cannot be modified. Only modify content after line N+1, otherwise the image build may fail.
+- This is an optional step. You can also create your own Dockerfile manually or use an existing one.
 
 ## 5. Create Image
 
 ```bash
-agentbay image create my-app --dockerfile ./Dockerfile --imageId code_latest
+agentbay image create my-app --dockerfile ./Dockerfile --imageId code-space-debian-12
 ```
 
 **Required:**
@@ -150,13 +174,15 @@ agentbay image create my-app --dockerfile ./Dockerfile --imageId code_latest
 [STEP 3/4] Creating Docker image task... Done.
 [STEP 4/4] Building image (Task ID: task-xxxxx)...
 [STATUS] Build status: RUNNING
-[SUCCESS] ✅ Image created successfully!
+[SUCCESS] Image created successfully!
 [RESULT] Image ID: imgc-xxxxx...xxx
 ```
 
 Build time varies based on image size. Use `-v` for detailed logs.
 
 ## 6. Activate Image
+
+User-created images need to be activated before use. System images are always available and don't require activation.
 
 ```bash
 agentbay image activate imgc-xxxxx...xxx
@@ -197,7 +223,11 @@ Waiting for activation to complete...
 
 Activation typically takes 1-2 minutes. If already activated, you'll see "No action needed."
 
+**Note**: The activation status (Activating, Activated) is an internal state during the activation process and is not shown in the `image list` output. The `image list` command only shows the build status: Creating, Available, or Create Failed.
+
 ## 7. Deactivate Image
+
+Deactivate custom images when done to save resources. Deactivating an activated user image releases related resources.
 
 ```bash
 agentbay image deactivate imgc-xxxxx...xxx
@@ -215,6 +245,8 @@ Waiting for deactivation to complete...
 ```
 
 Usually completes in seconds.
+
+**Note**: The deactivation status (Deactivating) is an internal state during the deactivation process and is not shown in the `image list` output. After deactivation, the image status will show as "Available" in the list.
 
 ## FAQ
 
@@ -241,9 +273,16 @@ agentbay -v image list
 
 **Q: Image build fails?**
 - Verify Dockerfile syntax
-- Check base image ID is valid
+- Check base image ID is valid (use `agentbay image list --system-only` to find valid system image IDs)
+- Check if you modified the first N lines of the Dockerfile (N is shown when downloading the template)
 - Use `agentbay image list` to find valid IDs
 - Use `agentbay image init` to download a template Dockerfile
+- Use `-v` option to view detailed error information
+
+**Q: Which parts of the Dockerfile cannot be modified?**
+- The first N lines (N is returned by the system) of the Dockerfile template downloaded by `agentbay image init` are system-defined and cannot be modified
+- These lines typically contain base image definitions and system-required configurations
+- Only modify content after line N+1, otherwise the image build may fail
 
 **Q: Where is config stored?**
 `~/.config/agentbay/config.json` (macOS/Linux) or `%APPDATA%\agentbay\config.json` (Windows)
