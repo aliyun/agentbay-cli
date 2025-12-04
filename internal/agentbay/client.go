@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -1263,7 +1264,9 @@ type XMLGetDockerfileTemplateResponse struct {
 	RequestId      string   `xml:"RequestId"`
 	HttpStatusCode int      `xml:"HttpStatusCode"`
 	Data           struct {
-		OssDownloadUrl string `xml:"OssDownloadUrl"`
+		OssDownloadUrl    string `xml:"OssDownloadUrl"`
+		NonEditLineNum    string `xml:"NonEditLineNum"`
+		DockerfileContent string `xml:"DockerfileContent"`
 	} `xml:"Data"`
 	Code    string `xml:"Code"`
 	Success bool   `xml:"Success"`
@@ -1287,8 +1290,36 @@ func (cw *clientWrapper) parseGetDockerfileTemplateXMLResponse(xmlData []byte) (
 	log.Debugf("[DEBUG] - Success: %t", xmlResp.Success)
 	log.Debugf("[DEBUG] - Message: %s", xmlResp.Message)
 	log.Debugf("[DEBUG] - OssDownloadUrl: %s", xmlResp.Data.OssDownloadUrl)
+	log.Debugf("[DEBUG] - NonEditLineNum: %s", xmlResp.Data.NonEditLineNum)
+	log.Debugf("[DEBUG] - DockerfileContent length: %d", len(xmlResp.Data.DockerfileContent))
+
+	// Parse NonEditLineNum from string to int32
+	var nonEditLineNum *int32
+	if xmlResp.Data.NonEditLineNum != "" {
+		if num, err := strconv.ParseInt(xmlResp.Data.NonEditLineNum, 10, 32); err == nil {
+			num32 := int32(num)
+			nonEditLineNum = &num32
+			log.Debugf("[DEBUG] Parsed NonEditLineNum: %d", *nonEditLineNum)
+		} else {
+			log.Debugf("[DEBUG] Failed to parse NonEditLineNum '%s': %v", xmlResp.Data.NonEditLineNum, err)
+		}
+	}
 
 	// Convert to SDK response format
+	responseData := &client.GetDockerfileTemplateResponseBodyData{
+		OssDownloadUrl: dara.String(xmlResp.Data.OssDownloadUrl),
+	}
+
+	// Set NonEditLineNum if available
+	if nonEditLineNum != nil {
+		responseData.NonEditLineNum = nonEditLineNum
+	}
+
+	// Set DockerfileContent if available
+	if xmlResp.Data.DockerfileContent != "" {
+		responseData.DockerfileContent = dara.String(xmlResp.Data.DockerfileContent)
+	}
+
 	response := &client.GetDockerfileTemplateResponse{
 		Headers:    make(map[string]*string),
 		StatusCode: dara.Int32(int32(xmlResp.HttpStatusCode)),
@@ -1298,9 +1329,7 @@ func (cw *clientWrapper) parseGetDockerfileTemplateXMLResponse(xmlData []byte) (
 			Code:           dara.String(xmlResp.Code),
 			Success:        dara.Bool(xmlResp.Success),
 			Message:        dara.String(xmlResp.Message),
-			Data: &client.GetDockerfileTemplateResponseBodyData{
-				OssDownloadUrl: dara.String(xmlResp.Data.OssDownloadUrl),
-			},
+			Data:           responseData,
 		},
 	}
 
