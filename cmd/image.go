@@ -496,16 +496,39 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 				fmt.Printf("[DOC] Task ID: %s\n", *finalTaskId)
 				return nil
 			case "FAILED", "Failed":
-				fmt.Printf("[ERROR] ❌ Image build failed\n")
+				// Check if this is a Dockerfile validation error
+				isValidationError := false
 				if taskMsg != nil && *taskMsg != "" {
-					fmt.Printf("[ERROR] Error details: %s\n", *taskMsg)
+					isValidationError = isDockerfileValidationError(*taskMsg)
 				}
-				// Print Request ID for debugging
-				if taskResp.Body.GetRequestId() != nil {
-					fmt.Printf("[DEBUG] Request ID: %s\n", *taskResp.Body.GetRequestId())
+
+				if isValidationError {
+					// Dockerfile validation failed
+					fmt.Printf("[ERROR] ❌ Dockerfile validation failed\n")
+					if taskMsg != nil && *taskMsg != "" {
+						fmt.Printf("[ERROR] Validation error: %s\n", *taskMsg)
+					}
+					fmt.Printf("[TIP] Please check your Dockerfile and ensure you haven't modified system-defined lines.\n")
+					fmt.Printf("[TIP] Use 'agentbay image init' to download a valid template.\n")
+					// Print Request ID for debugging
+					if taskResp.Body.GetRequestId() != nil {
+						fmt.Printf("[DEBUG] Request ID: %s\n", *taskResp.Body.GetRequestId())
+					}
+					fmt.Printf("[DOC] Task ID: %s\n", *finalTaskId)
+					return fmt.Errorf("dockerfile validation failed")
+				} else {
+					// Actual build failure
+					fmt.Printf("[ERROR] ❌ Image build failed\n")
+					if taskMsg != nil && *taskMsg != "" {
+						fmt.Printf("[ERROR] Error details: %s\n", *taskMsg)
+					}
+					// Print Request ID for debugging
+					if taskResp.Body.GetRequestId() != nil {
+						fmt.Printf("[DEBUG] Request ID: %s\n", *taskResp.Body.GetRequestId())
+					}
+					fmt.Printf("[DOC] Task ID: %s\n", *finalTaskId)
+					return fmt.Errorf("image build failed")
 				}
-				fmt.Printf("[DOC] Task ID: %s\n", *finalTaskId)
-				return fmt.Errorf("image build failed")
 			case "RUNNING", "PENDING", "Preparing":
 				// Continue polling
 				continue
@@ -1540,4 +1563,11 @@ func calculateNextDelay(currentDelay time.Duration, config *client.RetryConfig) 
 		return config.MaxDelay
 	}
 	return nextDelay
+}
+
+// isDockerfileValidationError checks if the error message indicates a Dockerfile validation failure
+func isDockerfileValidationError(taskMsg string) bool {
+	// Check for the specific Dockerfile validation error message
+	validationErrorMsg := "Image reference is Invalid. Please do not modify the image reference in Dockerfile"
+	return strings.Contains(taskMsg, validationErrorMsg)
 }
