@@ -153,7 +153,6 @@ Writing Dockerfile to /path/to/current/directory/Dockerfile...
 **Note**: 
 - If a `Dockerfile` already exists in the current directory, it will be overwritten. The command will warn you before overwriting.
 - **Important**: The first N lines (N is returned by the system) of the Dockerfile template are system-defined and cannot be modified. Only modify content after line N+1, otherwise the image build may fail.
-- This is an optional step. You can also create your own Dockerfile manually or use an existing one.
 
 ## 5. Create Image
 
@@ -223,8 +222,6 @@ Waiting for activation to complete...
 
 Activation typically takes 1-2 minutes. If already activated, you'll see "No action needed."
 
-**Note**: The activation status (Activating, Activated) is an internal state during the activation process and is not shown in the `image list` output. The `image list` command only shows the build status: Creating, Available, or Create Failed.
-
 ## 7. Deactivate Image
 
 Deactivate custom images when done to save resources. Deactivating an activated user image releases related resources.
@@ -245,8 +242,6 @@ Waiting for deactivation to complete...
 ```
 
 Usually completes in seconds.
-
-**Note**: The deactivation status (Deactivating) is an internal state during the deactivation process and is not shown in the `image list` output. After deactivation, the image status will show as "Available" in the list.
 
 ## FAQ
 
@@ -273,9 +268,8 @@ agentbay -v image list
 
 **Q: Image build fails?**
 - Verify Dockerfile syntax
-- Check base image ID is valid (use `agentbay image list --system-only` to find valid system image IDs)
+- Check base image ID is valid (use `agentbay image list --include-system` to find valid system image IDs)
 - Check if you modified the first N lines of the Dockerfile (N is shown when downloading the template)
-- Use `agentbay image list` to find valid IDs
 - Use `agentbay image init` to download a template Dockerfile
 - Use `-v` option to view detailed error information
 

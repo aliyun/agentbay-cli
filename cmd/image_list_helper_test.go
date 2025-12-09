@@ -86,6 +86,10 @@ func (m *mockImageListClient) DeleteResourceGroup(ctx context.Context, request *
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockImageListClient) GetDockerfileTemplate(ctx context.Context, request *client.GetDockerfileTemplateRequest) (*client.GetDockerfileTemplateResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 // Helper functions for testing
 func boolPtr(b bool) *bool {
 	return &b
