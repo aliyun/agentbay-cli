@@ -518,16 +518,16 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 					return fmt.Errorf("dockerfile validation failed")
 				} else {
 					// Actual build failure
-					fmt.Printf("[ERROR] ❌ Image build failed\n")
-					if taskMsg != nil && *taskMsg != "" {
-						fmt.Printf("[ERROR] Error details: %s\n", *taskMsg)
-					}
-					// Print Request ID for debugging
-					if taskResp.Body.GetRequestId() != nil {
-						fmt.Printf("[DEBUG] Request ID: %s\n", *taskResp.Body.GetRequestId())
-					}
-					fmt.Printf("[DOC] Task ID: %s\n", *finalTaskId)
-					return fmt.Errorf("image build failed")
+				fmt.Printf("[ERROR] ❌ Image build failed\n")
+				if taskMsg != nil && *taskMsg != "" {
+					fmt.Printf("[ERROR] Error details: %s\n", *taskMsg)
+				}
+				// Print Request ID for debugging
+				if taskResp.Body.GetRequestId() != nil {
+					fmt.Printf("[DEBUG] Request ID: %s\n", *taskResp.Body.GetRequestId())
+				}
+				fmt.Printf("[DOC] Task ID: %s\n", *finalTaskId)
+				return fmt.Errorf("image build failed")
 				}
 			case "RUNNING", "PENDING", "Preparing":
 				// Continue polling
