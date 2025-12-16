@@ -1,0 +1,397 @@
+# AgentBay CLI Build Pipeline
+name: AgentBay CLI Build and Deploy
+
+# Auto trigger on code merge to master/main branches
+triggers:
+  push:
+    branches:
+      - master
+      - main
+
+# Global variables
+variables:
+  BINARY_NAME: agentbay
+  VERSION_PREFIX: dev
+
+# Pipeline job definitions
+jobs:
+  # Unit tests
+  unit-tests:
+    name: Unit Tests
+    runs-on: 2-8Gi
+    timeout: 20m
+    steps:
+      - uses: checkout
+
+      - uses: setup-env
+        inputs:
+          go-version: "1.23.0"
+          go-mod-cache: true
+          go-cache: false
+
+      - id: install-dependencies
+        name: Install Dependencies
+        run: |
+          echo "Installing dependencies..."
+          go mod download
+          echo "✅ Dependencies installed"
+
+      - id: verify-build
+        name: Verify Build
+        run: |
+          echo "Verifying that code compiles..."
+          echo "Current directory: $(pwd)"
+          echo "Go module: $(head -1 go.mod)"
+          echo "Go version: $(go version)"
+          echo "GOPATH: ${GOPATH:-not set}"
+          echo "GO111MODULE: ${GO111MODULE:-auto}"
+          
+          # Ensure we're in module mode
+          export GO111MODULE=on
+          
+          if ! go build -v ./...; then
+            echo "❌ Code compilation failed"
+            exit 1
+          fi
+          echo "✅ Code compiles successfully"
+
+      - id: run-unit-tests
+        name: Run Unit Tests
+        run: |
+          echo "Running unit tests..."
+          if ! make test-unit; then
+            echo "❌ Unit tests failed"
+            exit 1
+          fi
+          echo "✅ Unit tests passed"
+
+      - id: generate-coverage
+        name: Generate Coverage Report
+        run: |
+          echo "Generating coverage report..."
+          if ! make test-coverage; then
+            echo "⚠️ Coverage report generation failed, but continuing..."
+          else
+            echo "✅ Coverage report generated"
+            if [ -f coverage.out ]; then
+              echo "📊 Coverage summary:"
+              go tool cover -func=coverage.out | tail -5
+            fi
+          fi
+
+  # Build and package
+  build-and-package:
+    name: Build and Package
+    runs-on: 4-16Gi
+    timeout: 45m
+    needs: [unit-tests]
+    outputs:
+      version: ${{steps.setup-build-vars.outputs.version}}
+      timestamp: ${{steps.setup-build-vars.outputs.timestamp}}
+    steps:
+      - uses: checkout
+
+      - uses: setup-env
+        inputs:
+          go-version: "1.23.0"
+          go-mod-cache: true
+          go-cache: false
+
+      - id: setup-build-vars
+        name: Setup Build Variables
+        run: |
+          echo "Setting up build variables..."
+          export VERSION_PREFIX="${{vars.VERSION_PREFIX}}"
+          export TIMESTAMP=$(TZ='Asia/Shanghai' date "+%Y%m%d-%H%M")
+          export VERSION="${VERSION_PREFIX:-dev}-$TIMESTAMP"
+          export GIT_COMMIT=$(git rev-parse --short HEAD)
+          export BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          echo "Build variables:"
+          echo "  VERSION_PREFIX: $VERSION_PREFIX"
+          echo "  TIMESTAMP: $TIMESTAMP"
+          echo "  VERSION: $VERSION"
+          echo "  GIT_COMMIT: $GIT_COMMIT"
+          echo "  BUILD_DATE: $BUILD_DATE"
+
+          # Save to workspace files for sharing across steps
+          echo "$VERSION" > $AONE_CI_WORKSPACE/BUILD_VERSION
+          echo "$TIMESTAMP" > $AONE_CI_WORKSPACE/BUILD_TIMESTAMP
+          echo "$GIT_COMMIT" > $AONE_CI_WORKSPACE/BUILD_GIT_COMMIT
+          echo "$BUILD_DATE" > $AONE_CI_WORKSPACE/BUILD_DATE
+
+          # Export to environment
+          echo "VERSION=$VERSION" >> $AONE_CI_ENV
+          echo "TIMESTAMP=$TIMESTAMP" >> $AONE_CI_ENV
+          echo "GIT_COMMIT=$GIT_COMMIT" >> $AONE_CI_ENV
+          echo "BUILD_DATE=$BUILD_DATE" >> $AONE_CI_ENV
+
+          # Output for job-level sharing
+          echo "$VERSION" > ${{outputs.version.path}}
+          echo "$TIMESTAMP" > ${{outputs.timestamp.path}}
+
+          echo "✅ Build variables configured"
+
+      - id: build-binaries
+        name: Build Multi-platform Binaries
+        run: |
+          echo "Building optimized binaries for all platforms..."
+
+          # Load variables
+          if [ -z "$VERSION" ] && [ -f "$AONE_CI_WORKSPACE/BUILD_VERSION" ]; then
+            export VERSION=$(cat $AONE_CI_WORKSPACE/BUILD_VERSION)
+          fi
+          if [ -z "$GIT_COMMIT" ] && [ -f "$AONE_CI_WORKSPACE/BUILD_GIT_COMMIT" ]; then
+            export GIT_COMMIT=$(cat $AONE_CI_WORKSPACE/BUILD_GIT_COMMIT)
+          fi
+          if [ -z "$BUILD_DATE" ] && [ -f "$AONE_CI_WORKSPACE/BUILD_DATE" ]; then
+            export BUILD_DATE=$(cat $AONE_CI_WORKSPACE/BUILD_DATE)
+          fi
+
+          echo "Building with:"
+          echo "  VERSION: $VERSION"
+          echo "  GIT_COMMIT: $GIT_COMMIT"
+          echo "  BUILD_DATE: $BUILD_DATE"
+
+          # Build for all platforms using optimized target (11MB, -s -w flags)
+          echo "🔨 Building optimized binaries (with -s -w flags for 31% size reduction)..."
+          make build-all-optimized
+
+          echo ""
+          echo "✅ Optimized build completed. Generated binaries (11MB):"
+          ls -lh bin/
+
+      - id: create-packages
+        name: Create Distribution Packages
+        run: |
+          echo "Creating distribution packages..."
+
+          # Load version
+          if [ -z "$VERSION" ] && [ -f "$AONE_CI_WORKSPACE/BUILD_VERSION" ]; then
+            export VERSION=$(cat $AONE_CI_WORKSPACE/BUILD_VERSION)
+          fi
+
+          mkdir -p packages
+
+          # Install zip tool if needed
+          if ! command -v zip >/dev/null 2>&1; then
+            echo "Installing zip tool..."
+            if command -v apt-get >/dev/null 2>&1; then
+              apt-get update && apt-get install -y zip
+            elif command -v yum >/dev/null 2>&1; then
+              yum install -y zip
+            elif command -v apk >/dev/null 2>&1; then
+              apk add zip
+            fi
+          fi
+
+          # Package each binary
+          for binary in bin/*; do
+            if [[ -f "$binary" ]]; then
+              filename=$(basename "$binary")
+              platform_arch=${filename#${{vars.BINARY_NAME}}-}
+              platform_arch_clean=$(echo "$platform_arch" | sed 's/\.exe$//')
+
+              echo ""
+              echo "📦 Packaging: $filename"
+              echo "   Platform: $platform_arch_clean"
+
+              temp_dir=$(mktemp -d)
+
+              # Copy binary to temp directory
+              if [[ "$platform_arch_clean" == windows-* ]]; then
+                cp "$binary" "$temp_dir/${{vars.BINARY_NAME}}.exe"
+              else
+                cp "$binary" "$temp_dir/${{vars.BINARY_NAME}}"
+                chmod +x "$temp_dir/${{vars.BINARY_NAME}}"
+              fi
+
+              # Create packages based on platform
+              if [[ "$platform_arch_clean" == windows-* ]]; then
+                # Windows: create zip archive
+                if command -v zip >/dev/null 2>&1; then
+                  (cd "$temp_dir" && zip -q "../packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip" "${{vars.BINARY_NAME}}.exe")
+                  sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip.sha256"
+                  echo "   ✓ Created: ${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip"
+                else
+                  # Fallback to tar.gz
+                  tar -czf "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz" -C "$temp_dir" "${{vars.BINARY_NAME}}.exe"
+                  sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz.sha256"
+                  echo "   ✓ Created: ${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz"
+                fi
+
+                # Also create direct .exe file
+                cp "$binary" "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.exe"
+                sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.exe" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.exe.sha256"
+                echo "   ✓ Created: ${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.exe"
+              else
+                # Linux/macOS: create tar.gz archive
+                tar -czf "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz" -C "$temp_dir" "${{vars.BINARY_NAME}}"
+                sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz.sha256"
+                echo "   ✓ Created: ${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz"
+              fi
+
+              rm -rf "$temp_dir"
+            fi
+          done
+
+          echo ""
+          echo "✅ All packages created:"
+          ls -lh packages/
+
+      - id: upload-to-oss
+        name: Upload to OSS
+        run: |
+          echo "Uploading packages to OSS..."
+
+          # Load variables
+          if [ -z "$VERSION" ] && [ -f "$AONE_CI_WORKSPACE/BUILD_VERSION" ]; then
+            export VERSION=$(cat $AONE_CI_WORKSPACE/BUILD_VERSION)
+          fi
+
+          # Set OSS configuration variables
+          export OSS_BUCKET="${{vars.OSS_BUCKET}}"
+          export OSS_ENDPOINT="${{vars.OSS_ENDPOINT}}"
+
+          # Set OSS credentials
+          export OSS_ACCESS_KEY_ID="${{secrets.OSS_ACCESS_KEY_ID}}"
+          export OSS_ACCESS_KEY_SECRET="${{secrets.OSS_ACCESS_KEY_SECRET}}"
+
+          # Debug info
+          echo "=== OSS Configuration ==="
+          echo "OSS_ACCESS_KEY_ID length: ${#OSS_ACCESS_KEY_ID}"
+          echo "OSS_ACCESS_KEY_SECRET length: ${#OSS_ACCESS_KEY_SECRET}"
+          echo "OSS_ENDPOINT: $OSS_ENDPOINT"
+          echo "OSS_BUCKET: $OSS_BUCKET"
+
+          # Check if credentials are set
+          if [[ -z "$OSS_ACCESS_KEY_ID" ]] || [[ -z "$OSS_ACCESS_KEY_SECRET" ]]; then
+            echo "Error: OSS credentials not set in secrets"
+            exit 1
+          fi
+
+          # Install ossutil
+          if ! command -v ossutil >/dev/null 2>&1; then
+            echo "Installing ossutil..."
+            curl -L "https://gosspublic.alicdn.com/ossutil/1.7.19/ossutil-v1.7.19-linux-amd64.zip" -o ossutil.zip
+            unzip -q ossutil.zip
+            OSSUTIL_BINARY=$(find . -name "ossutil*" -type f | head -1)
+            if [[ -z "$OSSUTIL_BINARY" ]]; then
+              echo "Error: Failed to find ossutil binary after extraction"
+              exit 1
+            fi
+            chmod +x "$OSSUTIL_BINARY"
+            mv "$OSSUTIL_BINARY" /usr/local/bin/ossutil
+            rm -f ossutil.zip
+            rm -rf ossutil*/
+            echo "✓ ossutil installed"
+          fi
+
+          # Configure ossutil
+          echo "Configuring ossutil..."
+          if ossutil config --endpoint="${{vars.OSS_ENDPOINT}}" --access-key-id="$OSS_ACCESS_KEY_ID" --access-key-secret="$OSS_ACCESS_KEY_SECRET"; then
+            echo "✓ ossutil configured"
+          else
+            echo "✗ ossutil configuration failed"
+            exit 1
+          fi
+
+          # Test connection
+          echo "Testing OSS connection..."
+          if ossutil ls oss://${{vars.OSS_BUCKET}}/; then
+            echo "✓ Connected to OSS bucket: ${{vars.OSS_BUCKET}}"
+          else
+            echo "✗ Failed to connect to OSS bucket"
+            exit 1
+          fi
+
+          # Upload packages
+          echo "Uploading packages..."
+          for package in packages/*.tar.gz packages/*.zip packages/*.exe packages/*.sha256; do
+            if [[ -f "$package" ]]; then
+              filename=$(basename "$package")
+              echo "Uploading $filename..."
+              if ossutil cp "$package" "oss://$OSS_BUCKET/${{vars.BINARY_NAME}}/releases/$VERSION/$filename" --force; then
+                if ossutil set-acl "oss://$OSS_BUCKET/${{vars.BINARY_NAME}}/releases/$VERSION/$filename" public-read; then
+                  echo "✓ Uploaded: $filename"
+                else
+                  echo "⚠ Uploaded but failed to set ACL: $filename"
+                fi
+              else
+                echo "✗ Failed to upload: $filename"
+                exit 1
+              fi
+            fi
+          done
+
+          echo "✅ All packages uploaded successfully"
+
+      - id: print-summary
+        name: Print Build Summary
+        run: |
+          # Load variables
+          if [ -z "$VERSION" ] && [ -f "$AONE_CI_WORKSPACE/BUILD_VERSION" ]; then
+            export VERSION=$(cat $AONE_CI_WORKSPACE/BUILD_VERSION)
+          fi
+          if [ -z "$TIMESTAMP" ] && [ -f "$AONE_CI_WORKSPACE/BUILD_TIMESTAMP" ]; then
+            export TIMESTAMP=$(cat $AONE_CI_WORKSPACE/BUILD_TIMESTAMP)
+          fi
+          if [ -z "$GIT_COMMIT" ] && [ -f "$AONE_CI_WORKSPACE/BUILD_GIT_COMMIT" ]; then
+            export GIT_COMMIT=$(cat $AONE_CI_WORKSPACE/BUILD_GIT_COMMIT)
+          fi
+
+          echo ""
+          echo "════════════════════════════════════════════════════════════"
+          echo "🎉 AgentBay CLI Build Complete!"
+          echo "════════════════════════════════════════════════════════════"
+          echo ""
+          echo "📦 Version: $VERSION"
+          echo "🕒 Build Time: $TIMESTAMP"
+          echo "📝 Git Commit: $GIT_COMMIT"
+          echo "✅ Unit Tests: Passed"
+          echo "✅ OSS Upload: Complete"
+          echo ""
+          echo "📦 Generated Packages:"
+          echo ""
+
+          # List all packages
+          for pkg in packages/*.tar.gz packages/*.zip packages/*.exe; do
+            if [[ -f "$pkg" ]]; then
+              filename=$(basename "$pkg")
+              size=$(stat -c%s "$pkg" 2>/dev/null || stat -f%z "$pkg" 2>/dev/null || echo "unknown")
+              size_mb=$(echo "scale=2; $size / 1024 / 1024" | bc 2>/dev/null || echo "unknown")
+              echo "  • $filename (${size_mb}MB)"
+            fi
+          done
+
+          echo ""
+          echo "🎯 Supported Platforms:"
+          echo "  • macOS (Intel, Apple Silicon)"
+          echo "  • Linux (x64, ARM64)"
+          echo "  • Windows (x64, ARM64)"
+          echo ""
+          echo "📦 Download URLs:"
+          echo ""
+          
+          # Generate download URLs for each package
+          BASE_URL="https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION"
+          
+          echo "🍎 macOS:"
+          echo "  Intel (x64):     $BASE_URL/${{vars.BINARY_NAME}}-$VERSION-darwin-amd64.tar.gz"
+          echo "  Apple Silicon:   $BASE_URL/${{vars.BINARY_NAME}}-$VERSION-darwin-arm64.tar.gz"
+          echo ""
+          echo "🐧 Linux:"
+          echo "  x64:             $BASE_URL/${{vars.BINARY_NAME}}-$VERSION-linux-amd64.tar.gz"
+          echo "  ARM64:           $BASE_URL/${{vars.BINARY_NAME}}-$VERSION-linux-arm64.tar.gz"
+          echo ""
+          echo "🪟 Windows:"
+          echo "  x64 (exe):       $BASE_URL/${{vars.BINARY_NAME}}-$VERSION-windows-amd64.exe"
+          echo "  ARM64 (exe):     $BASE_URL/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.exe"
+          echo "  x64 (zip):       $BASE_URL/${{vars.BINARY_NAME}}-$VERSION-windows-amd64.zip"
+          echo "  ARM64 (zip):     $BASE_URL/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.zip"
+          echo ""
+          echo "📋 Checksums:"
+          echo "  All files:       $BASE_URL/ (append .sha256 to any filename)"
+          echo ""
+          echo "════════════════════════════════════════════════════════════"
+

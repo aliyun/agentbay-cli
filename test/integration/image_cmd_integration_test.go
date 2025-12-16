@@ -4,7 +4,7 @@
 //go:build integration
 // +build integration
 
-package integration_test
+package cmd
 
 import (
 	"bytes"
@@ -164,7 +164,7 @@ func TestImageCreateCommandWithValidDockerfile_Integration(t *testing.T) {
 
 	// Test with valid dockerfile but no authentication (should fail at auth check)
 	rootCmd := &cobra.Command{Use: "agentbay"}
-	rootCmd.AddGroup(&cobra.Group{ID: "management", Title: "Management Commands"})
+	rootCmd.AddGroup(&cobra.Command{ID: "management", Title: "Management Commands"})
 	rootCmd.AddCommand(cmd.ImageCmd)
 
 	cmdArgs := []string{"image", "create", "myimage", "--dockerfile", dockerfilePath, "--imageId", "test-id"}

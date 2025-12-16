@@ -1,10 +1,7 @@
 // Copyright 2025 AgentBay CLI Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-//go:build integration
-// +build integration
-
-package integration_test
+package integration
 
 import (
 	"os"

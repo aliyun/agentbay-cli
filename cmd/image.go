@@ -63,7 +63,7 @@ var imageListCmd = &cobra.Command{
 	Short: "List available AgentBay images",
 	Long: `List available AgentBay images that can be used as base images for custom builds.
 
-This command queries the AgentBay platform for available User images by default and displays
+This command queries the AgentBay platform for available User images and displays
 their details including image ID, name, type, and description.
 
 OS types:
@@ -72,14 +72,8 @@ OS types:
   Windows - Windows-based images
 
 Examples:
-  # List user images (default)
+  # List all user images
   agentbay image list
-  
-  # Include system images
-  agentbay image list --include-system
-  
-  # Show only system images
-  agentbay image list --system-only
   
   # List Linux images only
   agentbay image list --os-type Linux
@@ -135,22 +129,6 @@ Examples:
 	RunE: runImageDeactivate,
 }
 
-var imageInitCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Download a Dockerfile template from the cloud",
-	Long: `Download a Dockerfile template from the cloud to the local root directory.
-
-This command fetches a Dockerfile template from AgentBay and saves it as 'Dockerfile' 
-in the current directory. The source image ID is automatically determined based on 
-your environment and region configuration.
-
-Example:
-  # Download Dockerfile template
-  agentbay image init`,
-	Args: cobra.NoArgs,
-	RunE: runImageInit,
-}
-
 func init() {
 	// Add flags to image create command
 	imageCreateCmd.Flags().StringP("dockerfile", "f", "", "Path to the Dockerfile (required)")
@@ -166,19 +144,14 @@ func init() {
 
 	// Add flags to image list command
 	imageListCmd.Flags().StringP("os-type", "o", "", "Filter by OS type: Linux, Android, or Windows (optional)")
-	imageListCmd.Flags().Bool("include-system", false, "Include system images in addition to user images")
-	imageListCmd.Flags().Bool("system-only", false, "Show only system images")
 	imageListCmd.Flags().IntP("page", "p", 1, "Page number (default: 1)")
 	imageListCmd.Flags().IntP("size", "s", 10, "Page size (default: 10)")
-
-	// No flags for image init command - source is always AgentBay
 
 	// Add subcommands to image command
 	ImageCmd.AddCommand(imageCreateCmd)
 	ImageCmd.AddCommand(imageListCmd)
 	ImageCmd.AddCommand(imageActivateCmd)
 	ImageCmd.AddCommand(imageDeactivateCmd)
-	ImageCmd.AddCommand(imageInitCmd)
 }
 
 func runImageCreate(cmd *cobra.Command, args []string) error {
@@ -248,7 +221,7 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 		// Check if the error is an authentication error
 		if IsAuthenticationError(err) {
 			return printErrorMessage(
-				"[ERROR] Authentication failed. Please run 'agentbay login' first.",
+				fmt.Sprintf("[ERROR] Authentication failed. Please run 'agentbay login' first."),
 				"",
 			)
 		}
@@ -496,28 +469,6 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 				fmt.Printf("[DOC] Task ID: %s\n", *finalTaskId)
 				return nil
 			case "FAILED", "Failed":
-				// Check if this is a Dockerfile validation error
-				isValidationError := false
-				if taskMsg != nil && *taskMsg != "" {
-					isValidationError = isDockerfileValidationError(*taskMsg)
-				}
-
-				if isValidationError {
-					// Dockerfile validation failed
-					fmt.Printf("[ERROR] ❌ Dockerfile validation failed\n")
-					if taskMsg != nil && *taskMsg != "" {
-						fmt.Printf("[ERROR] Validation error: %s\n", *taskMsg)
-					}
-					fmt.Printf("[TIP] Please check your Dockerfile and ensure you haven't modified system-defined lines.\n")
-					fmt.Printf("[TIP] Use 'agentbay image init' to download a valid template.\n")
-					// Print Request ID for debugging
-					if taskResp.Body.GetRequestId() != nil {
-						fmt.Printf("[DEBUG] Request ID: %s\n", *taskResp.Body.GetRequestId())
-					}
-					fmt.Printf("[DOC] Task ID: %s\n", *finalTaskId)
-					return fmt.Errorf("dockerfile validation failed")
-				} else {
-					// Actual build failure
 				fmt.Printf("[ERROR] ❌ Image build failed\n")
 				if taskMsg != nil && *taskMsg != "" {
 					fmt.Printf("[ERROR] Error details: %s\n", *taskMsg)
@@ -528,7 +479,6 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 				}
 				fmt.Printf("[DOC] Task ID: %s\n", *finalTaskId)
 				return fmt.Errorf("image build failed")
-				}
 			case "RUNNING", "PENDING", "Preparing":
 				// Continue polling
 				continue
@@ -543,21 +493,10 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 func runImageList(cmd *cobra.Command, args []string) error {
 	// Get flag values
 	osType, _ := cmd.Flags().GetString("os-type")
-	includeSystem, _ := cmd.Flags().GetBool("include-system")
-	systemOnly, _ := cmd.Flags().GetBool("system-only")
 	page, _ := cmd.Flags().GetInt("page")
 	pageSize, _ := cmd.Flags().GetInt("size")
 
-	// Determine what type of images to fetch
-	var fetchMessage string
-	if systemOnly {
-		fetchMessage = "[LIST] Fetching available AgentBay system images...\n"
-	} else if includeSystem {
-		fetchMessage = "[LIST] Fetching available AgentBay images (user + system)...\n"
-	} else {
-		fetchMessage = "[LIST] Fetching available AgentBay user images...\n"
-	}
-	fmt.Print(fetchMessage)
+	fmt.Printf("[LIST] Fetching available AgentBay user images...\n")
 
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
@@ -579,23 +518,8 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	// Prepare request
 	req := &client.ListMcpImagesRequest{}
 
-	// Handle different image type queries
-	if includeSystem {
-		// For include-system, we need to make two API calls and merge results
-		return runImageListWithBothTypes(ctx, apiClient, osType, page, pageSize)
-	}
-
-	// Single query for system-only or user-only (default)
-	var imageType string
-	if systemOnly {
-		imageType = "System"
-	} else {
-		// Default behavior: only user images
-		imageType = "User"
-	}
-
-	// Prepare request
-	req = &client.ListMcpImagesRequest{}
+	// Set image type to User (fixed)
+	imageType := "User"
 	req.ImageType = &imageType
 	if osType != "" {
 		req.OsType = &osType
@@ -612,11 +536,7 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	// Debug: Print request details
 	if log.GetLevel() >= log.DebugLevel {
 		log.Debugf("[DEBUG] ListMcpImages Request:")
-		if imageType != "" {
-			log.Debugf("[DEBUG] - ImageType: %s", imageType)
-		} else {
-			log.Debugf("[DEBUG] - ImageType: (all types)")
-		}
+		log.Debugf("[DEBUG] - ImageType: %s", imageType)
 		if req.OsType != nil {
 			log.Debugf("[DEBUG] - OsType: %s", *req.OsType)
 		}
@@ -836,7 +756,7 @@ func ValidateCPUMemoryCombo(cpu, memory int) error {
 
 	// If only one is specified, both must be specified
 	if (cpu == 0 && memory > 0) || (cpu > 0 && memory == 0) {
-		return fmt.Errorf("both CPU and memory must be specified together. Supported combinations: 2c4g (--cpu 2 --memory 4), 4c8g (--cpu 4 --memory 8), 8c16g (--cpu 8 --memory 16)")
+		return fmt.Errorf("Both CPU and memory must be specified together. Supported combinations: 2c4g (--cpu 2 --memory 4), 4c8g (--cpu 4 --memory 8), 8c16g (--cpu 8 --memory 16)")
 	}
 
 	// Check supported combinations
@@ -848,7 +768,7 @@ func ValidateCPUMemoryCombo(cpu, memory int) error {
 
 	expectedMemory, exists := validCombos[cpu]
 	if !exists || expectedMemory != memory {
-		return fmt.Errorf("invalid CPU/Memory combination: %dc%dg. Supported combinations: 2c4g (--cpu 2 --memory 4), 4c8g (--cpu 4 --memory 8), 8c16g (--cpu 8 --memory 16)", cpu, memory)
+		return fmt.Errorf("Invalid CPU/Memory combination: %dc%dg. Supported combinations: 2c4g (--cpu 2 --memory 4), 4c8g (--cpu 4 --memory 8), 8c16g (--cpu 8 --memory 16)", cpu, memory)
 	}
 
 	return nil
@@ -1342,232 +1262,81 @@ func runImageDeactivate(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func runImageInit(cmd *cobra.Command, args []string) error {
-	fmt.Printf("[INIT] Downloading Dockerfile template...\n")
+// pollImageDeactivationStatus polls the image deactivation status until completion or failure
+func pollImageDeactivationStatus(ctx context.Context, apiClient agentbay.Client, imageId string) error {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
 
-	// Source is always AgentBay
-	source := "AgentBay"
+	// Create a new context with longer timeout for polling
+	pollCtx, pollCancel := context.WithTimeout(context.Background(), 45*time.Minute)
+	defer pollCancel()
 
-	// Load configuration and check authentication
-	cfg, err := config.GetConfig()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "[ERROR] Failed to load configuration: %v\n", err)
-		return fmt.Errorf("failed to load configuration: %w", err)
-	}
-
-	if !cfg.IsAuthenticated() {
-		fmt.Fprintf(os.Stderr, "[ERROR] Not authenticated. Please run 'agentbay login' first\n")
-		return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
-	}
-
-	// Get environment and endpoint to determine default SourceImageId
-	env := config.GetEnvironment()
-	apiConfig := config.LoadAPIConfig(nil)
-	endpoint := apiConfig.Endpoint
-
-	// Auto-detect SourceImageId based on environment and endpoint
-	sourceImageId := config.GetDefaultSourceImageId(env, endpoint)
-	isDomestic := config.IsDomesticEndpoint(endpoint)
-	log.Debugf("[DEBUG] Auto-detected SourceImageId: %s (env: %s, endpoint: %s, domestic: %v)",
-		sourceImageId, env, endpoint, isDomestic)
-
-	// Create API client
-	apiClient := agentbay.NewClientFromConfig(cfg)
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	// Prepare request - Source and SourceImageId are required
-	req := &client.GetDockerfileTemplateRequest{
-		Source:        &source,
-		SourceImageId: &sourceImageId,
-	}
-
-	// Debug: Print request details
-	if log.GetLevel() >= log.DebugLevel {
-		log.Debugf("[DEBUG] GetDockerfileTemplate Request:")
-		if req.Source != nil {
-			log.Debugf("[DEBUG] - Source: %s", *req.Source)
-		}
-		if req.SourceImageId != nil {
-			log.Debugf("[DEBUG] - SourceImageId: %s", *req.SourceImageId)
-		}
-	}
-
-	// Make API call to get Dockerfile template
-	fmt.Printf("Requesting Dockerfile template...")
-	resp, err := apiClient.GetDockerfileTemplate(ctx, req)
-	if err != nil {
-		log.Debugf("[DEBUG] GetDockerfileTemplate API call failed: %v", err)
-
-		// Check if the error is an authentication error
-		if IsAuthenticationError(err) {
-			fmt.Fprintf(os.Stderr, "\n[ERROR] Not authenticated. Please run 'agentbay login' first\n")
-			return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
-		}
-
-		fmt.Printf("\n[ERROR] Failed to get Dockerfile template. Please check your authentication and try again.\n")
-		if log.GetLevel() >= log.DebugLevel {
-			fmt.Printf("[DEBUG] Error details: %v\n", err)
-		}
-		return fmt.Errorf("failed to get Dockerfile template: %w", err)
-	}
-	fmt.Printf(" Done.\n")
-
-	// Validate response
-	if resp.Body == nil || resp.Body.Data == nil {
-		return fmt.Errorf("invalid response: missing template data")
-	}
-
-	var dockerfileContent []byte
-
-	// Prefer DockerfileContent if available, otherwise fall back to OSS download
-	dockerfileContentStr := resp.Body.Data.GetDockerfileContent()
-	if dockerfileContentStr != nil && *dockerfileContentStr != "" {
-		log.Debugf("[DEBUG] Using DockerfileContent from response")
-		dockerfileContent = []byte(*dockerfileContentStr)
-	} else {
-		// Fall back to OSS download
-		ossUrl := resp.Body.Data.GetOssDownloadUrl()
-		if ossUrl == nil || *ossUrl == "" {
-			return fmt.Errorf("invalid response: missing both DockerfileContent and OSS download URL")
-		}
-
-		log.Debugf("[DEBUG] OSS Download URL: %s", *ossUrl)
-
-		// Download Dockerfile from OSS URL
-		fmt.Printf("Downloading Dockerfile from OSS...")
-		var err error
-		dockerfileContent, err = downloadDockerfileFromOSS(*ossUrl)
-		if err != nil {
-			fmt.Printf(" Failed.\n")
-			return fmt.Errorf("failed to download Dockerfile from OSS: %w", err)
-		}
-		fmt.Printf(" Done.\n")
-	}
-
-	// Get NonEditLineNum if available
-	nonEditLineNum := resp.Body.Data.GetNonEditLineNum()
-	if nonEditLineNum != nil {
-		log.Debugf("[DEBUG] NonEditLineNum: %d", *nonEditLineNum)
-	} else {
-		log.Debugf("[DEBUG] NonEditLineNum is nil or not present in response")
-	}
-
-	// Get current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current working directory: %w", err)
-	}
-
-	// Write Dockerfile to current directory
-	dockerfilePath := filepath.Join(cwd, "Dockerfile")
-	fmt.Printf("Writing Dockerfile to %s...", dockerfilePath)
-
-	// Check if Dockerfile already exists
-	if _, err := os.Stat(dockerfilePath); err == nil {
-		fmt.Printf("\n[WARN] Dockerfile already exists at %s\n", dockerfilePath)
-		fmt.Printf("[INFO] The existing file will be overwritten.\n")
-	}
-
-	// Write the content to file
-	err = os.WriteFile(dockerfilePath, dockerfileContent, 0644)
-	if err != nil {
-		fmt.Printf(" Failed.\n")
-		return fmt.Errorf("failed to write Dockerfile: %w", err)
-	}
-	fmt.Printf(" Done.\n")
-
-	fmt.Printf("[SUCCESS] ✅ Dockerfile template downloaded successfully!\n")
-	fmt.Printf("[INFO] Dockerfile saved to: %s\n", dockerfilePath)
-
-	// Display non-editable lines information if available
-	if nonEditLineNum != nil && *nonEditLineNum > 0 {
-		fmt.Printf("[IMPORTANT] The first %d line(s) of the Dockerfile are system-defined and cannot be modified.\n", *nonEditLineNum)
-		fmt.Printf("[IMPORTANT] Please only modify content after line %d.\n", *nonEditLineNum)
-	}
-
-	return nil
-}
-
-// downloadDockerfileFromOSS downloads Dockerfile content from OSS URL with retry mechanism
-func downloadDockerfileFromOSS(ossUrl string) ([]byte, error) {
-	log.Debugf("[DEBUG] Downloading from OSS URL: %s", ossUrl)
-
-	retryConfig := client.DefaultRetryConfig()
-	httpClient := &http.Client{
-		Timeout: 60 * time.Second,
-	}
-
-	var lastErr error
-	delay := retryConfig.InitialDelay
-
-	for attempt := 0; attempt <= retryConfig.MaxRetries; attempt++ {
-		req, err := http.NewRequest(http.MethodGet, ossUrl, nil)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create download request: %w", err)
-		}
-		req.Header.Set("User-Agent", "AgentBay-CLI/1.0")
-
-		resp, err := httpClient.Do(req)
-		if err != nil {
-			lastErr = fmt.Errorf("failed to download from OSS: %w", err)
-			log.Debugf("[DEBUG] Attempt %d failed: %v", attempt+1, err)
-
-			if !client.IsRetryableError(err) || attempt == retryConfig.MaxRetries {
-				return nil, lastErr
+	for {
+		select {
+		case <-pollCtx.Done():
+			fmt.Printf("[INFO] Image ID: %s\n", imageId)
+			return fmt.Errorf("timeout waiting for image deactivation to complete")
+		case <-ticker.C:
+			// Query specific image status using ListMcpImages
+			listReq := &client.ListMcpImagesRequest{
+				ImageType: dara.String("User"),
+				PageSize:  dara.Int32(100),
 			}
 
-			time.Sleep(delay)
-			delay = calculateNextDelay(delay, retryConfig)
-			continue
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			body, _ := io.ReadAll(resp.Body)
-			lastErr = fmt.Errorf("download failed with status %d: %s", resp.StatusCode, string(body))
-			log.Debugf("[DEBUG] Attempt %d failed with status: %d", attempt+1, resp.StatusCode)
-
-			if !client.IsRetryableHTTPStatus(resp.StatusCode) || attempt == retryConfig.MaxRetries {
-				return nil, lastErr
+			listResp, err := apiClient.ListMcpImages(pollCtx, listReq)
+			if err != nil {
+				fmt.Printf("[WARN] Warning: Failed to check image status: %v\n", err)
+				fmt.Printf("[INFO] Image ID: %s\n", imageId)
+				continue // Continue polling on API errors
 			}
 
-			time.Sleep(delay)
-			delay = calculateNextDelay(delay, retryConfig)
-			continue
-		}
-
-		content, err := io.ReadAll(resp.Body)
-		if err != nil {
-			lastErr = fmt.Errorf("failed to read downloaded content: %w", err)
-			if attempt == retryConfig.MaxRetries {
-				return nil, lastErr
+			if listResp.Body == nil || listResp.Body.Data == nil {
+				fmt.Printf("[WARN] Warning: Invalid response format\n")
+				fmt.Printf("[INFO] Image ID: %s\n", imageId)
+				continue
 			}
 
-			time.Sleep(delay)
-			delay = calculateNextDelay(delay, retryConfig)
-			continue
+			// Find the specified image
+			var targetImage *client.ListMcpImagesResponseBodyData
+			for _, image := range listResp.Body.Data {
+				if image.ImageId != nil && *image.ImageId == imageId {
+					targetImage = image
+					break
+				}
+			}
+
+			if targetImage == nil {
+				fmt.Printf("[WARN] Warning: Image not found: %s\n", imageId)
+				continue // Continue polling
+			}
+
+			status := getStringValue(targetImage.ImageResourceStatus)
+			formattedStatus := formatImageStatus(status)
+
+			fmt.Printf("[STATUS] Status: %s\n", formattedStatus)
+
+			switch status {
+			case "IMAGE_AVAILABLE":
+				fmt.Printf("[SUCCESS] Image deactivated successfully! Image ID: %s\n", imageId)
+				fmt.Printf("[INFO] Final Status: %s\n", formattedStatus)
+				return nil
+			case "RESOURCE_FAILED":
+				fmt.Printf("[INFO] Image ID: %s\n", imageId)
+				if listResp.Body.GetRequestId() != nil {
+					fmt.Printf("[INFO] Request ID: %s\n", *listResp.Body.GetRequestId())
+				}
+				return fmt.Errorf("image deactivation failed with status: %s", formattedStatus)
+			case "RESOURCE_DELETING":
+				// Continue polling - deactivation in progress
+				continue
+			case "RESOURCE_PUBLISHED":
+				// Image is still activated, continue polling in case deactivation is delayed
+				fmt.Printf("[REFRESH] Image still activated, continuing to monitor deactivation...\n")
+				continue
+			default:
+				fmt.Printf("[REFRESH] Unknown status '%s', continuing to monitor...\n", formattedStatus)
+				continue
+			}
 		}
-
-		log.Debugf("[DEBUG] Downloaded %d bytes from OSS", len(content))
-		return content, nil
 	}
-
-	return nil, lastErr
-}
-
-// calculateNextDelay calculates the next retry delay with exponential backoff
-func calculateNextDelay(currentDelay time.Duration, config *client.RetryConfig) time.Duration {
-	nextDelay := time.Duration(float64(currentDelay) * config.BackoffFactor)
-	if nextDelay > config.MaxDelay {
-		return config.MaxDelay
-	}
-	return nextDelay
-}
-
-// isDockerfileValidationError checks if the error message indicates a Dockerfile validation failure
-func isDockerfileValidationError(taskMsg string) bool {
-	// Check for the specific Dockerfile validation error message
-	validationErrorMsg := "Image reference is Invalid. Please do not modify the image reference in Dockerfile"
-	return strings.Contains(taskMsg, validationErrorMsg)
 }

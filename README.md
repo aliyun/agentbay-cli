@@ -9,44 +9,10 @@ AgentBay CLI provides comprehensive image management capabilities:
 **Note**: The current version of the CLI tool supports creating and activating CodeSpace type images only.
 
 - **Authentication**: Secure OAuth-based login with Google account integration
-- **Dockerfile Template**: Download Dockerfile templates from the cloud
 - **Image Creation**: Build custom images from Dockerfiles with base image support
 - **Image Management**: Activate, deactivate, and monitor image instances
-- **Image Listing**: Browse user and system images with separated display, pagination and filtering support
+- **Image Listing**: Browse user and system images with pagination and filtering support
 - **Configuration Management**: Secure token storage and automatic token refresh
-
-## Installation
-
-### Prerequisites
-- Go 1.23.0 or higher
-- Make
-
-### Build from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/agentbay/agentbay-cli.git
-cd agentbay-cli
-
-# Install dependencies and build
-make install
-```
-
-Alternatively, you can build without installing:
-
-```bash
-# Build the binary
-make build
-
-# Run directly
-./agentbay --help
-```
-
-### Verify Installation
-
-```bash
-agentbay version
-```
 
 ## Quick Start
 
@@ -54,21 +20,16 @@ agentbay version
 # 1. Log in to AgentBay
 agentbay login
 
-# 2. List available images
-agentbay image list                    # List user images (default)
-agentbay image list --include-system   # List both user and system images
-agentbay image list --system-only      # List only system images
+# 2. List available user images
+agentbay image list
 
-# 3. Download Dockerfile templat
-agentbay image init                    # Download Dockerfile template to current directory
+# 3. Create a custom image
+agentbay image create myapp --dockerfile ./Dockerfile --imageId code_latest
 
-# 4. Create a custom image (using system image as base)
-agentbay image create myapp --dockerfile ./Dockerfile --imageId code-space-debian-12
-
-# 5. Activate the image
+# 4. Activate the image
 agentbay image activate imgc-xxxxx...xxx
 
-# 6. Deactivate when done
+# 5. Deactivate when done
 agentbay image deactivate imgc-xxxxx...xxx
 ```
 
