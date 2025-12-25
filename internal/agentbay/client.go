@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -87,7 +88,7 @@ func (dt *debugTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		body, err := io.ReadAll(resp.Body)
 		if err == nil {
 			// Cache XML responses for fallback parsing
-			if bytes.Contains(body, []byte("<?xml")) && (bytes.Contains(body, []byte("GetDockerFileStoreCredentialResponse")) || bytes.Contains(body, []byte("CreateDockerImageTaskResponse")) || bytes.Contains(body, []byte("GetDockerImageTaskResponse")) || bytes.Contains(body, []byte("ListMcpImagesResponse")) || bytes.Contains(body, []byte("GetMcpImageInfoResponse")) || bytes.Contains(body, []byte("CreateResourceGroupResponse")) || bytes.Contains(body, []byte("DeleteResourceGroupResponse"))) {
+			if bytes.Contains(body, []byte("<?xml")) && (bytes.Contains(body, []byte("GetDockerFileStoreCredentialResponse")) || bytes.Contains(body, []byte("CreateDockerImageTaskResponse")) || bytes.Contains(body, []byte("GetDockerImageTaskResponse")) || bytes.Contains(body, []byte("ListMcpImagesResponse")) || bytes.Contains(body, []byte("GetMcpImageInfoResponse")) || bytes.Contains(body, []byte("CreateResourceGroupResponse")) || bytes.Contains(body, []byte("DeleteResourceGroupResponse")) || bytes.Contains(body, []byte("GetDockerfileTemplateResponse"))) {
 				xmlResponseCache = string(body)
 				log.Debugf("[DEBUG] Cached XML response for fallback parsing")
 			}
@@ -120,6 +121,7 @@ type Client interface {
 	GetMcpImageInfo(ctx context.Context, request *client.GetMcpImageInfoRequest) (*client.GetMcpImageInfoResponse, error)
 	CreateResourceGroup(ctx context.Context, request *client.CreateResourceGroupRequest) (*client.CreateResourceGroupResponse, error)
 	DeleteResourceGroup(ctx context.Context, request *client.DeleteResourceGroupRequest) (*client.DeleteResourceGroupResponse, error)
+	GetDockerfileTemplate(ctx context.Context, request *client.GetDockerfileTemplateRequest) (*client.GetDockerfileTemplateResponse, error)
 }
 
 // clientWrapper wraps the generated SDK client with additional functionality
@@ -709,6 +711,7 @@ func (cw *clientWrapper) GetDockerFileStoreCredential(ctx context.Context, reque
 				}
 
 				log.Debugf("[DEBUG] XML response parsed successfully")
+
 				return customResponse, nil
 			} else {
 				log.Debugf("[DEBUG] No cached XML response available")
@@ -720,6 +723,7 @@ func (cw *clientWrapper) GetDockerFileStoreCredential(ctx context.Context, reque
 		return nil, err
 	}
 	log.Debugf("[DEBUG] ClientWrapper: SDK API call completed successfully")
+
 	return resp, nil
 }
 
@@ -1252,4 +1256,180 @@ func (cw *clientWrapper) GetMcpImageInfo(ctx context.Context, request *client.Ge
 
 	log.Debugf("[DEBUG] ClientWrapper: GetMcpImageInfo completed successfully")
 	return resp, nil
+}
+
+// XMLGetDockerfileTemplateResponse represents the XML response structure for GetDockerfileTemplate
+type XMLGetDockerfileTemplateResponse struct {
+	XMLName        xml.Name `xml:"GetDockerfileTemplateResponse"`
+	RequestId      string   `xml:"RequestId"`
+	HttpStatusCode int      `xml:"HttpStatusCode"`
+	Data           struct {
+		OssDownloadUrl    string `xml:"OssDownloadUrl"`
+		NonEditLineNum    string `xml:"NonEditLineNum"`
+		DockerfileContent string `xml:"DockerfileContent"`
+	} `xml:"Data"`
+	Code    string `xml:"Code"`
+	Success bool   `xml:"Success"`
+	Message string `xml:"Message"`
+}
+
+// parseGetDockerfileTemplateXMLResponse parses XML response and converts it to SDK response format
+func (cw *clientWrapper) parseGetDockerfileTemplateXMLResponse(xmlData []byte) (*client.GetDockerfileTemplateResponse, error) {
+	log.Debugf("[DEBUG] Parsing GetDockerfileTemplate XML data: %s", string(xmlData))
+
+	var xmlResp XMLGetDockerfileTemplateResponse
+	if err := xml.Unmarshal(xmlData, &xmlResp); err != nil {
+		log.Debugf("[DEBUG] GetDockerfileTemplate XML unmarshal failed: %v", err)
+		return nil, fmt.Errorf("failed to parse GetDockerfileTemplate XML response: %w", err)
+	}
+
+	log.Debugf("[DEBUG] Parsed GetDockerfileTemplate XML data:")
+	log.Debugf("[DEBUG] - RequestId: %s", xmlResp.RequestId)
+	log.Debugf("[DEBUG] - HttpStatusCode: %d", xmlResp.HttpStatusCode)
+	log.Debugf("[DEBUG] - Code: %s", xmlResp.Code)
+	log.Debugf("[DEBUG] - Success: %t", xmlResp.Success)
+	log.Debugf("[DEBUG] - Message: %s", xmlResp.Message)
+	log.Debugf("[DEBUG] - OssDownloadUrl: %s", xmlResp.Data.OssDownloadUrl)
+	log.Debugf("[DEBUG] - NonEditLineNum: %s", xmlResp.Data.NonEditLineNum)
+	log.Debugf("[DEBUG] - DockerfileContent length: %d", len(xmlResp.Data.DockerfileContent))
+
+	// Parse NonEditLineNum from string to int32
+	var nonEditLineNum *int32
+	if xmlResp.Data.NonEditLineNum != "" {
+		if num, err := strconv.ParseInt(xmlResp.Data.NonEditLineNum, 10, 32); err == nil {
+			num32 := int32(num)
+			nonEditLineNum = &num32
+			log.Debugf("[DEBUG] Parsed NonEditLineNum: %d", *nonEditLineNum)
+		} else {
+			log.Debugf("[DEBUG] Failed to parse NonEditLineNum '%s': %v", xmlResp.Data.NonEditLineNum, err)
+		}
+	}
+
+	// Convert to SDK response format
+	responseData := &client.GetDockerfileTemplateResponseBodyData{
+		OssDownloadUrl: dara.String(xmlResp.Data.OssDownloadUrl),
+	}
+
+	// Set NonEditLineNum if available
+	if nonEditLineNum != nil {
+		responseData.NonEditLineNum = nonEditLineNum
+	}
+
+	// Set DockerfileContent if available
+	if xmlResp.Data.DockerfileContent != "" {
+		responseData.DockerfileContent = dara.String(xmlResp.Data.DockerfileContent)
+	}
+
+	response := &client.GetDockerfileTemplateResponse{
+		Headers:    make(map[string]*string),
+		StatusCode: dara.Int32(int32(xmlResp.HttpStatusCode)),
+		Body: &client.GetDockerfileTemplateResponseBody{
+			RequestId:      dara.String(xmlResp.RequestId),
+			HttpStatusCode: dara.Int32(int32(xmlResp.HttpStatusCode)),
+			Code:           dara.String(xmlResp.Code),
+			Success:        dara.Bool(xmlResp.Success),
+			Message:        dara.String(xmlResp.Message),
+			Data:           responseData,
+		},
+	}
+
+	log.Debugf("[DEBUG] Created GetDockerfileTemplate SDK response with OssDownloadUrl: %s", xmlResp.Data.OssDownloadUrl)
+	return response, nil
+}
+
+// GetDockerfileTemplate wraps the SDK client method
+func (cw *clientWrapper) GetDockerfileTemplate(ctx context.Context, request *client.GetDockerfileTemplateRequest) (*client.GetDockerfileTemplateResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// Get runtime options with debug enabled if verbose
+	runtimeOptions := cw.getRuntimeOptions()
+
+	// Log basic request information in verbose mode
+	if log.GetLevel() >= log.DebugLevel {
+		log.Debugf("[DEBUG] Making GetDockerfileTemplate request...")
+	}
+
+	// Validate request
+	if err := request.Validate(); err != nil {
+		return nil, err
+	}
+
+	// Prepare query parameters
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.Source) {
+		query["Source"] = request.Source
+	}
+	if !dara.IsNil(request.SourceImageId) {
+		query["SourceImageId"] = request.SourceImageId
+	}
+	// Template is reserved for future extension
+	if !dara.IsNil(request.Template) {
+		query["Template"] = request.Template
+	}
+
+	// Prepare API request
+	apiRequest := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+
+	// Prepare API parameters
+	params := &openapiutil.Params{
+		Action:      dara.String("GetDockerfileTemplate"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("GET"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("json"),
+	}
+
+	// Call API
+	result := &client.GetDockerfileTemplateResponse{}
+	body, err := sdkClient.CallApi(params, apiRequest, runtimeOptions)
+	if err != nil {
+		log.Debugf("[DEBUG] GetDockerfileTemplate API call failed: %v", err)
+
+		// Check if this is an XML parsing error (in case API returns XML instead of JSON)
+		errStr := err.Error()
+		if bytes.Contains([]byte(errStr), []byte("readObjectStart: expect { or n, but found")) || bytes.Contains([]byte(errStr), []byte("invalid character '<' looking for beginning of value")) {
+			log.Debugf("[DEBUG] SDK returned XML response, using custom XML parser...")
+
+			// Use cached XML response if available
+			if xmlResponseCache != "" {
+				log.Debugf("[DEBUG] Parsing cached XML response...")
+
+				// Parse the cached XML directly
+				customResponse, parseErr := cw.parseGetDockerfileTemplateXMLResponse([]byte(xmlResponseCache))
+				if parseErr != nil {
+					log.Debugf("[DEBUG] Custom XML parsing failed: %v", parseErr)
+					return nil, fmt.Errorf("XML parsing failed: %w", parseErr)
+				}
+
+				log.Debugf("[DEBUG] XML response parsed successfully")
+				return customResponse, nil
+			} else {
+				log.Debugf("[DEBUG] No cached XML response available")
+				return nil, fmt.Errorf("XML parsing failed and no cached response available: %w", err)
+			}
+		}
+
+		return nil, err
+	}
+
+	// Convert response body to result
+	if err := dara.Convert(body, &result); err != nil {
+		log.Debugf("[DEBUG] Failed to convert response: %v", err)
+		return nil, fmt.Errorf("failed to convert response: %w", err)
+	}
+
+	log.Debugf("[DEBUG] ClientWrapper: GetDockerfileTemplate completed successfully")
+	return result, nil
 }

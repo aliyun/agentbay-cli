@@ -8,10 +8,11 @@ AgentBay CLI provides comprehensive image management capabilities:
 
 **Note**: The current version of the CLI tool supports creating and activating CodeSpace type images only.
 
-- **Authentication**: Secure OAuth-based login with Google account integration
+- **Authentication**: Secure OAuth-based login with Aliyun account integration
+- **Dockerfile Template**: Download Dockerfile templates from the cloud
 - **Image Creation**: Build custom images from Dockerfiles with base image support
 - **Image Management**: Activate, deactivate, and monitor image instances
-- **Image Listing**: Browse user and system images with pagination and filtering support
+- **Image Listing**: Browse user and system images with separated display, pagination and filtering support
 - **Configuration Management**: Secure token storage and automatic token refresh
 
 ## Quick Start
@@ -20,22 +21,31 @@ AgentBay CLI provides comprehensive image management capabilities:
 # 1. Log in to AgentBay
 agentbay login
 
-# 2. List available user images
-agentbay image list
+# 2. List available images
+agentbay image list                    # List user images (default)
+agentbay image list --include-system   # List both user and system images
+agentbay image list --system-only      # List only system images
 
-# 3. Create a custom image
-agentbay image create myapp --dockerfile ./Dockerfile --imageId code_latest
+# 3. Download Dockerfile template
+agentbay image init                    # Download Dockerfile template to current directory
 
-# 4. Activate the image
+# 4. Create a custom image (using system image as base)
+agentbay image create myapp --dockerfile ./Dockerfile --imageId code-space-debian-12
+
+# 5. Activate the image
 agentbay image activate imgc-xxxxx...xxx
 
-# 5. Deactivate when done
+# 6. Deactivate when done
 agentbay image deactivate imgc-xxxxx...xxx
 ```
 
-For detailed installation steps, usage instructions and examples, see the [User Guide](docs/USER_GUIDE.md).
+**Note**:
+- System images are always available and don't require activation. Only user-created images need to be activated before use.
+- When downloading Dockerfile templates, the first N lines (N is returned by the system) are system-defined and cannot be modified. Only modify content after line N+1.
+
+For detailed usage instructions and examples, see the [User Guide](docs/USER_GUIDE.md) .
 
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the LICENSE file for details. 
+This project is licensed under the Apache License 2.0 - see the LICENSE file for details.

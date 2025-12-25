@@ -4,7 +4,7 @@
 //go:build integration
 // +build integration
 
-package cmd
+package integration_test
 
 import (
 	"bytes"

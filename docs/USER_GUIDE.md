@@ -84,23 +84,34 @@ Clears your authentication tokens.
 ## 3. List Images
 
 ```bash
-agentbay image list
+agentbay image list                    # List user images (default)
+agentbay image list --include-system   # List both user and system images
+agentbay image list --system-only      # List only system images
 agentbay image list --os-type Android --size 5
 ```
 
 **Options:**
 - `--os-type, -o`: Filter by OS (Linux, Windows, Android)
+- `--include-system`: Include system images in addition to user images
+- `--system-only`: Show only system images
 - `--page, -p`: Page number (default: 1)
 - `--size, -s`: Items per page (default: 10)
 
 **Example output:**
 ```
-[OK] Found 5 images (Total: 17)
-IMAGE ID              IMAGE NAME       TYPE            STATUS        OS
---------              ----------       ----            ------        --
-imgc-xxxxx...xxx      my-app           ImageBuilder    Available     Android 14
-imgc-xxxxx...xxx      web-server       ImageBuilder    Activated     Linux Ubuntu
-imgc-xxxxx...xxx      test-img         ImageBuilder    Creating      Windows 2022
+=== USER IMAGES (17) ===
+IMAGE ID              IMAGE NAME       TYPE                 STATUS        OS                 APPLY SCENE
+--------              ----------       ----                 ------        --                 -----------
+imgc-xxxxx...xxx      my-app           DockerBuilder        Available     Android 14         CodeSpace
+imgc-xxxxx...xxx      web-server       DockerBuilder        Available     Linux Ubuntu       CodeSpace
+imgc-xxxxx...xxx      test-img         DockerBuilder        Creating      Windows 2022       CodeSpace
+
+=== SYSTEM IMAGES (3) ===
+IMAGE ID                  IMAGE NAME                     TYPE                 STATUS        OS                 APPLY SCENE
+--------                  ----------                     ----                 ------        --                 -----------
+mobile-use-android-14     Mobile Use Android 14          DedicatedDesktop     Available     Android 14         MobileUse
+computer-use-windows-2022 Computer Use Windows Server... DedicatedDesktop     Available     Windows 2022       ComputerUse
+computer-use-ubuntu-2204  Computer Use Linux Ubuntu 2... DedicatedDesktop     Available     Linux Ubuntu 2204  ComputerUse
 ```
 
 **Status meanings:**
@@ -109,10 +120,44 @@ imgc-xxxxx...xxx      test-img         ImageBuilder    Creating      Windows 202
 - **Activated**: Running
 - **Create Failed**: Build failed
 
-## 4. Create Image
+**Type meanings:**
+- **DockerBuilder**: User-created images built from Dockerfile
+- **DedicatedDesktop**: System images or dedicated desktop images
+
+
+**Note**: System images are always available and don't require activation. Only user-created images need to be activated before use.
+
+## 4. Download Dockerfile Template
 
 ```bash
-agentbay image create my-app --dockerfile ./Dockerfile --imageId code_latest
+agentbay image init
+```
+
+Downloads a Dockerfile template from the cloud and saves it as `Dockerfile` in the current directory.
+
+**Output:**
+```
+[INIT] Downloading Dockerfile template...
+Requesting Dockerfile template... Done.
+Downloading Dockerfile from OSS... Done.
+Writing Dockerfile to /path/to/current/directory/Dockerfile...
+[WARN] Dockerfile already exists at /path/to/current/directory/Dockerfile
+[INFO] The existing file will be overwritten.
+ Done.
+[SUCCESS] Dockerfile template downloaded successfully!
+[INFO] Dockerfile saved to: /path/to/current/directory/Dockerfile
+[IMPORTANT] The first 5 line(s) of the Dockerfile are system-defined and cannot be modified.
+[IMPORTANT] Please only modify content after line 5.
+```
+
+**Note**:
+- If a `Dockerfile` already exists in the current directory, it will be overwritten. The command will warn you before overwriting.
+- **Important**: The first N lines (N is returned by the system) of the Dockerfile template are system-defined and cannot be modified. Only modify content after line N+1, otherwise the image build may fail.
+
+## 5. Create Image
+
+```bash
+agentbay image create my-app --dockerfile ./Dockerfile --imageId code-space-debian-12
 ```
 
 **Required:**
@@ -128,13 +173,15 @@ agentbay image create my-app --dockerfile ./Dockerfile --imageId code_latest
 [STEP 3/4] Creating Docker image task... Done.
 [STEP 4/4] Building image (Task ID: task-xxxxx)...
 [STATUS] Build status: RUNNING
-[SUCCESS] ✅ Image created successfully!
+[SUCCESS] Image created successfully!
 [RESULT] Image ID: imgc-xxxxx...xxx
 ```
 
 Build time varies based on image size. Use `-v` for detailed logs.
 
-## 5. Activate Image
+## 6. Activate Image
+
+User-created images need to be activated before use. System images are always available and don't require activation.
 
 ```bash
 agentbay image activate imgc-xxxxx...xxx
@@ -175,7 +222,9 @@ Waiting for activation to complete...
 
 Activation typically takes 1-2 minutes. If already activated, you'll see "No action needed."
 
-## 6. Deactivate Image
+## 7. Deactivate Image
+
+Deactivate custom images when done to save resources. Deactivating an activated user image releases related resources.
 
 ```bash
 agentbay image deactivate imgc-xxxxx...xxx
@@ -219,8 +268,15 @@ agentbay -v image list
 
 **Q: Image build fails?**
 - Verify Dockerfile syntax
-- Check base image ID is valid
-- Use `agentbay image list` to find valid IDs
+- Check base image ID is valid (use `agentbay image list --include-system` to find valid system image IDs)
+- Check if you modified the first N lines of the Dockerfile (N is shown when downloading the template)
+- Use `agentbay image init` to download a template Dockerfile
+- Use `-v` option to view detailed error information
+
+**Q: Which parts of the Dockerfile cannot be modified?**
+- The first N lines (N is returned by the system) of the Dockerfile template downloaded by `agentbay image init` are system-defined and cannot be modified
+- These lines typically contain base image definitions and system-required configurations
+- Only modify content after line N+1, otherwise the image build may fail
 
 **Q: Where is config stored?**
 `~/.config/agentbay/config.json` (macOS/Linux) or `%APPDATA%\agentbay\config.json` (Windows)

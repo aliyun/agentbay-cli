@@ -17,6 +17,8 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+
+	"github.com/agentbay/agentbay-cli/internal/client"
 )
 
 // OAuth endpoints and constants
@@ -148,17 +150,63 @@ func RevokeTokenWithHint(clientID, token, tokenTypeHint string) error {
 	return nil
 }
 
+// PortRetryConfig returns retry configuration for port availability checks
+func PortRetryConfig() *client.RetryConfig {
+	return &client.RetryConfig{
+		MaxRetries:    2,                      // Retry 2 times (3 total attempts)
+		InitialDelay:  500 * time.Millisecond, // Start with 500ms
+		MaxDelay:      2 * time.Second,        // Max 2 seconds
+		BackoffFactor: 2.0,                    // Double each time
+	}
+}
+
+// checkPortAvailabilityWithRetry checks if a port is available with exponential backoff retry
+// Returns true if port becomes available, false if still occupied after retries
+func checkPortAvailabilityWithRetry(port string, retryConfig *client.RetryConfig) (bool, error) {
+	delay := retryConfig.InitialDelay
+
+	for attempt := 0; attempt <= retryConfig.MaxRetries; attempt++ {
+		if !IsPortOccupied(port) {
+			if attempt > 0 {
+				log.Debugf("[RETRY] Port %s is now available after %d attempt(s)", port, attempt)
+			}
+			return true, nil
+		}
+
+		// Port is still occupied
+		if attempt < retryConfig.MaxRetries {
+			log.Debugf("[RETRY] Port %s is occupied (attempt %d/%d), retrying in %v...",
+				port, attempt+1, retryConfig.MaxRetries+1, delay)
+			time.Sleep(delay)
+
+			// Calculate next delay with exponential backoff
+			delay = time.Duration(float64(delay) * retryConfig.BackoffFactor)
+			if delay > retryConfig.MaxDelay {
+				delay = retryConfig.MaxDelay
+			}
+		}
+	}
+
+	return false, fmt.Errorf("port %s is still occupied after %d attempts", port, retryConfig.MaxRetries+1)
+}
+
 // StartCallbackServer starts a local HTTP server to handle OAuth callbacks
+// It binds the port first to ensure atomic port acquisition
 func StartCallbackServer(ctx context.Context, port string) (string, error) {
+	// Bind port first (atomic operation - binding means we own the port)
+	listener, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		return "", fmt.Errorf("port %s is occupied. Please close the program using this port and try again", port)
+	}
+
 	var code string
-	var err error
+	var serverErr error
 	var wg sync.WaitGroup
 	wg.Add(1)
 
 	// Create a new ServeMux to avoid conflicts with global handlers
 	mux := http.NewServeMux()
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%s", port),
 		Handler: mux,
 	}
 
@@ -168,7 +216,7 @@ func StartCallbackServer(ctx context.Context, port string) (string, error) {
 		// Get authorization code
 		code = r.URL.Query().Get("code")
 		if code == "" {
-			err = fmt.Errorf("no code in callback")
+			serverErr = fmt.Errorf("no code in callback")
 			http.Error(w, "No code", http.StatusBadRequest)
 			return
 		}
@@ -182,17 +230,14 @@ func StartCallbackServer(ctx context.Context, port string) (string, error) {
 		go func() {
 			time.Sleep(500 * time.Millisecond)
 			server.Close()
+			listener.Close()
 		}()
 	})
 
-	// Start server in background
+	// Start server using the already-bound listener
 	go func() {
-		if err := server.ListenAndServe(); err != http.ErrServerClosed {
-			// Only set error if it's not the expected server closed error
-			if err != nil {
-				// Use a channel or other mechanism to communicate startup errors
-				// For now, we'll let the timeout handle startup failures
-			}
+		if err := server.Serve(listener); err != http.ErrServerClosed && err != nil {
+			log.Debugf("[DEBUG] Server error: %v", err)
 		}
 	}()
 
@@ -206,12 +251,15 @@ func StartCallbackServer(ctx context.Context, port string) (string, error) {
 	select {
 	case <-done:
 		// Callback received
-		if err != nil {
-			return "", err
+		if serverErr != nil {
+			server.Close()
+			listener.Close()
+			return "", serverErr
 		}
 		return code, nil
 	case <-ctx.Done():
 		server.Close()
+		listener.Close()
 		return "", fmt.Errorf("callback timeout: %v", ctx.Err())
 	}
 }
