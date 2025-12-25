@@ -5,6 +5,7 @@ package config
 
 import (
 	"os"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -80,4 +81,26 @@ func GetClientID() string {
 // GetDefaultEndpoint returns the default API endpoint for the current environment
 func GetDefaultEndpoint() string {
 	return GetEnvironmentConfig().Endpoint
+}
+
+// IsDomesticEndpoint checks if the endpoint is domestic (China) based on domain
+func IsDomesticEndpoint(endpoint string) bool {
+	// Domestic endpoints typically contain .cn or cn- prefix
+	// e.g., xiaoying-share.cn-shanghai.aliyuncs.com (domestic)
+	return strings.Contains(endpoint, ".cn") || strings.Contains(endpoint, "cn-")
+}
+
+// GetDefaultSourceImageId returns the default SourceImageId based on environment and endpoint
+func GetDefaultSourceImageId(env Environment, endpoint string) string {
+	isDomestic := IsDomesticEndpoint(endpoint)
+
+	if env == EnvPreRelease {
+		if isDomestic {
+			return "imgc-07if81rziujpkp72y"
+		}
+		return "code-space-debian-12"
+	}
+
+	// Production environment: both domestic and international use the same
+	return "code-space-debian-12"
 }

@@ -52,4 +52,7 @@ packages/
 
 # Temporary files
 tmp/
-temp/ 
+temp/
+
+# llm coding settings
+CLAUDE.md
