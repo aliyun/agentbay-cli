@@ -31,7 +31,7 @@ var (
 	// Production environment configuration
 	productionConfig = EnvironmentConfig{
 		Name:     EnvProduction,
-		Endpoint: "xiaoying-share.cn-shanghai.aliyuncs.com",
+		Endpoint: "xiaoying.cn-shanghai.aliyuncs.com",
 		ClientID: "4032653160518150541",
 	}
 
@@ -86,7 +86,7 @@ func GetDefaultEndpoint() string {
 // IsDomesticEndpoint checks if the endpoint is domestic (China) based on domain
 func IsDomesticEndpoint(endpoint string) bool {
 	// Domestic endpoints typically contain .cn or cn- prefix
-	// e.g., xiaoying-share.cn-shanghai.aliyuncs.com (domestic)
+	// e.g., xiaoying.cn-shanghai.aliyuncs.com (domestic)
 	return strings.Contains(endpoint, ".cn") || strings.Contains(endpoint, "cn-")
 }
 
