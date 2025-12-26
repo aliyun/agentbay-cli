@@ -330,7 +330,7 @@ AgentBay CLI version x.x.x
 Git commit: xxxxxxx
 Build date: 2025-xx-xx
 Environment: production
-Endpoint: xiaoying-share.cn-shanghai.aliyuncs.com
+Endpoint: xiaoying.cn-shanghai.aliyuncs.com
 ```
 
 ### Supported Environment Values

@@ -83,7 +83,7 @@ func TestGetEnvironmentConfig(t *testing.T) {
 			name:         "production config",
 			envValue:     "production",
 			wantEnv:      config.EnvProduction,
-			wantEndpoint: "xiaoying-share.cn-shanghai.aliyuncs.com",
+			wantEndpoint: "xiaoying.cn-shanghai.aliyuncs.com",
 			wantClientID: "4032653160518150541",
 		},
 		{
@@ -97,7 +97,7 @@ func TestGetEnvironmentConfig(t *testing.T) {
 			name:         "default to production",
 			envValue:     "",
 			wantEnv:      config.EnvProduction,
-			wantEndpoint: "xiaoying-share.cn-shanghai.aliyuncs.com",
+			wantEndpoint: "xiaoying.cn-shanghai.aliyuncs.com",
 			wantClientID: "4032653160518150541",
 		},
 	}
@@ -176,7 +176,7 @@ func TestGetDefaultEndpoint(t *testing.T) {
 		{
 			name:     "production endpoint",
 			envValue: "production",
-			want:     "xiaoying-share.cn-shanghai.aliyuncs.com",
+			want:     "xiaoying.cn-shanghai.aliyuncs.com",
 		},
 		{
 			name:     "prerelease endpoint",
@@ -186,7 +186,7 @@ func TestGetDefaultEndpoint(t *testing.T) {
 		{
 			name:     "default endpoint",
 			envValue: "",
-			want:     "xiaoying-share.cn-shanghai.aliyuncs.com",
+			want:     "xiaoying.cn-shanghai.aliyuncs.com",
 		},
 	}
 

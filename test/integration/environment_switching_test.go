@@ -27,14 +27,14 @@ func TestEnvironmentSwitching(t *testing.T) {
 			name:             "Production environment (default)",
 			envValue:         "",
 			expectedEnv:      config.EnvProduction,
-			expectedEndpoint: "xiaoying-share.cn-shanghai.aliyuncs.com",
+			expectedEndpoint: "xiaoying.cn-shanghai.aliyuncs.com",
 			expectedClientID: "4032653160518150541",
 		},
 		{
 			name:             "Production environment (explicit)",
 			envValue:         "production",
 			expectedEnv:      config.EnvProduction,
-			expectedEndpoint: "xiaoying-share.cn-shanghai.aliyuncs.com",
+			expectedEndpoint: "xiaoying.cn-shanghai.aliyuncs.com",
 			expectedClientID: "4032653160518150541",
 		},
 		{
@@ -119,7 +119,7 @@ func TestEnvironmentOverride(t *testing.T) {
 			name:        "No override uses production default",
 			agentbayEnv: "production",
 			endpointEnv: "",
-			expected:    "xiaoying-share.cn-shanghai.aliyuncs.com",
+			expected:    "xiaoying.cn-shanghai.aliyuncs.com",
 		},
 		{
 			name:        "No override uses prerelease default",
@@ -168,7 +168,7 @@ func TestVersionCommandShowsEnvironment(t *testing.T) {
 			name:                "Production environment in version output",
 			envValue:            "production",
 			expectedEnvInOutput: "Environment: production",
-			expectedEndpoint:    "Endpoint: xiaoying-share.cn-shanghai.aliyuncs.com",
+			expectedEndpoint:    "Endpoint: xiaoying.cn-shanghai.aliyuncs.com",
 		},
 		{
 			name:                "Prerelease environment in version output",
@@ -240,8 +240,8 @@ func TestEnvironmentIsolation(t *testing.T) {
 	}
 
 	// Verify production values
-	if prodConfig.Endpoint != "xiaoying-share.cn-shanghai.aliyuncs.com" {
-		t.Errorf("Production endpoint = %v, want xiaoying-share.cn-shanghai.aliyuncs.com", prodConfig.Endpoint)
+	if prodConfig.Endpoint != "xiaoying.cn-shanghai.aliyuncs.com" {
+		t.Errorf("Production endpoint = %v, want xiaoying.cn-shanghai.aliyuncs.com", prodConfig.Endpoint)
 	}
 	if prodConfig.ClientID != "4032653160518150541" {
 		t.Errorf("Production client ID = %v, want 4032653160518150541", prodConfig.ClientID)
