@@ -84,10 +84,13 @@ computer-use-ubuntu-2204  Computer Use Linux Ubuntu 2... DedicatedDesktop     Av
 ## 4. Download Dockerfile Template
 
 ```bash
-agentbay image init
+agentbay image init --sourceImageId code-space-debian-12
+
+# or short form
+agentbay image init -i code-space-debian-12
 ```
 
-Downloads a Dockerfile template from the cloud and saves it as `Dockerfile` in the current directory.
+Downloads a Dockerfile template from the cloud and saves it as `Dockerfile` in the current directory. You must specify a source image ID (use `agentbay image list --system-only` to see available system image IDs).
 
 **Output:**
 ```
@@ -105,6 +108,7 @@ Writing Dockerfile to /path/to/current/directory/Dockerfile...
 ```
 
 **Note**: 
+- You must provide `--sourceImageId` or `-i` with a valid system image ID when running `agentbay image init`.
 - If a `Dockerfile` already exists in the current directory, it will be overwritten. The command will warn you before overwriting.
 - **Important**: The first N lines (N is returned by the system) of the Dockerfile template are system-defined and cannot be modified. Only modify content after line N+1, otherwise the image build may fail.
 
@@ -234,11 +238,11 @@ agentbay -v image list
 - Verify Dockerfile syntax
 - Check base image ID is valid (use `agentbay image list --include-system` to find valid system image IDs)
 - Check if you modified the first N lines of the Dockerfile (N is shown when downloading the template)
-- Use `agentbay image init` to download a template Dockerfile
+- Use `agentbay image init -i <base-image-id>` to download a template Dockerfile (get base image IDs with `agentbay image list --system-only`)
 - Use `-v` option to view detailed error information
 
 **Q: Which parts of the Dockerfile cannot be modified?**
-- The first N lines (N is returned by the system) of the Dockerfile template downloaded by `agentbay image init` are system-defined and cannot be modified
+- The first N lines (N is returned by the system) of the Dockerfile template downloaded by `agentbay image init -i <image-id>` are system-defined and cannot be modified
 - These lines typically contain base image definitions and system-required configurations
 - Only modify content after line N+1, otherwise the image build may fail
 
