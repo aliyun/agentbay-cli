@@ -10,6 +10,7 @@ test/
 │   ├── main/                # 主程序测试
 │   │   └── main_test.go
 │   ├── cmd/                 # 命令测试
+│   │   ├── dockerfile_parser_test.go   # Dockerfile COPY/ADD 解析测试
 │   │   ├── login_test.go
 │   │   ├── logout_test.go
 │   │   └── version_test.go
@@ -19,7 +20,7 @@ test/
 │       └── config/
 │           └── config_test.go
 ├── integration/             # 集成测试 - 需要外部API环境
-│   └── (待添加)
+│   └── image_add_copy_upload_test.go  # image create ADD/COPY 上传流程测试
 └── README.md               # 本文档
 ```
 
@@ -34,6 +35,7 @@ test/
   - OAuth认证流程（使用mock）
   - 配置管理
   - 错误处理
+  - Dockerfile COPY/ADD 解析（parseCOPYADDSources、expandSource、tokenizeInstruction 等）
 
 ### 集成测试 (Integration Tests)
 
@@ -43,6 +45,7 @@ test/
   - 完整的OAuth认证流程
   - 真实API调用
   - 网络错误处理
+  - image create 中 ADD/COPY 文件解析与上传流程（需设置 RUN_INTEGRATION_TESTS=1）
 
 ## 运行测试
 

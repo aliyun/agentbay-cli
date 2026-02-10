@@ -11,10 +11,19 @@ type iGetDockerFileStoreCredentialRequest interface {
 	GoString() string
 	SetSource(v string) *GetDockerFileStoreCredentialRequest
 	GetSource() *string
+	SetFilePath(v string) *GetDockerFileStoreCredentialRequest
+	GetFilePath() *string
+	SetIsDockerfile(v string) *GetDockerFileStoreCredentialRequest
+	GetIsDockerfile() *string
+	SetTaskId(v string) *GetDockerFileStoreCredentialRequest
+	GetTaskId() *string
 }
 
 type GetDockerFileStoreCredentialRequest struct {
-	Source *string `json:"Source,omitempty" xml:"Source,omitempty"`
+	Source       *string `json:"Source,omitempty" xml:"Source,omitempty"`
+	FilePath     *string `json:"FilePath,omitempty" xml:"FilePath,omitempty"`
+	IsDockerfile *string `json:"IsDockerfile,omitempty" xml:"IsDockerfile,omitempty"`
+	TaskId       *string `json:"TaskId,omitempty" xml:"TaskId,omitempty"`
 }
 
 func (s GetDockerFileStoreCredentialRequest) String() string {
@@ -31,6 +40,33 @@ func (s *GetDockerFileStoreCredentialRequest) GetSource() *string {
 
 func (s *GetDockerFileStoreCredentialRequest) SetSource(v string) *GetDockerFileStoreCredentialRequest {
 	s.Source = &v
+	return s
+}
+
+func (s *GetDockerFileStoreCredentialRequest) GetFilePath() *string {
+	return s.FilePath
+}
+
+func (s *GetDockerFileStoreCredentialRequest) SetFilePath(v string) *GetDockerFileStoreCredentialRequest {
+	s.FilePath = &v
+	return s
+}
+
+func (s *GetDockerFileStoreCredentialRequest) GetIsDockerfile() *string {
+	return s.IsDockerfile
+}
+
+func (s *GetDockerFileStoreCredentialRequest) SetIsDockerfile(v string) *GetDockerFileStoreCredentialRequest {
+	s.IsDockerfile = &v
+	return s
+}
+
+func (s *GetDockerFileStoreCredentialRequest) GetTaskId() *string {
+	return s.TaskId
+}
+
+func (s *GetDockerFileStoreCredentialRequest) SetTaskId(v string) *GetDockerFileStoreCredentialRequest {
+	s.TaskId = &v
 	return s
 }
 

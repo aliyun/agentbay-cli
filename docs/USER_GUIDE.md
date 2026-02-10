@@ -2,55 +2,9 @@
 
 Quick guide to get you started with AgentBay CLI.
 
-## Installation
-
-### Windows
-
-Install AgentBay CLI using PowerShell:
-
-```powershell
-powershell -Command "irm https://aliyun.github.io/agentbay-cli/windows | iex"
-```
-
-For detailed Windows installation instructions, troubleshooting, and system requirements, see [WINDOWS_INSTALL](./WINDOWS_INSTALL.md).
-
-### macOS/Linux
-
-Install AgentBay CLI using Homebrew:
-
-```bash
-# 1. Add Agentbay Cloud's Homebrew tap
-brew tap aliyun/agentbay
-
-# 2. Install agentbay command-line tool
-brew install agentbay
-
-# 3. Verify installation
-agentbay version
-```
-
-For more details about Homebrew installation, visit the [LINUX&MAC_INSTALL](./LINUX&MAC_INSTALL.md).
-
-### Uninstallation
-
-#### Windows
-```powershell
-# Remove installation directory
-Remove-Item -Path "$env:LOCALAPPDATA\agentbay" -Recurse -Force
-```
-
-#### macOS/Linux
-```bash
-# Uninstall agentbay
-brew uninstall agentbay
-
-# Remove tap (optional)
-brew untap aliyun/agentbay
-```
-
 ## Prerequisites
 
-- AgentBay CLI installed (see Installation section above)
+- AgentBay CLI installed
 - Aliyun account
 - Network connection
 
@@ -150,7 +104,7 @@ Writing Dockerfile to /path/to/current/directory/Dockerfile...
 [IMPORTANT] Please only modify content after line 5.
 ```
 
-**Note**:
+**Note**: 
 - If a `Dockerfile` already exists in the current directory, it will be overwritten. The command will warn you before overwriting.
 - **Important**: The first N lines (N is returned by the system) of the Dockerfile template are system-defined and cannot be modified. Only modify content after line N+1, otherwise the image build may fail.
 
@@ -170,7 +124,8 @@ agentbay image create my-app --dockerfile ./Dockerfile --imageId code-space-debi
 [BUILD] Creating image 'my-app'...
 [STEP 1/4] Getting upload credentials... Done.
 [STEP 2/4] Uploading Dockerfile... Done.
-[STEP 3/4] Creating Docker image task... Done.
+[STEP 3/4] Uploading ADD/COPY files (N files)... Done.   # Only when Dockerfile contains COPY/ADD
+[STEP 4/4] Creating Docker image task... Done.
 [STEP 4/4] Building image (Task ID: task-xxxxx)...
 [STATUS] Build status: RUNNING
 [SUCCESS] Image created successfully!
@@ -178,6 +133,15 @@ agentbay image create my-app --dockerfile ./Dockerfile --imageId code-space-debi
 ```
 
 Build time varies based on image size. Use `-v` for detailed logs.
+
+### ADD/COPY File Upload
+
+When creating an image, the CLI parses `COPY` and `ADD` instructions in your Dockerfile and automatically uploads the referenced local files:
+
+- **Path rules**: File paths are relative to the directory containing the Dockerfile
+- **Supported**: Single files, multiple files, subdirectories, wildcards (e.g. `*.py`), `--chown` option
+- **Not supported**: Absolute paths, path traversal (e.g. `../`), URL sources in `ADD` (e.g. `ADD https://...`)
+- **Note**: Ensure all files referenced by COPY/ADD exist in the Dockerfile directory or its subdirectories
 
 ## 6. Activate Image
 
@@ -190,17 +154,17 @@ agentbay image activate imgc-xxxxx...xxx
 Starts the image instance.
 
 **Options:**
-- `--cpu, -c`: CPU cores (2, 4, or 8) - must be paired with memory
-- `--memory, -m`: Memory in GB (4, 8, or 16) - must be paired with CPU
+- `--cpu, -c`: CPU cores (2, 4, or 8) - must be paired with memory; default: 2 when not specified
+- `--memory, -m`: Memory in GB (4, 8, or 16) - must be paired with CPU; default: 4 when not specified
 
 **Supported Resource Combinations:**
-- `2c4g` - 2 CPU cores with 4 GB memory
+- `2c4g` - 2 CPU cores with 4 GB memory **(default when --cpu/--memory not specified)**
 - `4c8g` - 4 CPU cores with 8 GB memory
 - `8c16g` - 8 CPU cores with 16 GB memory
 
 **Examples:**
 ```bash
-# Activate with default resources
+# Activate with default resources (2c4g)
 agentbay image activate imgc-xxxxx...xxx
 
 # Activate with specific resources

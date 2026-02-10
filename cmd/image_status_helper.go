@@ -228,6 +228,56 @@ func GetImageResourceStatus(ctx context.Context, apiClient agentbay.Client, imag
 	return info.ResourceStatus, nil
 }
 
+// GetResourceGroupIdForImage fetches ResourceGroupId for the given image from ListMcpImages (user images).
+// Returns empty string if not found or if the image has no ResourceGroupId.
+func GetResourceGroupIdForImage(ctx context.Context, apiClient agentbay.Client, imageId string) (string, error) {
+	req := &client.ListMcpImagesRequest{}
+	userImageType := "User"
+	req.ImageType = &userImageType
+
+	// Use a larger page size to reduce pagination; we only need to find one image
+	pageSize := int32(100)
+	req.PageSize = &pageSize
+	pageStart := int32(0)
+	req.PageStart = &pageStart
+
+	for {
+		resp, err := apiClient.ListMcpImages(ctx, req)
+		if err != nil {
+			return "", fmt.Errorf("failed to list images: %w", err)
+		}
+		if resp == nil || resp.Body == nil || resp.Body.Data == nil {
+			return "", nil
+		}
+
+		for _, img := range resp.Body.Data {
+			if img == nil {
+				continue
+			}
+			imgId := ""
+			if img.ImageId != nil {
+				imgId = *img.ImageId
+			}
+			if imgId != imageId {
+				continue
+			}
+			rgInfo := img.GetImageResourceGroupInfo()
+			if rgInfo != nil && rgInfo.ResourceGroupId != nil && *rgInfo.ResourceGroupId != "" {
+				return *rgInfo.ResourceGroupId, nil
+			}
+			return "", nil // found image but no ResourceGroupId
+		}
+
+		// Check for more pages
+		if resp.Body.NextToken == nil || *resp.Body.NextToken == "" {
+			break
+		}
+		req.NextToken = resp.Body.NextToken
+	}
+
+	return "", nil // image not found
+}
+
 // IsUserImage checks if the image is a User type image
 func IsUserImage(imageType string) bool {
 	return imageType == "User"

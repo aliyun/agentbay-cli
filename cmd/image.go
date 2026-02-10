@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -51,7 +52,7 @@ The image will be built from the specified Dockerfile and based on the provided 
 Examples:
   # Create an image with a custom Dockerfile
   agentbay image create my-custom-image --dockerfile ./Dockerfile --imageId code_latest
-
+  
   # Short form
   agentbay image create my-image -f ./Dockerfile -i code_latest`,
 	Args: cobra.ExactArgs(1),
@@ -68,22 +69,22 @@ their details including image ID, name, type, and description.
 
 OS types:
   Linux   - Linux-based images
-  Android - Android-based images
+  Android - Android-based images  
   Windows - Windows-based images
 
 Examples:
   # List user images (default)
   agentbay image list
-
+  
   # Include system images
   agentbay image list --include-system
-
+  
   # Show only system images
   agentbay image list --system-only
-
+  
   # List Linux images only
   agentbay image list --os-type Linux
-
+  
   # List images with pagination
   agentbay image list --page 2 --size 5`,
 	RunE: runImageList,
@@ -94,18 +95,18 @@ var imageActivateCmd = &cobra.Command{
 	Short: "Activate a User image",
 	Long: `Activate a User image to make it available for use.
 
-This command creates a resource group for the specified User image, making it
+This command creates a resource group for the specified User image, making it 
 available for deployment. Only User type images can be activated.
 
 Supported CPU and Memory combinations:
-  2c4g  - 2 CPU cores with 4 GB memory
+  2c4g  - 2 CPU cores with 4 GB memory (default)
   4c8g  - 4 CPU cores with 8 GB memory
   8c16g - 8 CPU cores with 16 GB memory
 
-If no CPU/memory is specified, default resources will be used.
+If no CPU/memory is specified, 2c4g (2 CPU, 4 GB memory) will be used by default.
 
 Examples:
-  # Activate a user image with default resources
+  # Activate with default resources (2c4g)
   agentbay image activate imgc-xxxxxxxxxxxxxx
 
   # Activate with specific CPU and memory
@@ -122,13 +123,13 @@ var imageDeactivateCmd = &cobra.Command{
 	Short: "Deactivate an activated User image",
 	Long: `Deactivate an activated User image to stop its resource group.
 
-This command deletes the resource group for the specified User image, making it
+This command deletes the resource group for the specified User image, making it 
 unavailable for deployment. Only activated User type images can be deactivated.
 
 Examples:
   # Deactivate a user image
   agentbay image deactivate imgc-xxxxxxxxxxxxxx
-
+  
   # Deactivate with verbose output
   agentbay image deactivate imgc-xxxxxxxxxxxxxx --verbose`,
 	Args: cobra.ExactArgs(1),
@@ -140,13 +141,15 @@ var imageInitCmd = &cobra.Command{
 	Short: "Download a Dockerfile template from the cloud",
 	Long: `Download a Dockerfile template from the cloud to the local root directory.
 
-This command fetches a Dockerfile template from AgentBay and saves it as 'Dockerfile'
-in the current directory. The source image ID is automatically determined based on
-your environment and region configuration.
+This command fetches a Dockerfile template from AgentBay and saves it as 'Dockerfile' 
+in the current directory. The source image ID must be specified via --sourceImageId flag.
 
-Example:
-  # Download Dockerfile template
-  agentbay image init`,
+Examples:
+  # Download Dockerfile template with source image ID
+  agentbay image init --sourceImageId code-space-debian-12
+  
+  # Short form
+  agentbay image init -i code-space-debian-12`,
 	Args: cobra.NoArgs,
 	RunE: runImageInit,
 }
@@ -161,8 +164,8 @@ func init() {
 	imageCreateCmd.MarkFlagRequired("imageId")
 
 	// Add flags to image activate command
-	imageActivateCmd.Flags().IntP("cpu", "c", 0, "CPU cores (e.g., 2, 4, 8)")
-	imageActivateCmd.Flags().IntP("memory", "m", 0, "Memory in GB (e.g., 4, 8, 16)")
+	imageActivateCmd.Flags().IntP("cpu", "c", 0, "CPU cores (2, 4, or 8; default: 2 when not specified)")
+	imageActivateCmd.Flags().IntP("memory", "m", 0, "Memory in GB (4, 8, or 16; default: 4 when not specified)")
 
 	// Add flags to image list command
 	imageListCmd.Flags().StringP("os-type", "o", "", "Filter by OS type: Linux, Android, or Windows (optional)")
@@ -171,7 +174,11 @@ func init() {
 	imageListCmd.Flags().IntP("page", "p", 1, "Page number (default: 1)")
 	imageListCmd.Flags().IntP("size", "s", 10, "Page size (default: 10)")
 
-	// No flags for image init command - source is always AgentBay
+	// Add required flag for image init command - use sourceImageId to match API field name
+	imageInitCmd.Flags().StringP("sourceImageId", "i", "", "Source image ID (required)")
+
+	// Mark required flag
+	imageInitCmd.MarkFlagRequired("sourceImageId")
 
 	// Add subcommands to image command
 	ImageCmd.AddCommand(imageCreateCmd)
@@ -219,6 +226,16 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("dockerfile not found: %s", dockerfilePath)
 	}
 
+	dockerfileContent, err := os.ReadFile(dockerfilePath)
+	if err != nil {
+		return fmt.Errorf("failed to read Dockerfile: %w", err)
+	}
+	contextDir := filepath.Dir(dockerfilePath)
+	addCopyFiles, err := ParseCOPYADDSources(dockerfileContent, contextDir)
+	if err != nil {
+		return err
+	}
+
 	fmt.Printf("[BUILD] Creating image '%s'...\n", imageName)
 
 	// Load configuration and check authentication
@@ -262,27 +279,20 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Printf(" Done.\n")
 
-	// Step 1: Get Docker file store credentials
 	fmt.Printf("[STEP 1/4] Getting upload credentials...\n")
 	sourceAgentBay := "AgentBay"
 	credReq := &client.GetDockerFileStoreCredentialRequest{
-		Source: &sourceAgentBay,
+		Source:       &sourceAgentBay,
+		FilePath:     dara.String("Dockerfile"),
+		IsDockerfile: dara.String("true"),
 	}
-
-	// Debug: Print credential request (simplified)
 	if log.GetLevel() >= log.DebugLevel {
-		log.Debugf("[DEBUG] GetDockerFileStoreCredential Request:")
-		if credReq.Source != nil {
-			log.Debugf("[DEBUG] - Source: %s", *credReq.Source)
-		}
+		log.Debugf("[DEBUG] GetDockerFileStoreCredential Request: Source=%s FilePath=%s IsDockerfile=%s", *credReq.Source, *credReq.FilePath, *credReq.IsDockerfile)
 	}
-
-	log.Debugf("[DEBUG] Making GetDockerFileStoreCredential API call...")
 	fmt.Printf("Requesting upload credentials...")
 	credResp, err := apiClient.GetDockerFileStoreCredential(ctx, credReq)
 	if err != nil {
 		log.Debugf("[DEBUG] GetDockerFileStoreCredential API call failed: %v", err)
-		// Show user-friendly error message in non-verbose mode
 		fmt.Printf("[ERROR] Failed to get upload credentials. Please check your authentication and try again.\n")
 		if log.GetLevel() >= log.DebugLevel {
 			fmt.Printf("[DEBUG] Error details: %v\n", err)
@@ -290,40 +300,18 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to get upload credentials: %w", err)
 	}
 	fmt.Printf(" Done.\n")
-	log.Debugf("[DEBUG] GetDockerFileStoreCredential API call completed successfully")
-
-	// Debug: Print credential response (simplified)
-	if log.GetLevel() >= log.DebugLevel && credResp.Body != nil && credResp.Body.Data != nil {
-		taskId := credResp.Body.Data.GetTaskId()
-		ossUrl := credResp.Body.Data.GetOssUrl()
-
-		log.Debugf("[DEBUG] GetDockerFileStoreCredential Response:")
-		if taskId != nil {
-			log.Debugf("[DEBUG] - TaskId: %s", *taskId)
-		}
-		if ossUrl != nil {
-			log.Debugf("[DEBUG] - OssUrl: %s", *ossUrl)
-		}
-	}
-
 	if credResp.Body == nil || credResp.Body.Data == nil {
 		return fmt.Errorf("invalid response: missing upload credentials")
 	}
-
 	ossUrl := credResp.Body.Data.GetOssUrl()
 	taskId := credResp.Body.Data.GetTaskId()
-
 	if ossUrl == nil || taskId == nil {
 		return fmt.Errorf("invalid response: missing OSS URL or task ID")
 	}
 
 	fmt.Printf("[STEP 2/4] Uploading Dockerfile...\n")
-
-	// Step 2: Upload Dockerfile to OSS
 	fmt.Printf("Uploading file...")
-	err = uploadDockerfile(dockerfilePath, *ossUrl)
-	if err != nil {
-		// Show user-friendly error message in non-verbose mode
+	if err = uploadFileToOSS(dockerfilePath, *ossUrl); err != nil {
 		fmt.Printf("[ERROR] Failed to upload Dockerfile. Please check your network connection and try again.\n")
 		if log.GetLevel() >= log.DebugLevel {
 			fmt.Printf("[DEBUG] Error details: %v\n", err)
@@ -332,9 +320,103 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Printf(" Done.\n")
 
-	fmt.Printf("[STEP 3/4] Creating Docker image task...\n")
+	if len(addCopyFiles) > 0 {
+		fmt.Printf("[STEP 3/4] Uploading ADD/COPY files (%d files)...\n", len(addCopyFiles))
+		type fileItem struct{ absPath, relPath string }
+		var files []fileItem
+		for _, absPath := range addCopyFiles {
+			relPath, err := RelativePathForUpload(contextDir, absPath)
+			if err != nil {
+				return fmt.Errorf("failed to get relative path for %s: %w", absPath, err)
+			}
+			files = append(files, fileItem{absPath: absPath, relPath: relPath})
+		}
+		const maxConcurrent = 10
+		sem := make(chan struct{}, maxConcurrent)
+		var credsMu sync.Mutex
+		creds := make(map[string]string)
+		var firstCredErr error
+		var credWg sync.WaitGroup
+		fmt.Printf("Requesting upload credentials for %d files (parallel)...\n", len(files))
+		for _, f := range files {
+			f := f
+			credWg.Add(1)
+			go func() {
+				defer credWg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
+				credReq := &client.GetDockerFileStoreCredentialRequest{
+					Source:       &sourceAgentBay,
+					FilePath:     &f.relPath,
+					IsDockerfile: dara.String("false"),
+					TaskId:       taskId,
+				}
+				resp, err := apiClient.GetDockerFileStoreCredential(ctx, credReq)
+				if err != nil {
+					credsMu.Lock()
+					if firstCredErr == nil {
+						firstCredErr = fmt.Errorf("failed to get upload credentials for %s: %w", f.relPath, err)
+					}
+					credsMu.Unlock()
+					return
+				}
+				if resp.Body == nil || resp.Body.Data == nil {
+					credsMu.Lock()
+					if firstCredErr == nil {
+						firstCredErr = fmt.Errorf("invalid response: missing upload credentials for %s", f.relPath)
+					}
+					credsMu.Unlock()
+					return
+				}
+				ossUrl := resp.Body.Data.GetOssUrl()
+				if ossUrl == nil || *ossUrl == "" {
+					credsMu.Lock()
+					if firstCredErr == nil {
+						firstCredErr = fmt.Errorf("invalid response: missing OSS URL for %s", f.relPath)
+					}
+					credsMu.Unlock()
+					return
+				}
+				credsMu.Lock()
+				creds[f.absPath] = *ossUrl
+				credsMu.Unlock()
+			}()
+		}
+		credWg.Wait()
+		if firstCredErr != nil {
+			fmt.Printf("[ERROR] %v\n", firstCredErr)
+			return firstCredErr
+		}
+		var firstUploadErr error
+		var uploadWg sync.WaitGroup
+		fmt.Printf("Uploading %d files (parallel)...\n", len(files))
+		for _, f := range files {
+			f := f
+			ossUrl := creds[f.absPath]
+			uploadWg.Add(1)
+			go func() {
+				defer uploadWg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
+				if err := uploadFileToOSS(f.absPath, ossUrl); err != nil {
+					credsMu.Lock()
+					if firstUploadErr == nil {
+						firstUploadErr = fmt.Errorf("failed to upload %s: %w", f.relPath, err)
+					}
+					credsMu.Unlock()
+				}
+			}()
+		}
+		uploadWg.Wait()
+		if firstUploadErr != nil {
+			fmt.Printf("[ERROR] %v\n", firstUploadErr)
+			return firstUploadErr
+		}
+		fmt.Printf(" Done.\n")
+	}
 
-	// Step 3: Create Docker image task
+	fmt.Printf("[STEP 4/4] Creating Docker image task...\n")
+
 	createReq := &client.CreateDockerImageTaskRequest{
 		ImageName:     &imageName,
 		Source:        &sourceAgentBay,
@@ -518,16 +600,16 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 					return fmt.Errorf("dockerfile validation failed")
 				} else {
 					// Actual build failure
-				fmt.Printf("[ERROR] ❌ Image build failed\n")
-				if taskMsg != nil && *taskMsg != "" {
-					fmt.Printf("[ERROR] Error details: %s\n", *taskMsg)
-				}
-				// Print Request ID for debugging
-				if taskResp.Body.GetRequestId() != nil {
-					fmt.Printf("[DEBUG] Request ID: %s\n", *taskResp.Body.GetRequestId())
-				}
-				fmt.Printf("[DOC] Task ID: %s\n", *finalTaskId)
-				return fmt.Errorf("image build failed")
+					fmt.Printf("[ERROR] ❌ Image build failed\n")
+					if taskMsg != nil && *taskMsg != "" {
+						fmt.Printf("[ERROR] Error details: %s\n", *taskMsg)
+					}
+					// Print Request ID for debugging
+					if taskResp.Body.GetRequestId() != nil {
+						fmt.Printf("[DEBUG] Request ID: %s\n", *taskResp.Body.GetRequestId())
+					}
+					fmt.Printf("[DOC] Task ID: %s\n", *finalTaskId)
+					return fmt.Errorf("image build failed")
 				}
 			case "RUNNING", "PENDING", "Preparing":
 				// Continue polling
@@ -903,140 +985,84 @@ func formatOSInfo(imageInfo *client.ListMcpImagesResponseBodyDataImageInfo) stri
 	return osName
 }
 
-// uploadDockerfile uploads the Dockerfile to the provided OSS URL with retry mechanism
-func uploadDockerfile(dockerfilePath, ossUrl string) error {
-	log.Debugf("[DEBUG] Starting Dockerfile upload...")
-	log.Debugf("[DEBUG] - Dockerfile path: %s", dockerfilePath)
-	log.Debugf("[DEBUG] - OSS URL: %s", ossUrl)
-
-	// Read the Dockerfile
-	dockerfileContent, err := os.ReadFile(dockerfilePath)
+func uploadFileToOSS(localPath, ossUrl string) error {
+	log.Debugf("[DEBUG] Starting file upload: %s", localPath)
+	content, err := os.ReadFile(localPath)
 	if err != nil {
-		log.Debugf("[DEBUG] Failed to read Dockerfile: %v", err)
-		return fmt.Errorf("failed to read Dockerfile: %w", err)
+		return fmt.Errorf("failed to read file: %w", err)
 	}
-
-	log.Debugf("[DEBUG] Dockerfile content length: %d bytes", len(dockerfileContent))
-	previewLen := 100
-	if len(dockerfileContent) < previewLen {
-		previewLen = len(dockerfileContent)
-	}
-	log.Debugf("[DEBUG] Dockerfile content preview: %s", string(dockerfileContent[:previewLen]))
-
-	// Create retry configuration for upload
 	retryConfig := &client.RetryConfig{
 		MaxRetries:    3,
 		InitialDelay:  1 * time.Second,
 		MaxDelay:      10 * time.Second,
 		BackoffFactor: 2.0,
 	}
-
 	var lastErr error
 	delay := retryConfig.InitialDelay
-
 	for attempt := 0; attempt <= retryConfig.MaxRetries; attempt++ {
-		fmt.Printf("[UPLOAD] Dockerfile upload attempt %d/%d...\n", attempt+1, retryConfig.MaxRetries+1)
-		log.Debugf("[DEBUG] Attempt %d/%d for uploading Dockerfile", attempt+1, retryConfig.MaxRetries+1)
-
-		// Create HTTP PUT request for each attempt
-		req, err := http.NewRequest(http.MethodPut, ossUrl, strings.NewReader(string(dockerfileContent)))
+		log.Debugf("[DEBUG] Upload attempt %d/%d for %s", attempt+1, retryConfig.MaxRetries+1, localPath)
+		req, err := http.NewRequest(http.MethodPut, ossUrl, strings.NewReader(string(content)))
 		if err != nil {
-			log.Debugf("[DEBUG] Failed to create upload request: %v", err)
 			return fmt.Errorf("failed to create upload request: %w", err)
 		}
-
-		// Set appropriate headers
 		req.Header.Set("Content-Type", "application/octet-stream")
 		req.Header.Set("User-Agent", "AgentBay-CLI/1.0")
-		req.ContentLength = int64(len(dockerfileContent))
-
-		log.Debugf("[DEBUG] Upload request headers:")
-		for key, values := range req.Header {
-			for _, value := range values {
-				log.Debugf("[DEBUG] - %s: %s", key, value)
-			}
-		}
-
-		// Perform the upload
-		httpClient := &http.Client{
-			Timeout: 60 * time.Second,
-		}
-
-		log.Debugf("[DEBUG] Sending upload request...")
+		req.ContentLength = int64(len(content))
+		httpClient := &http.Client{Timeout: 60 * time.Second}
 		resp, err := httpClient.Do(req)
-
-		// Success case
 		if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
 			resp.Body.Close()
-			log.Debugf("[DEBUG] Upload response received:")
-			log.Debugf("[DEBUG] - Status: %s", resp.Status)
-			log.Debugf("[DEBUG] - Status Code: %d", resp.StatusCode)
 			if attempt > 0 {
-				fmt.Printf("[OK] Dockerfile upload succeeded on attempt %d\n", attempt+1)
-				log.Infof("[RETRY] Request succeeded on attempt %d", attempt+1)
+				fmt.Printf("[OK] Upload succeeded on attempt %d\n", attempt+1)
 			}
 			return nil
 		}
-
-		// Handle error cases
 		if err != nil {
-			lastErr = fmt.Errorf("failed to upload dockerfile: %w", err)
-			log.Debugf("[DEBUG] Attempt %d failed with error: %v", attempt+1, err)
+			lastErr = fmt.Errorf("failed to upload: %w", err)
 		} else {
-			// Read response body for error details
 			body, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
 			lastErr = fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
-			log.Debugf("[DEBUG] Attempt %d failed with HTTP status: %d", attempt+1, resp.StatusCode)
-			log.Debugf("[DEBUG] Response body: %s", string(body))
 		}
-
-		// Don't retry if this is the last attempt
 		if attempt == retryConfig.MaxRetries {
 			break
 		}
-
-		// Check if the error is retryable
 		shouldRetry := false
 		if err != nil {
-			// Use the same retry logic as the API client
 			shouldRetry = client.IsRetryableError(err)
 		} else if resp != nil {
-			// Check if HTTP status is retryable
 			shouldRetry = client.IsRetryableHTTPStatus(resp.StatusCode)
 		}
-
 		if !shouldRetry {
-			log.Debugf("[DEBUG] Error is not retryable, stopping attempts")
 			fmt.Printf("[WARN] Upload error is not retryable, stopping attempts\n")
 			break
 		}
-
-		// Wait before retrying
 		fmt.Printf("[RETRY] Upload failed (attempt %d/%d), retrying in %v...\n",
 			attempt+1, retryConfig.MaxRetries+1, delay)
-		log.Infof("[RETRY] Request failed (attempt %d/%d), retrying in %v...",
-			attempt+1, retryConfig.MaxRetries+1, delay)
-
 		time.Sleep(delay)
-
-		// Calculate next delay with exponential backoff
 		delay = time.Duration(float64(delay) * retryConfig.BackoffFactor)
 		if delay > retryConfig.MaxDelay {
 			delay = retryConfig.MaxDelay
 		}
 	}
-
-	fmt.Printf("[ERROR] All %d upload attempts failed\n", retryConfig.MaxRetries+1)
-	log.Warnf("[RETRY] All %d attempts failed, giving up", retryConfig.MaxRetries+1)
-	return fmt.Errorf("dockerfile upload failed after %d attempts, last error: %w",
+	return fmt.Errorf("upload failed after %d attempts, last error: %w",
 		retryConfig.MaxRetries+1, lastErr)
 }
+
+// DefaultActivateCPU and DefaultActivateMemory are the default resource allocation when user does not specify --cpu/--memory
+const DefaultActivateCPU = 2
+const DefaultActivateMemory = 4
 
 func runImageActivate(cmd *cobra.Command, args []string) error {
 	imageId := args[0]
 	cpu, _ := cmd.Flags().GetInt("cpu")
 	memory, _ := cmd.Flags().GetInt("memory")
+
+	// Apply default 2c4g when not specified
+	if cpu == 0 && memory == 0 {
+		cpu = DefaultActivateCPU
+		memory = DefaultActivateMemory
+	}
 
 	// Validate CPU and memory combination
 	if err := ValidateCPUMemoryCombo(cpu, memory); err != nil {
@@ -1044,9 +1070,7 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("[ACTIVATE] Activating image '%s'...\n", imageId)
-	if cpu > 0 || memory > 0 {
-		fmt.Printf("[RESOURCE] CPU: %d cores, Memory: %d GB\n", cpu, memory)
-	}
+	fmt.Printf("[RESOURCE] CPU: %d cores, Memory: %d GB\n", cpu, memory)
 
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
@@ -1268,6 +1292,12 @@ func runImageDeactivate(cmd *cobra.Command, args []string) error {
 	} else if IsActivated(imageInfo.ResourceStatus) {
 		// Image is activated, proceed with deactivation
 		shouldDeleteResourceGroup = true
+	} else if IsFailed(imageInfo.ResourceStatus) {
+		// Activation failed - cannot delete without ResourceGroupId
+		fmt.Printf("[INFO] Image is in Activation Failed state.\n")
+		fmt.Printf("[INFO] The image may recover automatically to Available state. Please try again later.\n")
+		fmt.Printf("[INFO] Alternatively, use the web console to deactivate this image.\n")
+		return nil
 	} else {
 		// Image is in an unexpected state
 		return fmt.Errorf("cannot deactivate image in current state: %s", TranslateImageResourceStatus(imageInfo.ResourceStatus))
@@ -1275,14 +1305,32 @@ func runImageDeactivate(cmd *cobra.Command, args []string) error {
 
 	// Delete resource group if needed
 	if shouldDeleteResourceGroup {
+		fmt.Printf("Fetching resource group info...")
+		resourceGroupId, err := GetResourceGroupIdForImage(statusCtx, apiClient, imageId)
+		if err != nil {
+			fmt.Printf(" Failed.\n")
+			log.Debugf("[DEBUG] GetResourceGroupIdForImage failed: %v", err)
+			return fmt.Errorf("failed to get resource group info: %w", err)
+		}
+		fmt.Printf(" Done.\n")
+
+		if resourceGroupId == "" {
+			fmt.Printf("[WARN] Could not find ResourceGroupId for this image.\n")
+			fmt.Printf("[INFO] The image may recover automatically to Available state. Please try again later.\n")
+			fmt.Printf("[INFO] Alternatively, use the web console to deactivate this image.\n")
+			return nil
+		}
+
 		fmt.Printf("Deleting resource group...")
 		deleteReq := &client.DeleteResourceGroupRequest{}
 		deleteReq.SetImageId(imageId)
+		deleteReq.SetResourceGroupId(resourceGroupId)
 
 		// Debug: Print request details
 		if log.GetLevel() >= log.DebugLevel {
 			log.Debugf("[DEBUG] DeleteResourceGroup Request:")
 			log.Debugf("[DEBUG] - ImageId: %s", imageId)
+			log.Debugf("[DEBUG] - ResourceGroupId: %s", resourceGroupId)
 		}
 
 		// Use a separate context for the delete operation
@@ -1348,6 +1396,18 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 	// Source is always AgentBay
 	source := "AgentBay"
 
+	// Get sourceImageId from command line flag (required)
+	sourceImageId, _ := cmd.Flags().GetString("sourceImageId")
+	if sourceImageId == "" {
+		return printErrorMessage(
+			"[ERROR] Missing required flag: --sourceImageId",
+			"",
+			"[TIP] Usage: agentbay image init --sourceImageId <image-id>",
+			"[NOTE] Example: agentbay image init --sourceImageId code-space-debian-12",
+			"[NOTE] Short form: agentbay image init -i code-space-debian-12",
+		)
+	}
+
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
 	if err != nil {
@@ -1359,17 +1419,6 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(os.Stderr, "[ERROR] Not authenticated. Please run 'agentbay login' first\n")
 		return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
 	}
-
-	// Get environment and endpoint to determine default SourceImageId
-	env := config.GetEnvironment()
-	apiConfig := config.LoadAPIConfig(nil)
-	endpoint := apiConfig.Endpoint
-
-	// Auto-detect SourceImageId based on environment and endpoint
-	sourceImageId := config.GetDefaultSourceImageId(env, endpoint)
-	isDomestic := config.IsDomesticEndpoint(endpoint)
-	log.Debugf("[DEBUG] Auto-detected SourceImageId: %s (env: %s, endpoint: %s, domestic: %v)",
-		sourceImageId, env, endpoint, isDomestic)
 
 	// Create API client
 	apiClient := agentbay.NewClientFromConfig(cfg)
@@ -1399,16 +1448,7 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		log.Debugf("[DEBUG] GetDockerfileTemplate API call failed: %v", err)
 
-		// Check if the error is an authentication error
-		if IsAuthenticationError(err) {
-			fmt.Fprintf(os.Stderr, "\n[ERROR] Not authenticated. Please run 'agentbay login' first\n")
-			return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
-		}
-
-		fmt.Printf("\n[ERROR] Failed to get Dockerfile template. Please check your authentication and try again.\n")
-		if log.GetLevel() >= log.DebugLevel {
-			fmt.Printf("[DEBUG] Error details: %v\n", err)
-		}
+		fmt.Fprintf(os.Stderr, "\n[ERROR] Failed to get Dockerfile template: %v\n", err)
 		return fmt.Errorf("failed to get Dockerfile template: %w", err)
 	}
 	fmt.Printf(" Done.\n")

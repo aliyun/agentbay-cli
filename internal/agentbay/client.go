@@ -370,13 +370,16 @@ type XMLListMcpImagesResponse struct {
 	HttpStatusCode int      `xml:"HttpStatusCode"`
 	Data           struct {
 		Images []struct {
-			ImageId             string `xml:"ImageId"`
-			ImageName           string `xml:"ImageName"`
-			ImageBuildType      string `xml:"ImageBuildType"`
-			ImageIntro          string `xml:"ImageIntro"`
-			ImageApplyScene     string `xml:"ImageApplyScene"`
-			ImageResourceStatus string `xml:"ImageResourceStatus"`
-			ImageInfo           struct {
+			ImageId                 string `xml:"ImageId"`
+			ImageName               string `xml:"ImageName"`
+			ImageBuildType          string `xml:"ImageBuildType"`
+			ImageIntro              string `xml:"ImageIntro"`
+			ImageApplyScene         string `xml:"ImageApplyScene"`
+			ImageResourceStatus     string `xml:"ImageResourceStatus"`
+			ImageResourceGroupInfo  struct {
+				ResourceGroupId string `xml:"ResourceGroupId"`
+			} `xml:"ImageResourceGroupInfo"`
+			ImageInfo struct {
 				OsName         string `xml:"OsName"`
 				OsVersion      string `xml:"OsVersion"`
 				PlatformName   string `xml:"PlatformName"`
@@ -553,15 +556,23 @@ func (cw *clientWrapper) parseListMcpImagesXMLResponse(xmlData []byte) (*client.
 			})
 		}
 
+		var imageResourceGroupInfo *client.ListMcpImagesResponseBodyDataImageResourceGroupInfo
+		if xmlImage.ImageResourceGroupInfo.ResourceGroupId != "" {
+			imageResourceGroupInfo = &client.ListMcpImagesResponseBodyDataImageResourceGroupInfo{
+				ResourceGroupId: dara.String(xmlImage.ImageResourceGroupInfo.ResourceGroupId),
+			}
+		}
+
 		sdkImage := &client.ListMcpImagesResponseBodyData{
-			ImageId:             dara.String(xmlImage.ImageId),
-			ImageName:           dara.String(xmlImage.ImageName),
-			ImageBuildType:      dara.String(xmlImage.ImageBuildType),
-			ImageIntro:          dara.String(xmlImage.ImageIntro),
-			ImageApplyScene:     dara.String(xmlImage.ImageApplyScene),
-			ImageResourceStatus: dara.String(xmlImage.ImageResourceStatus),
-			ImageInfo:           imageInfo,
-			ToolInfo:            toolInfo,
+			ImageId:                 dara.String(xmlImage.ImageId),
+			ImageName:               dara.String(xmlImage.ImageName),
+			ImageBuildType:          dara.String(xmlImage.ImageBuildType),
+			ImageIntro:              dara.String(xmlImage.ImageIntro),
+			ImageApplyScene:         dara.String(xmlImage.ImageApplyScene),
+			ImageResourceStatus:     dara.String(xmlImage.ImageResourceStatus),
+			ImageResourceGroupInfo:  imageResourceGroupInfo,
+			ImageInfo:               imageInfo,
+			ToolInfo:                toolInfo,
 		}
 		sdkData = append(sdkData, sdkImage)
 	}

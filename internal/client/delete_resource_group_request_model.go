@@ -11,10 +11,13 @@ type iDeleteResourceGroupRequest interface {
 	GoString() string
 	SetImageId(v string) *DeleteResourceGroupRequest
 	GetImageId() *string
+	SetResourceGroupId(v string) *DeleteResourceGroupRequest
+	GetResourceGroupId() *string
 }
 
 type DeleteResourceGroupRequest struct {
-	ImageId *string `json:"ImageId,omitempty" xml:"ImageId,omitempty"`
+	ImageId         *string `json:"ImageId,omitempty" xml:"ImageId,omitempty"`
+	ResourceGroupId *string `json:"ResourceGroupId,omitempty" xml:"ResourceGroupId,omitempty"`
 }
 
 func (s DeleteResourceGroupRequest) String() string {
@@ -31,6 +34,15 @@ func (s *DeleteResourceGroupRequest) GetImageId() *string {
 
 func (s *DeleteResourceGroupRequest) SetImageId(v string) *DeleteResourceGroupRequest {
 	s.ImageId = &v
+	return s
+}
+
+func (s *DeleteResourceGroupRequest) GetResourceGroupId() *string {
+	return s.ResourceGroupId
+}
+
+func (s *DeleteResourceGroupRequest) SetResourceGroupId(v string) *DeleteResourceGroupRequest {
+	s.ResourceGroupId = &v
 	return s
 }
 

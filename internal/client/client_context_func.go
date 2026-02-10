@@ -26,6 +26,15 @@ func (client *Client) GetDockerFileStoreCredentialWithContext(ctx context.Contex
 	if !dara.IsNil(request.Source) {
 		query["Source"] = request.Source
 	}
+	if !dara.IsNil(request.FilePath) {
+		query["FilePath"] = request.FilePath
+	}
+	if !dara.IsNil(request.IsDockerfile) {
+		query["IsDockerfile"] = request.IsDockerfile
+	}
+	if !dara.IsNil(request.TaskId) {
+		query["TaskId"] = request.TaskId
+	}
 
 	req := &openapiutil.OpenApiRequest{
 		Query: openapiutil.Query(query),
@@ -366,6 +375,9 @@ func (client *Client) DeleteResourceGroupWithContext(ctx context.Context, reques
 	body := map[string]interface{}{}
 	if !dara.IsNil(request.ImageId) {
 		body["ImageId"] = request.ImageId
+	}
+	if !dara.IsNil(request.ResourceGroupId) {
+		body["ResourceGroupId"] = request.ResourceGroupId
 	}
 
 	req := &openapiutil.OpenApiRequest{
