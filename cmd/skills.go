@@ -279,9 +279,15 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("[STEP 3/3] Creating skill...\n")
+	// Pre-release credential URL path is often "null/<id>"; some backends reject "null" in OssFilePath.
+	// Pass only the suffix for CreateMarketSkill when path is exactly "null/<suffix>" so backend receives a valid path.
+	createOssPath := createOssFilePath
+	if strings.HasPrefix(createOssPath, "null/") && len(createOssPath) > 5 {
+		createOssPath = createOssPath[5:] // len("null/")
+	}
 	createReq := &client.CreateMarketSkillRequest{
 		OssBucket:   &createBucket,
-		OssFilePath: &createOssFilePath,
+		OssFilePath: &createOssPath,
 	}
 	createResp, err := apiClient.CreateMarketSkill(ctx, createReq)
 	if err != nil {
