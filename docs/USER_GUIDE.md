@@ -37,16 +37,23 @@ Clears your authentication tokens.
 
 ## 3. Skills
 
-Manage skills. The following matches the current CLI implementation; commands that are not yet implemented only print an informational message.
-
-### Implemented commands
+Manage skills and skill groups. The following matches the current CLI; commands that are not yet backed by a full API only print an informational message.
 
 ```bash
 # Push local skill directory (requires SKILL.md with name/description in frontmatter)
 agentbay skills push <skill-dir>
 
+agentbay skills list                  # List skills (placeholder until backend API)
+
 # Show skill details by ID (calls backend DescribeMarketSkillDetail)
 agentbay skills show <skill-id>
+
+# Skill group: create, query, bind/unbind
+agentbay skills group create <name> [--description "..."]
+agentbay skills group list
+agentbay skills group show <group-id>           # Placeholder until backend API
+agentbay skills group add-skill <group-id> <skill-id>
+agentbay skills group remove-skill <group-id> <skill-id>
 ```
 
 **Example output (aligned with image CLI style):**
@@ -55,7 +62,6 @@ agentbay skills show <skill-id>
 [SUCCESS] ✅ Skill created successfully!
 [RESULT] Skill ID: 35U2Ver2
 ```
-
 
 ## 4. List Images
 
