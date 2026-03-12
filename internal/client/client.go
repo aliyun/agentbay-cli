@@ -578,6 +578,57 @@ func (client *Client) DescribeMarketSkillDetail(request *DescribeMarketSkillDeta
 	return _result, _err
 }
 
+// CreateMarketSkill 通过 OSS 创建 Skill
+func (client *Client) CreateMarketSkillWithOptions(request *CreateMarketSkillRequest, runtime *dara.RuntimeOptions) (_result *CreateMarketSkillResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.OssBucket) {
+		query["OssBucket"] = request.OssBucket
+	}
+	if !dara.IsNil(request.OssFilePath) {
+		query["OssFilePath"] = request.OssFilePath
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/xml"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("CreateMarketSkill"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("xml"),
+	}
+	_result = &CreateMarketSkillResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_err = dara.Convert(_body, &_result)
+	return _result, _err
+}
+
+func (client *Client) CreateMarketSkill(request *CreateMarketSkillRequest) (_result *CreateMarketSkillResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &CreateMarketSkillResponse{}
+	_body, _err := client.CreateMarketSkillWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
 // Summary:
 //
 // 创建docker镜像任务
