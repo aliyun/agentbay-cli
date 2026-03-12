@@ -48,10 +48,15 @@ agentbay skills list                  # List skills (placeholder until backend A
 # Show skill details by ID (calls backend DescribeMarketSkillDetail)
 agentbay skills show <skill-id>
 
-# Skill group: create, query, bind/unbind
+# Create a skill group; prints group-id on success. Use -v to see raw API response.
 agentbay skills group create <name> [--description "..."]
+
+# List your skill groups (table: GROUP-ID, GROUP-NAME)
 agentbay skills group list
+
 agentbay skills group show <group-id>           # Placeholder until backend API
+
+# Add or remove a skill in a group
 agentbay skills group add-skill <group-id> <skill-id>
 agentbay skills group remove-skill <group-id> <skill-id>
 ```
@@ -62,6 +67,15 @@ agentbay skills group remove-skill <group-id> <skill-id>
 [SUCCESS] ✅ Skill created successfully!
 [RESULT] Skill ID: 35U2Ver2
 ```
+
+**Options (group create):** `--description`, `-d` — optional group description (backend may ignore until supported).
+
+### Placeholder commands (not yet implemented)
+
+These commands exist but do not call a backend API; they only print a message that the API is not yet available:
+
+- **`agentbay skills list`** — Lists skills visible to you. Currently prints: backend list API is not yet available.
+- **`agentbay skills group show <group-id>`** — Group details and its skills. Currently prints: backend API is not yet available.
 
 ## 4. List Images
 
@@ -256,6 +270,7 @@ agentbay version
 ```bash
 agentbay -v image list
 agentbay -v skills push ./my-skill
+agentbay -v skills group create my-group
 ```
 
 **Q: Login issues?**
