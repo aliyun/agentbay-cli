@@ -30,7 +30,7 @@ const skillDetailLabelW = 14
 var SkillsCmd = &cobra.Command{
 	Use:     "skills",
 	Short:   "Manage AgentBay skills",
-	Long:    "Push skills and show details.",
+	Long:    "Push and list skills; show skill details.",
 	GroupID: "management",
 }
 
@@ -44,6 +44,14 @@ Directory: packed to zip then uploaded. Zip: uploaded as-is.`,
 	RunE: runSkillsPush,
 }
 
+var skillsListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List cloud skills",
+	Long:  `List skills visible to you (yours and public). Backend list API coming soon.`,
+	Args:  cobra.NoArgs,
+	RunE:  runSkillsList,
+}
+
 var skillsShowCmd = &cobra.Command{
 	Use:   "show <skill-id>",
 	Short: "Show skill details",
@@ -54,6 +62,7 @@ var skillsShowCmd = &cobra.Command{
 
 func init() {
 	SkillsCmd.AddCommand(skillsPushCmd)
+	SkillsCmd.AddCommand(skillsListCmd)
 	SkillsCmd.AddCommand(skillsShowCmd)
 }
 
@@ -335,6 +344,11 @@ func zipSkillDir(dir string) (*bytes.Buffer, error) {
 		return nil, err
 	}
 	return buf, nil
+}
+
+func runSkillsList(cmd *cobra.Command, args []string) error {
+	fmt.Fprintln(os.Stderr, "[INFO] List skills: backend list API is not yet available. This command will be enabled when the API is ready.")
+	return nil
 }
 
 func runSkillsShow(cmd *cobra.Command, args []string) error {
