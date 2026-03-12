@@ -512,6 +512,9 @@ func runSkillsGroupCreate(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(os.Stderr, "[ERROR] Failed to create group: %v\n", err)
 		return fmt.Errorf("create group: %w", err)
 	}
+	if verbose, _ := cmd.Flags().GetBool("verbose"); verbose && resp != nil && resp.RawBody != "" {
+		fmt.Fprintf(os.Stderr, "CreateMarketSkillGroup raw response: %s\n", resp.RawBody)
+	}
 	var groupId string
 	if resp.Body != nil && resp.Body.Data != nil && resp.Body.Data.GroupId != nil {
 		groupId = *resp.Body.Data.GroupId

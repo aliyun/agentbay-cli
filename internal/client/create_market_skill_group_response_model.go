@@ -105,8 +105,10 @@ type iCreateMarketSkillGroupResponse interface {
 
 type CreateMarketSkillGroupResponse struct {
 	Headers    map[string]*string                    `json:"headers,omitempty" xml:"headers,omitempty"`
-	StatusCode *int32                                 `json:"statusCode,omitempty" xml:"statusCode,omitempty"`
-	Body       *CreateMarketSkillGroupResponseBody `json:"body,omitempty" xml:"body,omitempty"`
+	StatusCode *int32                                `json:"statusCode,omitempty" xml:"statusCode,omitempty"`
+	Body       *CreateMarketSkillGroupResponseBody   `json:"body,omitempty" xml:"body,omitempty"`
+	// RawBody is the raw response body (set when BodyType is "string"); used for -v debug output.
+	RawBody string `json:"-"`
 }
 
 func (s CreateMarketSkillGroupResponse) String() string {

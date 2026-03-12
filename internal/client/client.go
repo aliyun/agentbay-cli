@@ -195,8 +195,23 @@ func parseListMarketGroupSkillResponse(res map[string]interface{}) (*ListMarketG
 	return out, nil
 }
 
+// createMarketSkillGroupResponseXML is used only for XML unmarshaling; backend returns <Data>group-id</Data> (chardata) or <Data><GroupId>...</GroupId></Data>.
+type createMarketSkillGroupResponseXML struct {
+	XMLName        xml.Name                      `xml:"CreateMarketSkillGroupResponse"`
+	HttpStatusCode *int32                        `xml:"HttpStatusCode"`
+	Data           createMarketSkillGroupDataXML `xml:"Data"`
+	RequestId      *string                       `xml:"RequestId"`
+	Code           *string                       `xml:"Code"`
+	Success        *bool                         `xml:"Success"`
+}
+type createMarketSkillGroupDataXML struct {
+	Value   string  `xml:",chardata"`
+	GroupId *string `xml:"GroupId"`
+}
+
 // parseCreateMarketSkillGroupResponse builds CreateMarketSkillGroupResponse from CallApi map (bodyType "string").
 // Backend may return XML (pre-release) or JSON; we parse body manually like ListMarketGroupSkill.
+// JSON response may have Data as a string (group-id) or as an object {"GroupId": "..."}; we support both.
 func parseCreateMarketSkillGroupResponse(res map[string]interface{}) (*CreateMarketSkillGroupResponse, error) {
 	out := &CreateMarketSkillGroupResponse{}
 	bodyStr := ""
@@ -208,16 +223,48 @@ func parseCreateMarketSkillGroupResponse(res map[string]interface{}) (*CreateMar
 	default:
 		return nil, &ErrWithRequestID{Err: errors.New("missing or invalid body in response"), RequestID: extractRequestIDFromResponse(res)}
 	}
+	out.RawBody = bodyStr
 	parsed := &CreateMarketSkillGroupResponseBody{}
 	if bodyStr != "" {
 		trimmed := strings.TrimSpace(bodyStr)
 		if len(trimmed) > 0 && trimmed[0] == '<' {
-			if err := xml.Unmarshal([]byte(bodyStr), parsed); err != nil {
+			var xmlResp createMarketSkillGroupResponseXML
+			if err := xml.Unmarshal([]byte(bodyStr), &xmlResp); err != nil {
 				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
 			}
+			parsed.Code = xmlResp.Code
+			parsed.RequestId = xmlResp.RequestId
+			parsed.Success = xmlResp.Success
+			if xmlResp.Data.GroupId != nil && *xmlResp.Data.GroupId != "" {
+				parsed.Data = &CreateMarketSkillGroupResponseBodyData{GroupId: xmlResp.Data.GroupId}
+			} else if s := strings.TrimSpace(xmlResp.Data.Value); s != "" {
+				parsed.Data = &CreateMarketSkillGroupResponseBodyData{GroupId: &s}
+			}
 		} else {
-			if err := json.Unmarshal([]byte(bodyStr), parsed); err != nil {
+			// JSON: backend may return "Data": "group-id-string" or "Data": {"GroupId": "..."}
+			var raw struct {
+				Code      *string      `json:"Code,omitempty"`
+				Data      interface{}  `json:"Data,omitempty"`
+				RequestId *string      `json:"RequestId,omitempty"`
+				Success   *bool        `json:"Success,omitempty"`
+			}
+			if err := json.Unmarshal([]byte(bodyStr), &raw); err != nil {
 				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = raw.Code
+			parsed.RequestId = raw.RequestId
+			parsed.Success = raw.Success
+			if raw.Data != nil {
+				switch v := raw.Data.(type) {
+				case string:
+					parsed.Data = &CreateMarketSkillGroupResponseBodyData{GroupId: &v}
+				default:
+					var dataObj CreateMarketSkillGroupResponseBodyData
+					b, _ := json.Marshal(raw.Data)
+					if err := json.Unmarshal(b, &dataObj); err == nil {
+						parsed.Data = &dataObj
+					}
+				}
 			}
 		}
 	}
