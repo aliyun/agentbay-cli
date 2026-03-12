@@ -143,6 +143,58 @@ func parseGetMarketSkillCredentialResponse(res map[string]interface{}) (*GetMark
 	return out, nil
 }
 
+// parseListMarketGroupSkillResponse builds ListMarketGroupSkillResponse from CallApi map (bodyType "string").
+func parseListMarketGroupSkillResponse(res map[string]interface{}) (*ListMarketGroupSkillResponse, error) {
+	out := &ListMarketGroupSkillResponse{}
+	bodyStr := ""
+	switch v := res["body"].(type) {
+	case string:
+		bodyStr = v
+	case []byte:
+		bodyStr = string(v)
+	default:
+		return nil, &ErrWithRequestID{Err: errors.New("missing or invalid body in response"), RequestID: extractRequestIDFromResponse(res)}
+	}
+	parsed := &ListMarketGroupSkillResponseBody{}
+	if bodyStr != "" {
+		trimmed := strings.TrimSpace(bodyStr)
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			if err := xml.Unmarshal([]byte(bodyStr), parsed); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+		} else {
+			if err := json.Unmarshal([]byte(bodyStr), parsed); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+		}
+	}
+	out.Body = &ListMarketGroupSkillResponseBodyWrapper{ListMarketGroupSkillResponseBody: parsed}
+	if h, ok := res["headers"].(map[string]*string); ok {
+		out.Headers = h
+	} else if h, ok := res["headers"].(map[string]interface{}); ok {
+		out.Headers = make(map[string]*string)
+		for k, v := range h {
+			if s, ok := v.(string); ok {
+				out.Headers[k] = dara.String(s)
+			} else if p, ok := v.(*string); ok && p != nil {
+				out.Headers[k] = p
+			}
+		}
+	}
+	if sc, ok := res["statusCode"].(int); ok {
+		out.StatusCode = dara.Int32(int32(sc))
+	}
+	if sc, ok := res["statusCode"].(int32); ok {
+		out.StatusCode = &sc
+	}
+	if out.StatusCode == nil && res["statusCode"] != nil {
+		if n, err := strconv.Atoi(dara.ToString(res["statusCode"])); err == nil {
+			out.StatusCode = dara.Int32(int32(n))
+		}
+	}
+	return out, nil
+}
+
 type Client struct {
 	openapi.Client
 	DisableSDKError *bool
@@ -624,6 +676,7 @@ func (client *Client) CreateMarketSkillGroup(request *CreateMarketSkillGroupRequ
 }
 
 // ListMarketGroupSkill 列出技能组
+// Uses BodyType "string" so the SDK returns raw body; backend may return XML, so we parse body manually.
 func (client *Client) ListMarketGroupSkillWithOptions(request *ListMarketGroupSkillRequest, runtime *dara.RuntimeOptions) (_result *ListMarketGroupSkillResponse, _err error) {
 	_err = request.Validate()
 	if _err != nil {
@@ -631,7 +684,7 @@ func (client *Client) ListMarketGroupSkillWithOptions(request *ListMarketGroupSk
 	}
 	query := map[string]interface{}{}
 	req := &openapiutil.OpenApiRequest{
-		Query:  openapiutil.Query(query),
+		Query:   openapiutil.Query(query),
 		Headers: map[string]*string{"Accept": dara.String("application/json")},
 	}
 	params := &openapiutil.Params{
@@ -639,18 +692,22 @@ func (client *Client) ListMarketGroupSkillWithOptions(request *ListMarketGroupSk
 		Version:     dara.String("2025-05-01"),
 		Protocol:    dara.String("HTTPS"),
 		Pathname:    dara.String("/"),
-		Method:      dara.String("POST"),
+		Method:      dara.String("GET"),
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
-		BodyType:    dara.String("json"),
+		BodyType:    dara.String("string"),
 	}
 	_result = &ListMarketGroupSkillResponse{}
 	_body, _err := client.CallApi(params, req, runtime)
 	if _err != nil {
-		return _result, _err
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
 	}
-	_err = dara.Convert(_body, &_result)
+	_result, _err = parseListMarketGroupSkillResponse(_body)
 	return _result, _err
 }
 

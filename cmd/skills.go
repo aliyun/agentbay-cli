@@ -7,6 +7,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -527,8 +528,19 @@ func runSkillsGroupList(cmd *cobra.Command, args []string) error {
 	req := &client.ListMarketGroupSkillRequest{}
 	resp, err := apiClient.ListMarketGroupSkill(ctx, req)
 	if err != nil {
+		verbose, _ := cmd.Flags().GetBool("verbose")
+		if verbose {
+			var errWithID *client.ErrWithRequestID
+			if errors.As(err, &errWithID) && errWithID.RequestID != "" {
+				fmt.Fprintf(os.Stderr, "RequestId: %s\n", errWithID.RequestID)
+			}
+		}
 		fmt.Fprintf(os.Stderr, "[ERROR] Failed to list groups: %v\n", err)
 		return fmt.Errorf("list groups: %w", err)
+	}
+	verbose, _ := cmd.Flags().GetBool("verbose")
+	if verbose && resp != nil && resp.Body != nil && resp.Body.ListMarketGroupSkillResponseBody != nil && resp.Body.ListMarketGroupSkillResponseBody.RequestId != nil {
+		fmt.Fprintf(os.Stderr, "RequestId: %s\n", *resp.Body.ListMarketGroupSkillResponseBody.RequestId)
 	}
 	if resp.Body == nil || len(resp.Body.Data) == 0 {
 		fmt.Println("No groups.")

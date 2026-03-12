@@ -4,6 +4,9 @@
 package client
 
 import (
+	"encoding/json"
+	"encoding/xml"
+
 	"github.com/alibabacloud-go/tea/dara"
 )
 
@@ -40,10 +43,29 @@ func (s *ListMarketGroupSkillResponseBody) Validate() error {
 	return dara.Validate(s)
 }
 
+// ListMarketGroupSkillResponseBodyWrapper unmarshals Body when gateway returns JSON
+// with "body" as either an object or a string (XML content).
+type ListMarketGroupSkillResponseBodyWrapper struct {
+	*ListMarketGroupSkillResponseBody
+}
+
+// UnmarshalJSON supports gateway returning body as JSON object or as string (XML).
+func (s *ListMarketGroupSkillResponseBodyWrapper) UnmarshalJSON(data []byte) error {
+	s.ListMarketGroupSkillResponseBody = &ListMarketGroupSkillResponseBody{}
+	if len(data) >= 2 && data[0] == '"' {
+		var str string
+		if err := json.Unmarshal(data, &str); err != nil {
+			return err
+		}
+		return xml.Unmarshal([]byte(str), s.ListMarketGroupSkillResponseBody)
+	}
+	return json.Unmarshal(data, s.ListMarketGroupSkillResponseBody)
+}
+
 type ListMarketGroupSkillResponse struct {
-	Headers    map[string]*string               `json:"headers,omitempty" xml:"headers,omitempty"`
-	StatusCode *int32                            `json:"statusCode,omitempty" xml:"statusCode,omitempty"`
-	Body       *ListMarketGroupSkillResponseBody `json:"body,omitempty" xml:"body,omitempty"`
+	Headers    map[string]*string                        `json:"headers,omitempty" xml:"headers,omitempty"`
+	StatusCode *int32                                     `json:"statusCode,omitempty" xml:"statusCode,omitempty"`
+	Body       *ListMarketGroupSkillResponseBodyWrapper `json:"body,omitempty" xml:"body,omitempty"`
 }
 
 func (s ListMarketGroupSkillResponse) String() string {
