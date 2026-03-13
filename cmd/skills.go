@@ -526,7 +526,10 @@ func runSkillsGroupCreate(cmd *cobra.Command, args []string) error {
 	if groupId == "" {
 		groupId = "<unknown>"
 	}
-	fmt.Printf("Created group (group-id: %s)\n", groupId)
+	fmt.Println()
+	fmt.Printf("[SUCCESS] ✅ Group created successfully!\n")
+	fmt.Printf("[RESULT] Group ID: %s\n", groupId)
+	fmt.Printf("[DOC] Group name: %s\n", name)
 	return nil
 }
 
@@ -550,9 +553,10 @@ func runSkillsGroupList(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(os.Stderr, "[DEBUG] RequestId: %s\n", *resp.Body.ListMarketGroupSkillResponseBody.RequestId)
 	}
 	if resp.Body == nil || len(resp.Body.Data) == 0 {
-		fmt.Println("No groups found.")
+		fmt.Printf("\n[EMPTY] No groups found.\n")
 		return nil
 	}
+	fmt.Printf("\n[OK] Found %d groups.\n\n", len(resp.Body.Data))
 	fmt.Printf("%-*s %s\n", groupTableIDW, "GROUP-ID", "GROUP-NAME")
 	fmt.Println(strings.Repeat("-", groupTableSepLen))
 	for _, item := range resp.Body.Data {
@@ -593,7 +597,9 @@ func runSkillsGroupAddSkill(cmd *cobra.Command, args []string) error {
 	if resp != nil && resp.Body != nil && resp.Body.RequestId != nil {
 		printRequestIDIfVerbose(cmd, *resp.Body.RequestId)
 	}
-	fmt.Printf("Added skill %s to group %s\n", skillId, groupId)
+	fmt.Println()
+	fmt.Printf("[SUCCESS] ✅ Skill added to group.\n")
+	fmt.Printf("[RESULT] skill-id: %s  group-id: %s\n", skillId, groupId)
 	return nil
 }
 
@@ -616,6 +622,8 @@ func runSkillsGroupRemoveSkill(cmd *cobra.Command, args []string) error {
 	if resp != nil && resp.Body != nil && resp.Body.RequestId != nil {
 		printRequestIDIfVerbose(cmd, *resp.Body.RequestId)
 	}
-	fmt.Printf("Removed skill %s from group %s\n", skillId, groupId)
+	fmt.Println()
+	fmt.Printf("[SUCCESS] ✅ Skill removed from group.\n")
+	fmt.Printf("[RESULT] skill-id: %s  group-id: %s\n", skillId, groupId)
 	return nil
 }

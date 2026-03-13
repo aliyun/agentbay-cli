@@ -268,10 +268,10 @@ func parseCreateMarketSkillGroupResponse(res map[string]interface{}) (*CreateMar
 		} else {
 			// JSON: backend may return "Data": "group-id-string" or "Data": {"GroupId": "..."}
 			var raw struct {
-				Code      *string      `json:"Code,omitempty"`
-				Data      interface{}  `json:"Data,omitempty"`
-				RequestId *string      `json:"RequestId,omitempty"`
-				Success   *bool        `json:"Success,omitempty"`
+				Code      *string     `json:"Code,omitempty"`
+				Data      interface{} `json:"Data,omitempty"`
+				RequestId *string     `json:"RequestId,omitempty"`
+				Success   *bool       `json:"Success,omitempty"`
 			}
 			if err := json.Unmarshal([]byte(bodyStr), &raw); err != nil {
 				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
