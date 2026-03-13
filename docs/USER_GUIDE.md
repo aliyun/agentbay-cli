@@ -48,7 +48,7 @@ agentbay skills list                  # List skills (placeholder until backend A
 # Show skill details by ID (calls backend DescribeMarketSkillDetail)
 agentbay skills show <skill-id>
 
-# Create a skill group; prints group-id on success. Use -v to see raw API response.
+# Create a skill group; prints [SUCCESS], Group ID, and group name. Use -v for raw API response.
 agentbay skills group create <name> [--description "..."]
 
 # List your skill groups (table: GROUP-ID, GROUP-NAME)
@@ -61,14 +61,27 @@ agentbay skills group add-skill <group-id> <skill-id>
 agentbay skills group remove-skill <group-id> <skill-id>
 ```
 
+**Options (group create):** `--description`, `-d` — optional group description (backend may ignore until supported).
+
 **Example output (aligned with image CLI style):**
 ```
 # After skills push
 [SUCCESS] ✅ Skill created successfully!
 [RESULT] Skill ID: 35U2Ver2
-```
 
-**Options (group create):** `--description`, `-d` — optional group description (backend may ignore until supported).
+# After skills group create
+[SUCCESS] ✅ Group created successfully!
+[RESULT] Group ID: k4RS99VC
+[DOC] Group name: test_skill_group
+
+# After skills group list (with data)
+[OK] Found 6 groups.
+
+GROUP-ID             GROUP-NAME
+--------------------------------------------
+NddfVFfd             default
+...
+```
 
 ### Placeholder commands (not yet implemented)
 
