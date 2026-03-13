@@ -24,8 +24,12 @@ import (
 
 const skillFileName = "SKILL.md"
 
-// Output style: label width for skill show.
-const skillDetailLabelW = 14
+// Output style: label width for skill show, table column width for group list (no emoji).
+const (
+	skillDetailLabelW = 14
+	groupTableIDW     = 20
+	groupTableSepLen  = 44
+)
 
 var SkillsCmd = &cobra.Command{
 	Use:     "skills",
@@ -513,7 +517,7 @@ func runSkillsGroupCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("create group: %w", err)
 	}
 	if verbose, _ := cmd.Flags().GetBool("verbose"); verbose && resp != nil && resp.RawBody != "" {
-		fmt.Fprintf(os.Stderr, "CreateMarketSkillGroup raw response: %s\n", resp.RawBody)
+		fmt.Fprintf(os.Stderr, "[DEBUG] Raw response: %s\n", resp.RawBody)
 	}
 	var groupId string
 	if resp.Body != nil && resp.Body.Data != nil && resp.Body.Data.GroupId != nil {
@@ -522,7 +526,7 @@ func runSkillsGroupCreate(cmd *cobra.Command, args []string) error {
 	if groupId == "" {
 		groupId = "<unknown>"
 	}
-	fmt.Printf("Group created (group-id: %s)\n", groupId)
+	fmt.Printf("Created group (group-id: %s)\n", groupId)
 	return nil
 }
 
@@ -543,14 +547,14 @@ func runSkillsGroupList(cmd *cobra.Command, args []string) error {
 	}
 	verbose, _ := cmd.Flags().GetBool("verbose")
 	if verbose && resp != nil && resp.Body != nil && resp.Body.ListMarketGroupSkillResponseBody != nil && resp.Body.ListMarketGroupSkillResponseBody.RequestId != nil {
-		fmt.Fprintf(os.Stderr, "RequestId: %s\n", *resp.Body.ListMarketGroupSkillResponseBody.RequestId)
+		fmt.Fprintf(os.Stderr, "[DEBUG] RequestId: %s\n", *resp.Body.ListMarketGroupSkillResponseBody.RequestId)
 	}
 	if resp.Body == nil || len(resp.Body.Data) == 0 {
-		fmt.Println("No groups.")
+		fmt.Println("No groups found.")
 		return nil
 	}
-	fmt.Printf("%-20s %s\n", "GROUP-ID", "GROUP-NAME")
-	fmt.Println(strings.Repeat("-", 40))
+	fmt.Printf("%-*s %s\n", groupTableIDW, "GROUP-ID", "GROUP-NAME")
+	fmt.Println(strings.Repeat("-", groupTableSepLen))
 	for _, item := range resp.Body.Data {
 		gid := ""
 		if item.GroupId != nil {
@@ -560,7 +564,7 @@ func runSkillsGroupList(cmd *cobra.Command, args []string) error {
 		if item.GroupName != nil {
 			gname = *item.GroupName
 		}
-		fmt.Printf("%-20s %s\n", gid, gname)
+		fmt.Printf("%-*s %s\n", groupTableIDW, gid, gname)
 	}
 	return nil
 }
@@ -580,13 +584,16 @@ func runSkillsGroupAddSkill(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
 	req := &client.AddMarketGroupSkillRequest{GroupId: &groupId, SkillId: &skillId}
-	_, err = apiClient.AddMarketGroupSkill(ctx, req)
+	resp, err := apiClient.AddMarketGroupSkill(ctx, req)
 	if err != nil {
 		printRequestIDFromErrIfVerbose(cmd, err)
 		fmt.Fprintf(os.Stderr, "[ERROR] Failed to add skill to group: %v\n", err)
 		return fmt.Errorf("add skill to group: %w", err)
 	}
-	fmt.Printf("Skill %s added to group %s\n", skillId, groupId)
+	if resp != nil && resp.Body != nil && resp.Body.RequestId != nil {
+		printRequestIDIfVerbose(cmd, *resp.Body.RequestId)
+	}
+	fmt.Printf("Added skill %s to group %s\n", skillId, groupId)
 	return nil
 }
 
@@ -600,12 +607,15 @@ func runSkillsGroupRemoveSkill(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
 	req := &client.RemoveMarketGroupSkillRequest{GroupId: &groupId, SkillId: &skillId}
-	_, err = apiClient.RemoveMarketGroupSkill(ctx, req)
+	resp, err := apiClient.RemoveMarketGroupSkill(ctx, req)
 	if err != nil {
 		printRequestIDFromErrIfVerbose(cmd, err)
 		fmt.Fprintf(os.Stderr, "[ERROR] Failed to remove skill from group: %v\n", err)
 		return fmt.Errorf("remove skill from group: %w", err)
 	}
-	fmt.Printf("Skill %s removed from group %s\n", skillId, groupId)
+	if resp != nil && resp.Body != nil && resp.Body.RequestId != nil {
+		printRequestIDIfVerbose(cmd, *resp.Body.RequestId)
+	}
+	fmt.Printf("Removed skill %s from group %s\n", skillId, groupId)
 	return nil
 }
