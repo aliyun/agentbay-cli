@@ -143,6 +143,21 @@ func parseGetMarketSkillCredentialResponse(res map[string]interface{}) (*GetMark
 	return out, nil
 }
 
+// listMarketGroupSkillResponseXML is used only for XML unmarshaling; backend returns root ListMarketGroupSkillResponse with <Data><data>...</data><data>...</data></Data>.
+type listMarketGroupSkillResponseXML struct {
+	XMLName        xml.Name                                  `xml:"ListMarketGroupSkillResponse"`
+	HttpStatusCode *int32                                    `xml:"HttpStatusCode"`
+	Data           []listMarketGroupSkillResponseDataItemXML `xml:"Data>data"`
+	RequestId      *string                                   `xml:"RequestId"`
+	Code           *string                                   `xml:"Code"`
+	Success        *bool                                     `xml:"Success"`
+}
+
+type listMarketGroupSkillResponseDataItemXML struct {
+	GroupName *string `xml:"GroupName"`
+	GroupId   *string `xml:"GroupId"`
+}
+
 // parseListMarketGroupSkillResponse builds ListMarketGroupSkillResponse from CallApi map (bodyType "string").
 func parseListMarketGroupSkillResponse(res map[string]interface{}) (*ListMarketGroupSkillResponse, error) {
 	out := &ListMarketGroupSkillResponse{}
@@ -159,8 +174,18 @@ func parseListMarketGroupSkillResponse(res map[string]interface{}) (*ListMarketG
 	if bodyStr != "" {
 		trimmed := strings.TrimSpace(bodyStr)
 		if len(trimmed) > 0 && trimmed[0] == '<' {
-			if err := xml.Unmarshal([]byte(bodyStr), parsed); err != nil {
+			var xmlResp listMarketGroupSkillResponseXML
+			if err := xml.Unmarshal([]byte(bodyStr), &xmlResp); err != nil {
 				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = xmlResp.Code
+			parsed.RequestId = xmlResp.RequestId
+			parsed.Success = xmlResp.Success
+			if len(xmlResp.Data) > 0 {
+				parsed.Data = make([]ListMarketGroupSkillResponseBodyDataItem, len(xmlResp.Data))
+				for i, d := range xmlResp.Data {
+					parsed.Data[i] = ListMarketGroupSkillResponseBodyDataItem{GroupName: d.GroupName, GroupId: d.GroupId}
+				}
 			}
 		} else {
 			if err := json.Unmarshal([]byte(bodyStr), parsed); err != nil {
