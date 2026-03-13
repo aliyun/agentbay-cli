@@ -7,7 +7,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -509,6 +508,7 @@ func runSkillsGroupCreate(cmd *cobra.Command, args []string) error {
 	}
 	resp, err := apiClient.CreateMarketSkillGroup(ctx, req)
 	if err != nil {
+		printRequestIDFromErrIfVerbose(cmd, err)
 		fmt.Fprintf(os.Stderr, "[ERROR] Failed to create group: %v\n", err)
 		return fmt.Errorf("create group: %w", err)
 	}
@@ -537,13 +537,7 @@ func runSkillsGroupList(cmd *cobra.Command, args []string) error {
 	req := &client.ListMarketGroupSkillRequest{}
 	resp, err := apiClient.ListMarketGroupSkill(ctx, req)
 	if err != nil {
-		verbose, _ := cmd.Flags().GetBool("verbose")
-		if verbose {
-			var errWithID *client.ErrWithRequestID
-			if errors.As(err, &errWithID) && errWithID.RequestID != "" {
-				fmt.Fprintf(os.Stderr, "RequestId: %s\n", errWithID.RequestID)
-			}
-		}
+		printRequestIDFromErrIfVerbose(cmd, err)
 		fmt.Fprintf(os.Stderr, "[ERROR] Failed to list groups: %v\n", err)
 		return fmt.Errorf("list groups: %w", err)
 	}
@@ -588,6 +582,7 @@ func runSkillsGroupAddSkill(cmd *cobra.Command, args []string) error {
 	req := &client.AddMarketGroupSkillRequest{GroupId: &groupId, SkillId: &skillId}
 	_, err = apiClient.AddMarketGroupSkill(ctx, req)
 	if err != nil {
+		printRequestIDFromErrIfVerbose(cmd, err)
 		fmt.Fprintf(os.Stderr, "[ERROR] Failed to add skill to group: %v\n", err)
 		return fmt.Errorf("add skill to group: %w", err)
 	}
@@ -607,6 +602,7 @@ func runSkillsGroupRemoveSkill(cmd *cobra.Command, args []string) error {
 	req := &client.RemoveMarketGroupSkillRequest{GroupId: &groupId, SkillId: &skillId}
 	_, err = apiClient.RemoveMarketGroupSkill(ctx, req)
 	if err != nil {
+		printRequestIDFromErrIfVerbose(cmd, err)
 		fmt.Fprintf(os.Stderr, "[ERROR] Failed to remove skill from group: %v\n", err)
 		return fmt.Errorf("remove skill from group: %w", err)
 	}
