@@ -13,6 +13,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,12 +23,52 @@ import (
 	"github.com/agentbay/agentbay-cli/internal/client"
 )
 
-// OAuth endpoints and constants
-var (
-	authEndpoint   = "https://signin.aliyun.com/oauth2/v1/auth"
-	tokenEndpoint  = "https://oauth.aliyun.com/v1/token"
-	revokeEndpoint = "https://oauth.aliyun.com/v1/revoke"
+// OAuth region: "domestic" (aliyun.com) or "international" (alibabacloud.com).
+// Controlled by AGENTBAY_OAUTH_REGION (default: domestic).
+const (
+	oauthRegionDomestic     = "domestic"
+	oauthRegionInternational = "international"
 )
+
+// Domestic (China) OAuth endpoints
+const (
+	authEndpointDomestic   = "https://signin.aliyun.com/oauth2/v1/auth"
+	tokenEndpointDomestic  = "https://oauth.aliyun.com/v1/token"
+	revokeEndpointDomestic = "https://oauth.aliyun.com/v1/revoke"
+)
+
+// International OAuth endpoints
+const (
+	authEndpointInternational   = "https://signin.alibabacloud.com/oauth2/v1/auth"
+	tokenEndpointInternational  = "https://oauth.alibabacloud.com/v1/token"
+	revokeEndpointInternational = "https://oauth.alibabacloud.com/v1/revoke"
+)
+
+// isInternationalEnv returns true when AGENTBAY_ENV indicates international (prod or pre).
+func isInternationalEnv() bool {
+	env := strings.ToLower(strings.TrimSpace(os.Getenv("AGENTBAY_ENV")))
+	switch env {
+	case "international", "prod-international", "intl", "international-prod",
+		"international-pre", "pre-international", "intl-pre", "staging-international":
+		return true
+	}
+	return false
+}
+
+// getOAuthEndpoints returns auth, token, and revoke URLs.
+// Uses AGENTBAY_OAUTH_REGION if set; otherwise when AGENTBAY_ENV is international production,
+// uses international endpoints. Else domestic (aliyun.com).
+func getOAuthEndpoints() (auth, token, revoke string) {
+	region := strings.ToLower(strings.TrimSpace(os.Getenv("AGENTBAY_OAUTH_REGION")))
+	if region == "" && isInternationalEnv() {
+		region = oauthRegionInternational
+	}
+	if region == oauthRegionInternational {
+		log.Debugf("[DEBUG] Using international OAuth endpoints (signin.alibabacloud.com)")
+		return authEndpointInternational, tokenEndpointInternational, revokeEndpointInternational
+	}
+	return authEndpointDomestic, tokenEndpointDomestic, revokeEndpointDomestic
+}
 
 // OAuth client configuration
 const (
@@ -51,6 +93,7 @@ type RefreshResponse struct {
 
 // BuildAuthURL constructs the OAuth authorization URL
 func BuildAuthURL(clientID, redirectURI, state string) string {
+	authURL, _, _ := getOAuthEndpoints()
 	params := url.Values{}
 	params.Set("client_id", clientID)
 	params.Set("redirect_uri", redirectURI)
@@ -58,18 +101,19 @@ func BuildAuthURL(clientID, redirectURI, state string) string {
 	params.Set("state", state)
 	params.Set("scope", "/acs/xiaoying")
 
-	return authEndpoint + "?" + params.Encode()
+	return authURL + "?" + params.Encode()
 }
 
 // ExchangeCodeForToken exchanges authorization code for access token
 func ExchangeCodeForToken(clientID, redirectURI, code string) (*TokenResponse, error) {
+	_, tokenURL, _ := getOAuthEndpoints()
 	data := url.Values{}
 	data.Set("code", code)
 	data.Set("client_id", clientID)
 	data.Set("redirect_uri", redirectURI)
 	data.Set("grant_type", "authorization_code")
 
-	resp, err := http.PostForm(tokenEndpoint, data)
+	resp, err := http.PostForm(tokenURL, data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to exchange code for token: %w", err)
 	}
@@ -89,12 +133,13 @@ func ExchangeCodeForToken(clientID, redirectURI, code string) (*TokenResponse, e
 
 // RefreshAccessToken refreshes the access token using refresh token
 func RefreshAccessToken(clientID, refreshToken string) (*RefreshResponse, error) {
+	_, tokenURL, _ := getOAuthEndpoints()
 	data := url.Values{}
 	data.Set("refresh_token", refreshToken)
 	data.Set("client_id", clientID)
 	data.Set("grant_type", "refresh_token")
 
-	resp, err := http.PostForm(tokenEndpoint, data)
+	resp, err := http.PostForm(tokenURL, data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to refresh token: %w", err)
 	}
@@ -128,7 +173,8 @@ func RevokeTokenWithHint(clientID, token, tokenTypeHint string) error {
 		data.Set("token_type_hint", tokenTypeHint)
 	}
 
-	resp, err := http.PostForm(revokeEndpoint, data)
+	_, _, revokeURL := getOAuthEndpoints()
+	resp, err := http.PostForm(revokeURL, data)
 	if err != nil {
 		return fmt.Errorf("failed to revoke token: %w", err)
 	}

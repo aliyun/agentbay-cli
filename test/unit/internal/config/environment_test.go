@@ -47,6 +47,31 @@ func TestGetEnvironment(t *testing.T) {
 			want:     config.EnvPreRelease,
 		},
 		{
+			name:     "international when env is international",
+			envValue: "international",
+			want:     config.EnvInternationalProduction,
+		},
+		{
+			name:     "international when env is prod-international",
+			envValue: "prod-international",
+			want:     config.EnvInternationalProduction,
+		},
+		{
+			name:     "international when env is intl",
+			envValue: "intl",
+			want:     config.EnvInternationalProduction,
+		},
+		{
+			name:     "international pre when env is international-pre",
+			envValue: "international-pre",
+			want:     config.EnvInternationalPreRelease,
+		},
+		{
+			name:     "international pre when env is pre-international",
+			envValue: "pre-international",
+			want:     config.EnvInternationalPreRelease,
+		},
+		{
 			name:     "production when env is unknown",
 			envValue: "unknown",
 			want:     config.EnvProduction,
@@ -100,6 +125,20 @@ func TestGetEnvironmentConfig(t *testing.T) {
 			wantEndpoint: "xiaoying.cn-shanghai.aliyuncs.com",
 			wantClientID: "4032653160518150541",
 		},
+		{
+			name:         "international production config",
+			envValue:     "international",
+			wantEnv:      config.EnvInternationalProduction,
+			wantEndpoint: "xiaoying.ap-southeast-1.aliyuncs.com",
+			wantClientID: "4192690673476752832",
+		},
+		{
+			name:         "international pre-release config (placeholder)",
+			envValue:     "international-pre",
+			wantEnv:      config.EnvInternationalPreRelease,
+			wantEndpoint: "xiaoying-pre.ap-southeast-1.aliyuncs.com",
+			wantClientID: "4192690673476752832",
+		},
 	}
 
 	for _, tt := range tests {
@@ -147,17 +186,28 @@ func TestGetClientID(t *testing.T) {
 			envValue: "",
 			want:     "4032653160518150541",
 		},
+		{
+			name:     "international client ID",
+			envValue: "international",
+			want:     "4192690673476752832",
+		},
+		{
+			name:     "international pre client ID (placeholder)",
+			envValue: "international-pre",
+			want:     "4192690673476752832",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set environment variable
+			os.Unsetenv("AGENTBAY_OAUTH_CLIENT_ID") // use env default, not override
 			if tt.envValue != "" {
 				os.Setenv("AGENTBAY_ENV", tt.envValue)
 			} else {
 				os.Unsetenv("AGENTBAY_ENV")
 			}
 			defer os.Unsetenv("AGENTBAY_ENV")
+			defer os.Unsetenv("AGENTBAY_OAUTH_CLIENT_ID")
 
 			got := config.GetClientID()
 			if got != tt.want {
@@ -188,11 +238,20 @@ func TestGetDefaultEndpoint(t *testing.T) {
 			envValue: "",
 			want:     "xiaoying.cn-shanghai.aliyuncs.com",
 		},
+		{
+			name:     "international endpoint",
+			envValue: "international",
+			want:     "xiaoying.ap-southeast-1.aliyuncs.com",
+		},
+		{
+			name:     "international pre endpoint (placeholder)",
+			envValue: "international-pre",
+			want:     "xiaoying-pre.ap-southeast-1.aliyuncs.com",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set environment variable
 			if tt.envValue != "" {
 				os.Setenv("AGENTBAY_ENV", tt.envValue)
 			} else {

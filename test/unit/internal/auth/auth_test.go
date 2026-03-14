@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"testing"
 	"time"
 
@@ -18,7 +19,9 @@ import (
 )
 
 func TestOAuthFlow(t *testing.T) {
-	t.Run("BuildAuthURL should create correct authorization URL", func(t *testing.T) {
+	t.Run("BuildAuthURL should create correct authorization URL (domestic default)", func(t *testing.T) {
+		os.Unsetenv("AGENTBAY_OAUTH_REGION")
+		os.Unsetenv("AGENTBAY_ENV")
 		clientID := "4019057658592127596"
 		redirectURI := "http://localhost:3001/callback"
 		state := "test-state"
@@ -35,6 +38,39 @@ func TestOAuthFlow(t *testing.T) {
 		assert.Equal(t, redirectURI, query.Get("redirect_uri"))
 		assert.Equal(t, "code", query.Get("response_type"))
 		assert.Equal(t, state, query.Get("state"))
+	})
+
+	t.Run("BuildAuthURL should use international endpoint when AGENTBAY_OAUTH_REGION=international", func(t *testing.T) {
+		os.Unsetenv("AGENTBAY_ENV")
+		os.Setenv("AGENTBAY_OAUTH_REGION", "international")
+		defer os.Unsetenv("AGENTBAY_OAUTH_REGION")
+		authURL := auth.BuildAuthURL("client-id", "http://localhost:3001/callback", "state")
+		parsedURL, err := url.Parse(authURL)
+		assert.NoError(t, err)
+		assert.Equal(t, "signin.alibabacloud.com", parsedURL.Host)
+		assert.Equal(t, "/oauth2/v1/auth", parsedURL.Path)
+	})
+
+	t.Run("BuildAuthURL should use international endpoint when AGENTBAY_ENV=international", func(t *testing.T) {
+		os.Unsetenv("AGENTBAY_OAUTH_REGION")
+		os.Setenv("AGENTBAY_ENV", "international")
+		defer os.Unsetenv("AGENTBAY_ENV")
+		authURL := auth.BuildAuthURL("client-id", "http://localhost:3001/callback", "state")
+		parsedURL, err := url.Parse(authURL)
+		assert.NoError(t, err)
+		assert.Equal(t, "signin.alibabacloud.com", parsedURL.Host)
+		assert.Equal(t, "/oauth2/v1/auth", parsedURL.Path)
+	})
+
+	t.Run("BuildAuthURL should use international endpoint when AGENTBAY_ENV=international-pre", func(t *testing.T) {
+		os.Unsetenv("AGENTBAY_OAUTH_REGION")
+		os.Setenv("AGENTBAY_ENV", "international-pre")
+		defer os.Unsetenv("AGENTBAY_ENV")
+		authURL := auth.BuildAuthURL("client-id", "http://localhost:3001/callback", "state")
+		parsedURL, err := url.Parse(authURL)
+		assert.NoError(t, err)
+		assert.Equal(t, "signin.alibabacloud.com", parsedURL.Host)
+		assert.Equal(t, "/oauth2/v1/auth", parsedURL.Path)
 	})
 
 	t.Run("ExchangeCodeForToken should make correct token request", func(t *testing.T) {

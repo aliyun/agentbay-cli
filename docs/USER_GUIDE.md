@@ -303,8 +303,31 @@ Endpoint: xiaoying.cn-shanghai.aliyuncs.com
 
 ### Supported Environment Values
 
-- Production: `production`, `prod`, or not set (default)
-- Pre-release: `prerelease`, `pre`, `staging`
+- Production (China): `production`, `prod`, or not set (default)
+- Pre-release (China): `prerelease`, `pre`, `staging`
+- **International production**: `international`, `prod-international`, `intl`, `international-prod` — endpoint `xiaoying.ap-southeast-1.aliyuncs.com`, international OAuth and default international client ID.
+- **International pre-release**: `international-pre`, `pre-international`, `intl-pre`, `staging-international` — placeholder for 预发; endpoint and client ID to be configured later. Override with `AGENTBAY_CLI_ENDPOINT` or `AGENTBAY_OAUTH_CLIENT_ID` if needed.
+
+### International (Alibaba Cloud International)
+
+For **international production** (ap-southeast-1, alibabacloud.com), set `AGENTBAY_ENV=international`. The CLI then uses these defaults:
+
+- Endpoint: `xiaoying.ap-southeast-1.aliyuncs.com`
+- OAuth: signin.alibabacloud.com and the default international OAuth client ID
+
+You do not need to set `AGENTBAY_OAUTH_REGION` or `AGENTBAY_OAUTH_CLIENT_ID` unless you want to override them.
+
+```bash
+export AGENTBAY_ENV=international
+agentbay login
+agentbay image list
+```
+
+To override defaults (e.g. use a different international OAuth app or endpoint):
+
+- `AGENTBAY_CLI_ENDPOINT` — API endpoint (e.g. `xiaoying.ap-southeast-1.aliyuncs.com`)
+- `AGENTBAY_OAUTH_REGION=international` — use signin.alibabacloud.com (automatic when `AGENTBAY_ENV=international`)
+- `AGENTBAY_OAUTH_CLIENT_ID` — OAuth client ID (default for international is set when `AGENTBAY_ENV=international`)
 
 ---
 

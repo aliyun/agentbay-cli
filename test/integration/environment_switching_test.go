@@ -51,17 +51,25 @@ func TestEnvironmentSwitching(t *testing.T) {
 			expectedEndpoint: "xiaoying-pre.cn-hangzhou.aliyuncs.com",
 			expectedClientID: "4019057658592127596",
 		},
+		{
+			name:             "International production environment",
+			envValue:         "international",
+			expectedEnv:      config.EnvInternationalProduction,
+			expectedEndpoint: "xiaoying.ap-southeast-1.aliyuncs.com",
+			expectedClientID: "4192690673476752832",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set environment variable
+			os.Unsetenv("AGENTBAY_OAUTH_CLIENT_ID")
 			if tt.envValue != "" {
 				os.Setenv("AGENTBAY_ENV", tt.envValue)
 			} else {
 				os.Unsetenv("AGENTBAY_ENV")
 			}
 			defer os.Unsetenv("AGENTBAY_ENV")
+			defer os.Unsetenv("AGENTBAY_OAUTH_CLIENT_ID")
 
 			// Test environment detection
 			env := config.GetEnvironment()
