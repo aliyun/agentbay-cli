@@ -84,10 +84,13 @@ computer-use-ubuntu-2204  Computer Use Linux Ubuntu 2... DedicatedDesktop     Av
 ## 4. Download Dockerfile Template
 
 ```bash
-agentbay image init
+agentbay image init --sourceImageId code-space-debian-12
+
+# or short form
+agentbay image init -i code-space-debian-12
 ```
 
-Downloads a Dockerfile template from the cloud and saves it as `Dockerfile` in the current directory.
+Downloads a Dockerfile template from the cloud and saves it as `Dockerfile` in the current directory. You must specify a source image ID (use `agentbay image list --system-only` to see available system image IDs).
 
 **Output:**
 ```
@@ -105,6 +108,7 @@ Writing Dockerfile to /path/to/current/directory/Dockerfile...
 ```
 
 **Note**: 
+- You must provide `--sourceImageId` or `-i` with a valid system image ID when running `agentbay image init`.
 - If a `Dockerfile` already exists in the current directory, it will be overwritten. The command will warn you before overwriting.
 - **Important**: The first N lines (N is returned by the system) of the Dockerfile template are system-defined and cannot be modified. Only modify content after line N+1, otherwise the image build may fail.
 
@@ -234,11 +238,11 @@ agentbay -v image list
 - Verify Dockerfile syntax
 - Check base image ID is valid (use `agentbay image list --include-system` to find valid system image IDs)
 - Check if you modified the first N lines of the Dockerfile (N is shown when downloading the template)
-- Use `agentbay image init` to download a template Dockerfile
+- Use `agentbay image init -i <base-image-id>` to download a template Dockerfile (get base image IDs with `agentbay image list --system-only`)
 - Use `-v` option to view detailed error information
 
 **Q: Which parts of the Dockerfile cannot be modified?**
-- The first N lines (N is returned by the system) of the Dockerfile template downloaded by `agentbay image init` are system-defined and cannot be modified
+- The first N lines (N is returned by the system) of the Dockerfile template downloaded by `agentbay image init -i <image-id>` are system-defined and cannot be modified
 - These lines typically contain base image definitions and system-required configurations
 - Only modify content after line N+1, otherwise the image build may fail
 
@@ -299,8 +303,31 @@ Endpoint: xiaoying.cn-shanghai.aliyuncs.com
 
 ### Supported Environment Values
 
-- Production: `production`, `prod`, or not set (default)
-- Pre-release: `prerelease`, `pre`, `staging`
+- Production (China): `production`, `prod`, or not set (default)
+- Pre-release (China): `prerelease`, `pre`, `staging`
+- **International production**: `international`, `prod-international`, `intl`, `international-prod` — endpoint `xiaoying.ap-southeast-1.aliyuncs.com`, international OAuth and default international client ID.
+- **International pre-release**: `international-pre`, `pre-international`, `intl-pre`, `staging-international` — placeholder for 预发; endpoint and client ID to be configured later. Override with `AGENTBAY_CLI_ENDPOINT` or `AGENTBAY_OAUTH_CLIENT_ID` if needed.
+
+### International (Alibaba Cloud International)
+
+For **international production** (ap-southeast-1, alibabacloud.com), set `AGENTBAY_ENV=international`. The CLI then uses these defaults:
+
+- Endpoint: `xiaoying.ap-southeast-1.aliyuncs.com`
+- OAuth: signin.alibabacloud.com and the default international OAuth client ID
+
+You do not need to set `AGENTBAY_OAUTH_REGION` or `AGENTBAY_OAUTH_CLIENT_ID` unless you want to override them.
+
+```bash
+export AGENTBAY_ENV=international
+agentbay login
+agentbay image list
+```
+
+To override defaults (e.g. use a different international OAuth app or endpoint):
+
+- `AGENTBAY_CLI_ENDPOINT` — API endpoint (e.g. `xiaoying.ap-southeast-1.aliyuncs.com`)
+- `AGENTBAY_OAUTH_REGION=international` — use signin.alibabacloud.com (automatic when `AGENTBAY_ENV=international`)
+- `AGENTBAY_OAUTH_CLIENT_ID` — OAuth client ID (default for international is set when `AGENTBAY_ENV=international`)
 
 ---
 
