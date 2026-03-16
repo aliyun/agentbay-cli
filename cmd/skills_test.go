@@ -105,9 +105,9 @@ func TestParseOSSBucketAndPath(t *testing.T) {
 			errContains: "host",
 		},
 		{
-			name:        "invalid URL",
-			ossURL:      ":not-a-url",
-			wantErr:     true,
+			name:    "invalid URL",
+			ossURL:  ":not-a-url",
+			wantErr: true,
 		},
 		{
 			name:        "host not in bucket.oss form",

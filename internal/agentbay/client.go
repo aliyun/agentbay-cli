@@ -378,13 +378,13 @@ type XMLListMcpImagesResponse struct {
 	HttpStatusCode int      `xml:"HttpStatusCode"`
 	Data           struct {
 		Images []struct {
-			ImageId                 string `xml:"ImageId"`
-			ImageName               string `xml:"ImageName"`
-			ImageBuildType          string `xml:"ImageBuildType"`
-			ImageIntro              string `xml:"ImageIntro"`
-			ImageApplyScene         string `xml:"ImageApplyScene"`
-			ImageResourceStatus     string `xml:"ImageResourceStatus"`
-			ImageResourceGroupInfo  struct {
+			ImageId                string `xml:"ImageId"`
+			ImageName              string `xml:"ImageName"`
+			ImageBuildType         string `xml:"ImageBuildType"`
+			ImageIntro             string `xml:"ImageIntro"`
+			ImageApplyScene        string `xml:"ImageApplyScene"`
+			ImageResourceStatus    string `xml:"ImageResourceStatus"`
+			ImageResourceGroupInfo struct {
 				ResourceGroupId string `xml:"ResourceGroupId"`
 			} `xml:"ImageResourceGroupInfo"`
 			ImageInfo struct {
@@ -572,15 +572,15 @@ func (cw *clientWrapper) parseListMcpImagesXMLResponse(xmlData []byte) (*client.
 		}
 
 		sdkImage := &client.ListMcpImagesResponseBodyData{
-			ImageId:                 dara.String(xmlImage.ImageId),
-			ImageName:               dara.String(xmlImage.ImageName),
-			ImageBuildType:          dara.String(xmlImage.ImageBuildType),
-			ImageIntro:              dara.String(xmlImage.ImageIntro),
-			ImageApplyScene:         dara.String(xmlImage.ImageApplyScene),
-			ImageResourceStatus:     dara.String(xmlImage.ImageResourceStatus),
-			ImageResourceGroupInfo:  imageResourceGroupInfo,
-			ImageInfo:               imageInfo,
-			ToolInfo:                toolInfo,
+			ImageId:                dara.String(xmlImage.ImageId),
+			ImageName:              dara.String(xmlImage.ImageName),
+			ImageBuildType:         dara.String(xmlImage.ImageBuildType),
+			ImageIntro:             dara.String(xmlImage.ImageIntro),
+			ImageApplyScene:        dara.String(xmlImage.ImageApplyScene),
+			ImageResourceStatus:    dara.String(xmlImage.ImageResourceStatus),
+			ImageResourceGroupInfo: imageResourceGroupInfo,
+			ImageInfo:              imageInfo,
+			ToolInfo:               toolInfo,
 		}
 		sdkData = append(sdkData, sdkImage)
 	}
