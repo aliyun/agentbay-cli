@@ -35,7 +35,60 @@ agentbay logout
 
 Clears your authentication tokens.
 
-## 3. List Images
+## 3. Skills (requirement a)
+
+Manage skills and skill groups. The following matches the current CLI implementation; commands that are not yet implemented only print an informational message.
+
+### Implemented commands
+
+```bash
+# Push local skill directory (requires SKILL.md with name/description in frontmatter)
+agentbay skills push <skill-dir>
+
+# Show skill details by ID (calls backend DescribeMarketSkillDetail)
+agentbay skills show <skill-id>
+
+# Create a skill group; prints [SUCCESS], Group ID, and group name. Use -v for raw API response.
+agentbay skills group create <name> [--description "..." ]
+
+# List your skill groups (table: GROUP-ID, GROUP-NAME)
+agentbay skills group list
+
+# Add or remove a skill in a group
+agentbay skills group add-skill <group-id> <skill-id>
+agentbay skills group remove-skill <group-id> <skill-id>
+```
+
+**Options (group create):** `--description`, `-d` — optional group description (backend may ignore until supported).
+
+**Example output (aligned with image CLI style):**
+```
+# After skills push
+[SUCCESS] ✅ Skill created successfully!
+[RESULT] Skill ID: 35U2Ver2
+
+# After skills group create
+[SUCCESS] ✅ Group created successfully!
+[RESULT] Group ID: k4RS99VC
+[DOC] Group name: test_skill_group
+
+# After skills group list (with data)
+[OK] Found 6 groups.
+
+GROUP-ID             GROUP-NAME
+--------------------------------------------
+NddfVFfd             default
+...
+```
+
+### Placeholder commands (not yet implemented)
+
+These commands exist but do not call a backend API; they only print a message that the API is not yet available:
+
+- **`agentbay skills list`** — Lists skills visible to you. Currently prints: backend list API is not yet available.
+- **`agentbay skills group show <group-id>`** — Group details and its skills. Currently prints: backend API is not yet available.
+
+## 4. List Images
 
 ```bash
 agentbay image list                    # List user images (default)
@@ -81,7 +134,7 @@ computer-use-ubuntu-2204  Computer Use Linux Ubuntu 2... DedicatedDesktop     Av
 
 **Note**: System images are always available and don't require activation. Only user-created images need to be activated before use.
 
-## 4. Download Dockerfile Template
+## 5. Download Dockerfile Template
 
 ```bash
 agentbay image init --sourceImageId code-space-debian-12
@@ -112,7 +165,7 @@ Writing Dockerfile to /path/to/current/directory/Dockerfile...
 - If a `Dockerfile` already exists in the current directory, it will be overwritten. The command will warn you before overwriting.
 - **Important**: The first N lines (N is returned by the system) of the Dockerfile template are system-defined and cannot be modified. Only modify content after line N+1, otherwise the image build may fail.
 
-## 5. Create Image
+## 6. Create Image
 
 ```bash
 agentbay image create my-app --dockerfile ./Dockerfile --imageId code-space-debian-12
@@ -147,7 +200,7 @@ When creating an image, the CLI parses `COPY` and `ADD` instructions in your Doc
 - **Not supported**: Absolute paths, path traversal (e.g. `../`), URL sources in `ADD` (e.g. `ADD https://...`)
 - **Note**: Ensure all files referenced by COPY/ADD exist in the Dockerfile directory or its subdirectories
 
-## 6. Activate Image
+## 7. Activate Image
 
 User-created images need to be activated before use. System images are always available and don't require activation.
 
@@ -190,7 +243,7 @@ Waiting for activation to complete...
 
 Activation typically takes 1-2 minutes. If already activated, you'll see "No action needed."
 
-## 7. Deactivate Image
+## 8. Deactivate Image
 
 Deactivate custom images when done to save resources. Deactivating an activated user image releases related resources.
 
@@ -227,6 +280,7 @@ agentbay version
 **Q: Enable detailed logs?**
 ```bash
 agentbay -v image list
+agentbay -v skills group create my-group
 ```
 
 **Q: Login issues?**

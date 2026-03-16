@@ -90,6 +90,28 @@ func (m *mockImageListClient) GetDockerfileTemplate(ctx context.Context, request
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockImageListClient) GetMarketSkillCredential(ctx context.Context, request *client.GetMarketSkillCredentialRequest) (*client.GetMarketSkillCredentialResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (m *mockImageListClient) CreateMarketSkill(ctx context.Context, request *client.CreateMarketSkillRequest) (*client.CreateMarketSkillResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (m *mockImageListClient) DescribeMarketSkillDetail(ctx context.Context, request *client.DescribeMarketSkillDetailRequest) (*client.DescribeMarketSkillDetailResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (m *mockImageListClient) CreateMarketSkillGroup(ctx context.Context, request *client.CreateMarketSkillGroupRequest) (*client.CreateMarketSkillGroupResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (m *mockImageListClient) ListMarketGroupSkill(ctx context.Context, request *client.ListMarketGroupSkillRequest) (*client.ListMarketGroupSkillResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (m *mockImageListClient) AddMarketGroupSkill(ctx context.Context, request *client.AddMarketGroupSkillRequest) (*client.AddMarketGroupSkillResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (m *mockImageListClient) RemoveMarketGroupSkill(ctx context.Context, request *client.RemoveMarketGroupSkillRequest) (*client.RemoveMarketGroupSkillResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 // Helper functions for testing
 func boolPtr(b bool) *bool {
 	return &b

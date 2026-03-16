@@ -35,6 +35,7 @@ func init() {
 	rootCmd.AddCommand(cmd.LoginCmd)
 	rootCmd.AddCommand(cmd.LogoutCmd)
 	rootCmd.AddCommand(cmd.ImageCmd)
+	rootCmd.AddCommand(cmd.SkillsCmd)
 
 	// Global flags
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true

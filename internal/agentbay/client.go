@@ -122,6 +122,14 @@ type Client interface {
 	CreateResourceGroup(ctx context.Context, request *client.CreateResourceGroupRequest) (*client.CreateResourceGroupResponse, error)
 	DeleteResourceGroup(ctx context.Context, request *client.DeleteResourceGroupRequest) (*client.DeleteResourceGroupResponse, error)
 	GetDockerfileTemplate(ctx context.Context, request *client.GetDockerfileTemplateRequest) (*client.GetDockerfileTemplateResponse, error)
+	// Market Skill & Group (requirement a)
+	GetMarketSkillCredential(ctx context.Context, request *client.GetMarketSkillCredentialRequest) (*client.GetMarketSkillCredentialResponse, error)
+	CreateMarketSkill(ctx context.Context, request *client.CreateMarketSkillRequest) (*client.CreateMarketSkillResponse, error)
+	DescribeMarketSkillDetail(ctx context.Context, request *client.DescribeMarketSkillDetailRequest) (*client.DescribeMarketSkillDetailResponse, error)
+	CreateMarketSkillGroup(ctx context.Context, request *client.CreateMarketSkillGroupRequest) (*client.CreateMarketSkillGroupResponse, error)
+	ListMarketGroupSkill(ctx context.Context, request *client.ListMarketGroupSkillRequest) (*client.ListMarketGroupSkillResponse, error)
+	AddMarketGroupSkill(ctx context.Context, request *client.AddMarketGroupSkillRequest) (*client.AddMarketGroupSkillResponse, error)
+	RemoveMarketGroupSkill(ctx context.Context, request *client.RemoveMarketGroupSkillRequest) (*client.RemoveMarketGroupSkillResponse, error)
 }
 
 // clientWrapper wraps the generated SDK client with additional functionality
@@ -736,6 +744,76 @@ func (cw *clientWrapper) GetDockerFileStoreCredential(ctx context.Context, reque
 	log.Debugf("[DEBUG] ClientWrapper: SDK API call completed successfully")
 
 	return resp, nil
+}
+
+// GetMarketSkillCredential wraps the SDK client method
+func (cw *clientWrapper) GetMarketSkillCredential(ctx context.Context, request *client.GetMarketSkillCredentialRequest) (*client.GetMarketSkillCredentialResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	runtimeOptions := cw.getRuntimeOptions()
+	return sdkClient.GetMarketSkillCredentialWithOptions(request, runtimeOptions)
+}
+
+// CreateMarketSkill wraps the SDK client method
+func (cw *clientWrapper) CreateMarketSkill(ctx context.Context, request *client.CreateMarketSkillRequest) (*client.CreateMarketSkillResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	runtimeOptions := cw.getRuntimeOptions()
+	return sdkClient.CreateMarketSkillWithOptions(request, runtimeOptions)
+}
+
+// DescribeMarketSkillDetail wraps the SDK client method
+func (cw *clientWrapper) DescribeMarketSkillDetail(ctx context.Context, request *client.DescribeMarketSkillDetailRequest) (*client.DescribeMarketSkillDetailResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	runtimeOptions := cw.getRuntimeOptions()
+	return sdkClient.DescribeMarketSkillDetailWithOptions(request, runtimeOptions)
+}
+
+// CreateMarketSkillGroup wraps the SDK client method
+func (cw *clientWrapper) CreateMarketSkillGroup(ctx context.Context, request *client.CreateMarketSkillGroupRequest) (*client.CreateMarketSkillGroupResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	runtimeOptions := cw.getRuntimeOptions()
+	return sdkClient.CreateMarketSkillGroupWithOptions(request, runtimeOptions)
+}
+
+// ListMarketGroupSkill wraps the SDK client method
+func (cw *clientWrapper) ListMarketGroupSkill(ctx context.Context, request *client.ListMarketGroupSkillRequest) (*client.ListMarketGroupSkillResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	runtimeOptions := cw.getRuntimeOptions()
+	return sdkClient.ListMarketGroupSkillWithOptions(request, runtimeOptions)
+}
+
+// AddMarketGroupSkill wraps the SDK client method
+func (cw *clientWrapper) AddMarketGroupSkill(ctx context.Context, request *client.AddMarketGroupSkillRequest) (*client.AddMarketGroupSkillResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	runtimeOptions := cw.getRuntimeOptions()
+	return sdkClient.AddMarketGroupSkillWithOptions(request, runtimeOptions)
+}
+
+// RemoveMarketGroupSkill wraps the SDK client method
+func (cw *clientWrapper) RemoveMarketGroupSkill(ctx context.Context, request *client.RemoveMarketGroupSkillRequest) (*client.RemoveMarketGroupSkillResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	runtimeOptions := cw.getRuntimeOptions()
+	return sdkClient.RemoveMarketGroupSkillWithOptions(request, runtimeOptions)
 }
 
 // CreateDockerImageTask wraps the SDK client method
