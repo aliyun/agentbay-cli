@@ -588,7 +588,7 @@ func (client *Client) CreateMarketSkillWithOptions(request *CreateMarketSkillReq
 		Version:     dara.String("2025-05-01"),
 		Protocol:    dara.String("HTTPS"),
 		Pathname:    dara.String("/"),
-		Method:      dara.String("POST"),
+		Method:      dara.String("GET"),
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
@@ -1076,6 +1076,293 @@ func (client *Client) RemoveMarketGroupSkillWithOptions(request *RemoveMarketGro
 		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
 	}
 	_result, _err = parseRemoveMarketGroupSkillResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) RemoveMarketGroupSkill(request *RemoveMarketGroupSkillRequest) (_result *RemoveMarketGroupSkillResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &RemoveMarketGroupSkillResponse{}
+	_body, _err := client.RemoveMarketGroupSkillWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+// CreateMarketSkill 通过 OSS 创建 Skill
+func (client *Client) CreateMarketSkillWithOptions(request *CreateMarketSkillRequest, runtime *dara.RuntimeOptions) (_result *CreateMarketSkillResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.OssBucket) {
+		query["OssBucket"] = request.OssBucket
+	}
+	if !dara.IsNil(request.OssFilePath) {
+		query["OssFilePath"] = request.OssFilePath
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/xml"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("CreateMarketSkill"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("GET"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("xml"),
+	}
+	_result = &CreateMarketSkillResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_err = dara.Convert(_body, &_result)
+	return _result, _err
+}
+
+func (client *Client) CreateMarketSkill(request *CreateMarketSkillRequest) (_result *CreateMarketSkillResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &CreateMarketSkillResponse{}
+	_body, _err := client.CreateMarketSkillWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+// DescribeMarketSkillDetail 查询 Skill 详情
+func (client *Client) DescribeMarketSkillDetailWithOptions(request *DescribeMarketSkillDetailRequest, runtime *dara.RuntimeOptions) (_result *DescribeMarketSkillDetailResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.SkillId) {
+		query["SkillId"] = request.SkillId
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/xml"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("DescribeMarketSkillDetail"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("GET"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("xml"),
+	}
+	_result = &DescribeMarketSkillDetailResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_err = dara.Convert(_body, &_result)
+	return _result, _err
+}
+
+func (client *Client) DescribeMarketSkillDetail(request *DescribeMarketSkillDetailRequest) (_result *DescribeMarketSkillDetailResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &DescribeMarketSkillDetailResponse{}
+	_body, _err := client.DescribeMarketSkillDetailWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+// CreateMarketSkillGroup 创建技能组
+func (client *Client) CreateMarketSkillGroupWithOptions(request *CreateMarketSkillGroupRequest, runtime *dara.RuntimeOptions) (_result *CreateMarketSkillGroupResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.GroupName) {
+		query["GroupName"] = request.GroupName
+	}
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{"Accept": dara.String("application/json")},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("CreateMarketSkillGroup"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("json"),
+	}
+	_result = &CreateMarketSkillGroupResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_err = dara.Convert(_body, &_result)
+	return _result, _err
+}
+
+func (client *Client) CreateMarketSkillGroup(request *CreateMarketSkillGroupRequest) (_result *CreateMarketSkillGroupResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &CreateMarketSkillGroupResponse{}
+	_body, _err := client.CreateMarketSkillGroupWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+// ListMarketGroupSkill 列出技能组
+// Uses BodyType "string" so the SDK returns raw body; backend may return XML, so we parse body manually.
+func (client *Client) ListMarketGroupSkillWithOptions(request *ListMarketGroupSkillRequest, runtime *dara.RuntimeOptions) (_result *ListMarketGroupSkillResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	req := &openapiutil.OpenApiRequest{
+		Query:   openapiutil.Query(query),
+		Headers: map[string]*string{"Accept": dara.String("application/json")},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("ListMarketGroupSkill"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("GET"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &ListMarketGroupSkillResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseListMarketGroupSkillResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) ListMarketGroupSkill(request *ListMarketGroupSkillRequest) (_result *ListMarketGroupSkillResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &ListMarketGroupSkillResponse{}
+	_body, _err := client.ListMarketGroupSkillWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+// AddMarketGroupSkill 组内添加技能
+func (client *Client) AddMarketGroupSkillWithOptions(request *AddMarketGroupSkillRequest, runtime *dara.RuntimeOptions) (_result *AddMarketGroupSkillResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.GroupId) {
+		query["GroupId"] = request.GroupId
+	}
+	if !dara.IsNil(request.SkillId) {
+		query["SkillId"] = request.SkillId
+	}
+	req := &openapiutil.OpenApiRequest{
+		Query:   openapiutil.Query(query),
+		Headers: map[string]*string{"Accept": dara.String("application/json")},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("AddMarketGroupSkill"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("json"),
+	}
+	_result = &AddMarketGroupSkillResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_err = dara.Convert(_body, &_result)
+	return _result, _err
+}
+
+func (client *Client) AddMarketGroupSkill(request *AddMarketGroupSkillRequest) (_result *AddMarketGroupSkillResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &AddMarketGroupSkillResponse{}
+	_body, _err := client.AddMarketGroupSkillWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+// RemoveMarketGroupSkill 组内移除技能
+func (client *Client) RemoveMarketGroupSkillWithOptions(request *RemoveMarketGroupSkillRequest, runtime *dara.RuntimeOptions) (_result *RemoveMarketGroupSkillResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.GroupId) {
+		query["GroupId"] = request.GroupId
+	}
+	if !dara.IsNil(request.SkillId) {
+		query["SkillId"] = request.SkillId
+	}
+	req := &openapiutil.OpenApiRequest{
+		Query:   openapiutil.Query(query),
+		Headers: map[string]*string{"Accept": dara.String("application/json")},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("RemoveMarketGroupSkill"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("json"),
+	}
+	_result = &RemoveMarketGroupSkillResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_err = dara.Convert(_body, &_result)
 	return _result, _err
 }
 

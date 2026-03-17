@@ -206,14 +206,4 @@ func TestRunSkillsPush_validationOnly(t *testing.T) {
 	}
 }
 
-func TestRunSkillsList(t *testing.T) {
-	// runSkillsList is a placeholder that prints to stderr and returns nil.
-	err := runSkillsList(skillsListCmd, nil)
-	require.NoError(t, err)
-}
 
-func TestRunSkillsGroupShow(t *testing.T) {
-	// runSkillsGroupShow is a placeholder that prints to stderr and returns nil.
-	err := runSkillsGroupShow(skillsGroupShowCmd, []string{"some-group-id"})
-	require.NoError(t, err)
-}

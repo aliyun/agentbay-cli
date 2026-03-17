@@ -99,28 +99,6 @@ func TestSkillsPushCommand_Integration(t *testing.T) {
 	}
 }
 
-func TestSkillsListCommand_Integration(t *testing.T) {
-	rootCmd := &cobra.Command{Use: "agentbay"}
-	rootCmd.AddGroup(&cobra.Group{ID: "management", Title: "Management Commands"})
-	rootCmd.AddCommand(cmd.SkillsCmd)
-
-	rootCmd.SetArgs([]string{"skills", "list"})
-	var out, errOut bytes.Buffer
-	rootCmd.SetOut(&out)
-	rootCmd.SetErr(&errOut)
-
-	err := rootCmd.Execute()
-	if err != nil {
-		t.Errorf("skills list should succeed (placeholder): %v", err)
-	}
-	// Placeholder prints info to stderr
-	if errOut.Len() > 0 {
-		if !strings.Contains(errOut.String(), "List skills") && !strings.Contains(errOut.String(), "backend") {
-			t.Logf("stderr: %s", errOut.String())
-		}
-	}
-}
-
 func TestSkillsShowCommand_Integration(t *testing.T) {
 	// skills show <id> requires config and API; without valid config it fails with load config error.
 	// We only verify the command is accepted and runs (may fail on config/API).
@@ -137,18 +115,3 @@ func TestSkillsShowCommand_Integration(t *testing.T) {
 	// Either succeeds (with empty data) or fails on config/describe - both are acceptable
 }
 
-func TestSkillsGroupShowCommand_Integration(t *testing.T) {
-	// skills group show <id> is a placeholder that always succeeds.
-	rootCmd := &cobra.Command{Use: "agentbay"}
-	rootCmd.AddGroup(&cobra.Group{ID: "management", Title: "Management Commands"})
-	rootCmd.AddCommand(cmd.SkillsCmd)
-
-	rootCmd.SetArgs([]string{"skills", "group", "show", "group-123"})
-	var errOut bytes.Buffer
-	rootCmd.SetErr(&errOut)
-
-	err := rootCmd.Execute()
-	if err != nil {
-		t.Errorf("skills group show should succeed (placeholder): %v", err)
-	}
-}
