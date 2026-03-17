@@ -588,7 +588,7 @@ func (client *Client) CreateMarketSkillWithOptions(request *CreateMarketSkillReq
 		Version:     dara.String("2025-05-01"),
 		Protocol:    dara.String("HTTPS"),
 		Pathname:    dara.String("/"),
-		Method:      dara.String("POST"),
+		Method:      dara.String("GET"),
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
