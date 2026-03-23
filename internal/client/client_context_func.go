@@ -62,6 +62,94 @@ func (client *Client) GetDockerFileStoreCredentialWithContext(ctx context.Contex
 	return _result, _err
 }
 
+// GetMarketSkillCredentialWithContext 获取 Skill 上传凭证（OSS）
+func (client *Client) GetMarketSkillCredentialWithContext(ctx context.Context, request *GetMarketSkillCredentialRequest, runtime *dara.RuntimeOptions) (_result *GetMarketSkillCredentialResponse, _err error) {
+	return client.GetMarketSkillCredentialWithOptions(request, runtime)
+}
+
+// CreateMarketSkillWithContext 通过 OSS 创建 Skill
+// Uses BodyType "string" and parseCreateMarketSkillResponse (backend may return XML).
+func (client *Client) CreateMarketSkillWithContext(ctx context.Context, request *CreateMarketSkillRequest, runtime *dara.RuntimeOptions) (_result *CreateMarketSkillResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.OssBucket) {
+		query["OssBucket"] = request.OssBucket
+	}
+	if !dara.IsNil(request.OssFilePath) {
+		query["OssFilePath"] = request.OssFilePath
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/xml"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("CreateMarketSkill"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("GET"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &CreateMarketSkillResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result, _err = parseCreateMarketSkillResponse(_body)
+	return _result, _err
+}
+
+// DescribeMarketSkillDetailWithContext 查询 Skill 详情
+// Uses BodyType "string" and parseDescribeMarketSkillDetailResponse (same as DescribeMarketSkillDetailWithOptions).
+func (client *Client) DescribeMarketSkillDetailWithContext(ctx context.Context, request *DescribeMarketSkillDetailRequest, runtime *dara.RuntimeOptions) (_result *DescribeMarketSkillDetailResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.SkillId) {
+		query["SkillId"] = request.SkillId
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/xml"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("DescribeMarketSkillDetail"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("GET"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &DescribeMarketSkillDetailResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseDescribeMarketSkillDetailResponse(_body)
+	return _result, _err
+}
+
 // Summary:
 //
 // 创建docker镜像任务
