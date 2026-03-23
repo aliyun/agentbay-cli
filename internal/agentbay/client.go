@@ -169,7 +169,7 @@ func (cw *clientWrapper) getClient() (*client.Client, error) {
 		cw.config.ClearTokens,
 	)
 
-	err := auth.RefreshTokenIfNeeded(tokenCfgAdapter, auth.DefaultClientID)
+	err := auth.RefreshTokenIfNeeded(tokenCfgAdapter, config.GetClientID())
 	if err != nil {
 		log.Debugf("[DEBUG] getClient: Token refresh check failed: %v", err)
 		return nil, fmt.Errorf("failed to ensure valid token: %w", err)
