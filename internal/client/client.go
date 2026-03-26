@@ -2,10 +2,146 @@
 package client
 
 import (
+	"encoding/json"
+	"encoding/xml"
+	"errors"
+	"strconv"
+	"strings"
+
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
 	openapiutil "github.com/alibabacloud-go/darabonba-openapi/v2/utils"
 	"github.com/alibabacloud-go/tea/dara"
 )
+
+// ErrWithRequestID wraps an error and attaches a backend request ID for debugging (e.g. when -v is used).
+type ErrWithRequestID struct {
+	Err       error
+	RequestID string
+}
+
+func (e *ErrWithRequestID) Error() string { return e.Err.Error() }
+func (e *ErrWithRequestID) Unwrap() error { return e.Err }
+
+// extractRequestIDFromResponse gets RequestId from CallApi response map (headers or XML body).
+func extractRequestIDFromResponse(res map[string]interface{}) string {
+	// Prefer header x-acs-request-id
+	if h, ok := res["headers"].(map[string]interface{}); ok {
+		for k, v := range h {
+			if strings.EqualFold(k, "x-acs-request-id") {
+				if s, ok := v.(string); ok && s != "" {
+					return s
+				}
+			}
+		}
+	}
+	// Else try to parse body as XML for RequestId
+	if b, ok := res["body"]; ok && b != nil {
+		var bodyStr string
+		switch v := b.(type) {
+		case string:
+			bodyStr = v
+		case []byte:
+			bodyStr = string(v)
+		default:
+			return ""
+		}
+		if bodyStr == "" {
+			return ""
+		}
+		var v struct {
+			RequestId string `xml:"RequestId"`
+		}
+		if err := xml.Unmarshal([]byte(bodyStr), &v); err == nil && v.RequestId != "" {
+			return v.RequestId
+		}
+	}
+	return ""
+}
+
+// getMarketSkillCredentialResponseXML is used only for XML unmarshaling; Aliyun uses root "GetMarketSkillCredentialResponse".
+type getMarketSkillCredentialResponseXML struct {
+	XMLName        xml.Name                         `xml:"GetMarketSkillCredentialResponse"`
+	Code           *string                          `xml:"Code"`
+	Data           *getMarketSkillCredentialDataXML `xml:"Data"`
+	HttpStatusCode *int32                           `xml:"HttpStatusCode"`
+	Message        *string                          `xml:"Message"`
+	RequestId      *string                          `xml:"RequestId"`
+	Success        *bool                            `xml:"Success"`
+}
+type getMarketSkillCredentialDataXML struct {
+	OssUrl      *string `xml:"OssUrl"`
+	Url         *string `xml:"Url"`
+	OssBucket   *string `xml:"OssBucket"`
+	OssFilePath *string `xml:"OssFilePath"`
+}
+
+// parseGetMarketSkillCredentialResponse builds GetMarketSkillCredentialResponse from CallApi map (bodyType "string").
+// Backend may return XML (pre-release) or JSON; we parse body manually like ListMarketGroupSkill.
+func parseGetMarketSkillCredentialResponse(res map[string]interface{}) (*GetMarketSkillCredentialResponse, error) {
+	out := &GetMarketSkillCredentialResponse{}
+	bodyStr := ""
+	switch v := res["body"].(type) {
+	case string:
+		bodyStr = v
+	case []byte:
+		bodyStr = string(v)
+	default:
+		return nil, &ErrWithRequestID{Err: errors.New("missing or invalid body in response"), RequestID: extractRequestIDFromResponse(res)}
+	}
+	parsed := &GetMarketSkillCredentialResponseBody{}
+	if bodyStr != "" {
+		trimmed := strings.TrimSpace(bodyStr)
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xmlResp getMarketSkillCredentialResponseXML
+			if err := xml.Unmarshal([]byte(bodyStr), &xmlResp); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = xmlResp.Code
+			parsed.HttpStatusCode = xmlResp.HttpStatusCode
+			parsed.Message = xmlResp.Message
+			parsed.RequestId = xmlResp.RequestId
+			parsed.Success = xmlResp.Success
+			if xmlResp.Data != nil {
+				d := xmlResp.Data
+				parsed.Data = &GetMarketSkillCredentialResponseBodyData{
+					OssUrl:      d.OssUrl,
+					Url:         d.Url,
+					OssBucket:   d.OssBucket,
+					OssFilePath: d.OssFilePath,
+				}
+			}
+		} else {
+			if err := json.Unmarshal([]byte(bodyStr), parsed); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+		}
+	}
+	out.Body = parsed
+	if h, ok := res["headers"].(map[string]*string); ok {
+		out.Headers = h
+	} else if h, ok := res["headers"].(map[string]interface{}); ok {
+		out.Headers = make(map[string]*string)
+		for k, v := range h {
+			if s, ok := v.(string); ok {
+				out.Headers[k] = dara.String(s)
+			} else if p, ok := v.(*string); ok && p != nil {
+				out.Headers[k] = p
+			}
+		}
+	}
+	if sc, ok := res["statusCode"].(int); ok {
+		out.StatusCode = dara.Int32(int32(sc))
+	}
+	if sc, ok := res["statusCode"].(int32); ok {
+		out.StatusCode = &sc
+	}
+	if out.StatusCode == nil && res["statusCode"] != nil {
+		if n, err := strconv.Atoi(dara.ToString(res["statusCode"])); err == nil {
+			out.StatusCode = dara.Int32(int32(n))
+		}
+	}
+	return out, nil
+}
 
 type Client struct {
 	openapi.Client
@@ -120,6 +256,321 @@ func (client *Client) GetDockerFileStoreCredential(request *GetDockerFileStoreCr
 	runtime := &dara.RuntimeOptions{}
 	_result = &GetDockerFileStoreCredentialResponse{}
 	_body, _err := client.GetDockerFileStoreCredentialWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+// GetMarketSkillCredential 获取 Skill 上传凭证（OSS）
+// Uses BodyType "string" so the SDK returns raw body; backend may return XML, so we parse body manually (same as ListMarketGroupSkill).
+func (client *Client) GetMarketSkillCredentialWithOptions(request *GetMarketSkillCredentialRequest, runtime *dara.RuntimeOptions) (_result *GetMarketSkillCredentialResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.FileName) {
+		query["FileName"] = request.FileName
+	}
+	req := &openapiutil.OpenApiRequest{
+		Query:   openapiutil.Query(query),
+		Headers: map[string]*string{"Accept": dara.String("application/json")},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("GetMarketSkillCredential"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("GET"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &GetMarketSkillCredentialResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseGetMarketSkillCredentialResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) GetMarketSkillCredential(request *GetMarketSkillCredentialRequest) (_result *GetMarketSkillCredentialResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &GetMarketSkillCredentialResponse{}
+	_body, _err := client.GetMarketSkillCredentialWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+// createMarketSkillResponseXML is used only for XML unmarshaling; backend returns <CreateMarketSkillResponse><Data>skill-id</Data>...</CreateMarketSkillResponse>.
+type createMarketSkillResponseXML struct {
+	XMLName        xml.Name `xml:"CreateMarketSkillResponse"`
+	HttpStatusCode *int32   `xml:"HttpStatusCode"`
+	Data           string   `xml:"Data"`
+	RequestId      *string  `xml:"RequestId"`
+	Code           *string  `xml:"Code"`
+	Success        *bool    `xml:"Success"`
+}
+
+// parseCreateMarketSkillResponse builds CreateMarketSkillResponse from CallApi map (bodyType "string").
+// Backend may return XML (pre-release) or JSON; we parse body manually like CreateMarketSkillGroup.
+func parseCreateMarketSkillResponse(res map[string]interface{}) (*CreateMarketSkillResponse, error) {
+	out := &CreateMarketSkillResponse{}
+	bodyStr := ""
+	switch v := res["body"].(type) {
+	case string:
+		bodyStr = v
+	case []byte:
+		bodyStr = string(v)
+	default:
+		return nil, &ErrWithRequestID{Err: errors.New("missing or invalid body in response"), RequestID: extractRequestIDFromResponse(res)}
+	}
+	out.RawBody = bodyStr
+	parsed := &CreateMarketSkillResponseBody{}
+	if bodyStr != "" {
+		trimmed := strings.TrimSpace(bodyStr)
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xmlResp createMarketSkillResponseXML
+			if err := xml.Unmarshal([]byte(bodyStr), &xmlResp); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = xmlResp.Code
+			parsed.HttpStatusCode = xmlResp.HttpStatusCode
+			parsed.RequestId = xmlResp.RequestId
+			parsed.Success = xmlResp.Success
+			if s := strings.TrimSpace(xmlResp.Data); s != "" {
+				parsed.Data = &CreateMarketSkillResponseBodyData{SkillId: &s}
+			}
+		} else {
+			if err := json.Unmarshal([]byte(bodyStr), parsed); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+		}
+	}
+	out.Body = parsed
+	if h, ok := res["headers"].(map[string]*string); ok {
+		out.Headers = h
+	} else if h, ok := res["headers"].(map[string]interface{}); ok {
+		out.Headers = make(map[string]*string)
+		for k, v := range h {
+			if s, ok := v.(string); ok {
+				out.Headers[k] = dara.String(s)
+			} else if p, ok := v.(*string); ok && p != nil {
+				out.Headers[k] = p
+			}
+		}
+	}
+	if sc, ok := res["statusCode"].(int); ok {
+		out.StatusCode = dara.Int32(int32(sc))
+	}
+	if sc, ok := res["statusCode"].(int32); ok {
+		out.StatusCode = &sc
+	}
+	if out.StatusCode == nil && res["statusCode"] != nil {
+		if n, err := strconv.Atoi(dara.ToString(res["statusCode"])); err == nil {
+			out.StatusCode = dara.Int32(int32(n))
+		}
+	}
+	return out, nil
+}
+
+// CreateMarketSkill 通过 OSS 创建 Skill
+// Uses BodyType "string" so we parse XML/JSON manually (backend pre-release returns XML).
+func (client *Client) CreateMarketSkillWithOptions(request *CreateMarketSkillRequest, runtime *dara.RuntimeOptions) (_result *CreateMarketSkillResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.OssBucket) {
+		query["OssBucket"] = request.OssBucket
+	}
+	if !dara.IsNil(request.OssFilePath) {
+		query["OssFilePath"] = request.OssFilePath
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/xml"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("CreateMarketSkill"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("GET"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &CreateMarketSkillResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseCreateMarketSkillResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) CreateMarketSkill(request *CreateMarketSkillRequest) (_result *CreateMarketSkillResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &CreateMarketSkillResponse{}
+	_body, _err := client.CreateMarketSkillWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+// describeMarketSkillDetailResponseXML is used only for XML unmarshaling; backend may return XML.
+// Backend may use SkillId or SkillID in Data.
+type describeMarketSkillDetailResponseXML struct {
+	XMLName        xml.Name `xml:"DescribeMarketSkillDetailResponse"`
+	HttpStatusCode *int32   `xml:"HttpStatusCode"`
+	Data           *struct {
+		SkillId     *string `xml:"SkillId"`
+		SkillID     *string `xml:"SkillID"`
+		Name        *string `xml:"Name"`
+		Description *string `xml:"Description"`
+	} `xml:"Data"`
+	RequestId *string `xml:"RequestId"`
+	Code      *string `xml:"Code"`
+	Success   *bool   `xml:"Success"`
+}
+
+// parseDescribeMarketSkillDetailResponse builds DescribeMarketSkillDetailResponse from CallApi map (bodyType "string").
+func parseDescribeMarketSkillDetailResponse(res map[string]interface{}) (*DescribeMarketSkillDetailResponse, error) {
+	out := &DescribeMarketSkillDetailResponse{}
+	bodyStr := ""
+	switch v := res["body"].(type) {
+	case string:
+		bodyStr = v
+	case []byte:
+		bodyStr = string(v)
+	default:
+		return nil, &ErrWithRequestID{Err: errors.New("missing or invalid body in response"), RequestID: extractRequestIDFromResponse(res)}
+	}
+	parsed := &DescribeMarketSkillDetailResponseBody{}
+	if bodyStr != "" {
+		trimmed := strings.TrimSpace(bodyStr)
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xmlResp describeMarketSkillDetailResponseXML
+			if err := xml.Unmarshal([]byte(bodyStr), &xmlResp); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = xmlResp.Code
+			parsed.HttpStatusCode = xmlResp.HttpStatusCode
+			parsed.RequestId = xmlResp.RequestId
+			parsed.Success = xmlResp.Success
+			if xmlResp.Data != nil {
+				skillIdVal := xmlResp.Data.SkillId
+				if skillIdVal == nil {
+					skillIdVal = xmlResp.Data.SkillID
+				}
+				parsed.Data = &DescribeMarketSkillDetailResponseBodyData{
+					SkillId:     skillIdVal,
+					Name:        xmlResp.Data.Name,
+					Description: xmlResp.Data.Description,
+				}
+			}
+		} else {
+			if err := json.Unmarshal([]byte(bodyStr), parsed); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+		}
+	}
+	out.Body = parsed
+	if h, ok := res["headers"].(map[string]*string); ok {
+		out.Headers = h
+	} else if h, ok := res["headers"].(map[string]interface{}); ok {
+		out.Headers = make(map[string]*string)
+		for k, v := range h {
+			if s, ok := v.(string); ok {
+				out.Headers[k] = dara.String(s)
+			} else if p, ok := v.(*string); ok && p != nil {
+				out.Headers[k] = p
+			}
+		}
+	}
+	if sc, ok := res["statusCode"].(int); ok {
+		out.StatusCode = dara.Int32(int32(sc))
+	}
+	if sc, ok := res["statusCode"].(int32); ok {
+		out.StatusCode = &sc
+	}
+	if out.StatusCode == nil && res["statusCode"] != nil {
+		if n, err := strconv.Atoi(dara.ToString(res["statusCode"])); err == nil {
+			out.StatusCode = dara.Int32(int32(n))
+		}
+	}
+	return out, nil
+}
+
+// DescribeMarketSkillDetail 查询 Skill 详情
+// Uses BodyType "string" so we parse XML/JSON manually (backend pre-release returns XML).
+func (client *Client) DescribeMarketSkillDetailWithOptions(request *DescribeMarketSkillDetailRequest, runtime *dara.RuntimeOptions) (_result *DescribeMarketSkillDetailResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.SkillId) {
+		query["SkillId"] = request.SkillId
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/xml"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("DescribeMarketSkillDetail"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("GET"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &DescribeMarketSkillDetailResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseDescribeMarketSkillDetailResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) DescribeMarketSkillDetail(request *DescribeMarketSkillDetailRequest) (_result *DescribeMarketSkillDetailResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &DescribeMarketSkillDetailResponse{}
+	_body, _err := client.DescribeMarketSkillDetailWithOptions(request, runtime)
 	if _err != nil {
 		return _result, _err
 	}

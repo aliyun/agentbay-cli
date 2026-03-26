@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -991,62 +992,28 @@ func uploadFileToOSS(localPath, ossUrl string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
-	retryConfig := &client.RetryConfig{
-		MaxRetries:    3,
-		InitialDelay:  1 * time.Second,
-		MaxDelay:      10 * time.Second,
-		BackoffFactor: 2.0,
+	req, err := http.NewRequest(http.MethodPut, ossUrl, bytes.NewReader(content))
+	if err != nil {
+		return fmt.Errorf("failed to create upload request: %w", err)
 	}
-	var lastErr error
-	delay := retryConfig.InitialDelay
-	for attempt := 0; attempt <= retryConfig.MaxRetries; attempt++ {
-		log.Debugf("[DEBUG] Upload attempt %d/%d for %s", attempt+1, retryConfig.MaxRetries+1, localPath)
-		req, err := http.NewRequest(http.MethodPut, ossUrl, strings.NewReader(string(content)))
-		if err != nil {
-			return fmt.Errorf("failed to create upload request: %w", err)
-		}
-		req.Header.Set("Content-Type", "application/octet-stream")
-		req.Header.Set("User-Agent", "AgentBay-CLI/1.0")
-		req.ContentLength = int64(len(content))
-		httpClient := &http.Client{Timeout: 60 * time.Second}
-		resp, err := httpClient.Do(req)
-		if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
-			resp.Body.Close()
-			if attempt > 0 {
-				fmt.Printf("[OK] Upload succeeded on attempt %d\n", attempt+1)
-			}
-			return nil
-		}
-		if err != nil {
-			lastErr = fmt.Errorf("failed to upload: %w", err)
-		} else {
-			body, _ := io.ReadAll(resp.Body)
-			resp.Body.Close()
-			lastErr = fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
-		}
-		if attempt == retryConfig.MaxRetries {
-			break
-		}
-		shouldRetry := false
-		if err != nil {
-			shouldRetry = client.IsRetryableError(err)
-		} else if resp != nil {
-			shouldRetry = client.IsRetryableHTTPStatus(resp.StatusCode)
-		}
-		if !shouldRetry {
-			fmt.Printf("[WARN] Upload error is not retryable, stopping attempts\n")
-			break
-		}
-		fmt.Printf("[RETRY] Upload failed (attempt %d/%d), retrying in %v...\n",
-			attempt+1, retryConfig.MaxRetries+1, delay)
-		time.Sleep(delay)
-		delay = time.Duration(float64(delay) * retryConfig.BackoffFactor)
-		if delay > retryConfig.MaxDelay {
-			delay = retryConfig.MaxDelay
-		}
+	// OSS may return 307/308 redirect; without GetBody the redirect request sends an empty body and the object is stored empty.
+	req.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(content)), nil
 	}
-	return fmt.Errorf("upload failed after %d attempts, last error: %w",
-		retryConfig.MaxRetries+1, lastErr)
+	req.Header.Set("Content-Type", "application/octet-stream")
+	req.Header.Set("User-Agent", "AgentBay-CLI/1.0")
+	req.ContentLength = int64(len(content))
+	httpClient := &http.Client{Timeout: 60 * time.Second}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to upload: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
+	}
+	return nil
 }
 
 // DefaultActivateCPU and DefaultActivateMemory are the default resource allocation when user does not specify --cpu/--memory
@@ -1529,80 +1496,30 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// downloadDockerfileFromOSS downloads Dockerfile content from OSS URL with retry mechanism
+// downloadDockerfileFromOSS downloads Dockerfile content from OSS URL
 func downloadDockerfileFromOSS(ossUrl string) ([]byte, error) {
 	log.Debugf("[DEBUG] Downloading from OSS URL: %s", ossUrl)
-
-	retryConfig := client.DefaultRetryConfig()
-	httpClient := &http.Client{
-		Timeout: 60 * time.Second,
+	req, err := http.NewRequest(http.MethodGet, ossUrl, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create download request: %w", err)
 	}
-
-	var lastErr error
-	delay := retryConfig.InitialDelay
-
-	for attempt := 0; attempt <= retryConfig.MaxRetries; attempt++ {
-		req, err := http.NewRequest(http.MethodGet, ossUrl, nil)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create download request: %w", err)
-		}
-		req.Header.Set("User-Agent", "AgentBay-CLI/1.0")
-
-		resp, err := httpClient.Do(req)
-		if err != nil {
-			lastErr = fmt.Errorf("failed to download from OSS: %w", err)
-			log.Debugf("[DEBUG] Attempt %d failed: %v", attempt+1, err)
-
-			if !client.IsRetryableError(err) || attempt == retryConfig.MaxRetries {
-				return nil, lastErr
-			}
-
-			time.Sleep(delay)
-			delay = calculateNextDelay(delay, retryConfig)
-			continue
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			body, _ := io.ReadAll(resp.Body)
-			lastErr = fmt.Errorf("download failed with status %d: %s", resp.StatusCode, string(body))
-			log.Debugf("[DEBUG] Attempt %d failed with status: %d", attempt+1, resp.StatusCode)
-
-			if !client.IsRetryableHTTPStatus(resp.StatusCode) || attempt == retryConfig.MaxRetries {
-				return nil, lastErr
-			}
-
-			time.Sleep(delay)
-			delay = calculateNextDelay(delay, retryConfig)
-			continue
-		}
-
-		content, err := io.ReadAll(resp.Body)
-		if err != nil {
-			lastErr = fmt.Errorf("failed to read downloaded content: %w", err)
-			if attempt == retryConfig.MaxRetries {
-				return nil, lastErr
-			}
-
-			time.Sleep(delay)
-			delay = calculateNextDelay(delay, retryConfig)
-			continue
-		}
-
-		log.Debugf("[DEBUG] Downloaded %d bytes from OSS", len(content))
-		return content, nil
+	req.Header.Set("User-Agent", "AgentBay-CLI/1.0")
+	httpClient := &http.Client{Timeout: 60 * time.Second}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to download from OSS: %w", err)
 	}
-
-	return nil, lastErr
-}
-
-// calculateNextDelay calculates the next retry delay with exponential backoff
-func calculateNextDelay(currentDelay time.Duration, config *client.RetryConfig) time.Duration {
-	nextDelay := time.Duration(float64(currentDelay) * config.BackoffFactor)
-	if nextDelay > config.MaxDelay {
-		return config.MaxDelay
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("download failed with status %d: %s", resp.StatusCode, string(body))
 	}
-	return nextDelay
+	content, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read downloaded content: %w", err)
+	}
+	log.Debugf("[DEBUG] Downloaded %d bytes from OSS", len(content))
+	return content, nil
 }
 
 // isDockerfileValidationError checks if the error message indicates a Dockerfile validation failure

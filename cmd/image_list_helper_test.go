@@ -90,6 +90,16 @@ func (m *mockImageListClient) GetDockerfileTemplate(ctx context.Context, request
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockImageListClient) GetMarketSkillCredential(ctx context.Context, request *client.GetMarketSkillCredentialRequest) (*client.GetMarketSkillCredentialResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (m *mockImageListClient) CreateMarketSkill(ctx context.Context, request *client.CreateMarketSkillRequest) (*client.CreateMarketSkillResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (m *mockImageListClient) DescribeMarketSkillDetail(ctx context.Context, request *client.DescribeMarketSkillDetailRequest) (*client.DescribeMarketSkillDetailResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 // Helper functions for testing
 func boolPtr(b bool) *bool {
 	return &b

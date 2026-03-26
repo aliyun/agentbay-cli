@@ -122,6 +122,10 @@ type Client interface {
 	CreateResourceGroup(ctx context.Context, request *client.CreateResourceGroupRequest) (*client.CreateResourceGroupResponse, error)
 	DeleteResourceGroup(ctx context.Context, request *client.DeleteResourceGroupRequest) (*client.DeleteResourceGroupResponse, error)
 	GetDockerfileTemplate(ctx context.Context, request *client.GetDockerfileTemplateRequest) (*client.GetDockerfileTemplateResponse, error)
+	// Market Skill
+	GetMarketSkillCredential(ctx context.Context, request *client.GetMarketSkillCredentialRequest) (*client.GetMarketSkillCredentialResponse, error)
+	CreateMarketSkill(ctx context.Context, request *client.CreateMarketSkillRequest) (*client.CreateMarketSkillResponse, error)
+	DescribeMarketSkillDetail(ctx context.Context, request *client.DescribeMarketSkillDetailRequest) (*client.DescribeMarketSkillDetailResponse, error)
 }
 
 // clientWrapper wraps the generated SDK client with additional functionality
@@ -165,7 +169,7 @@ func (cw *clientWrapper) getClient() (*client.Client, error) {
 		cw.config.ClearTokens,
 	)
 
-	err := auth.RefreshTokenIfNeeded(tokenCfgAdapter, auth.DefaultClientID)
+	err := auth.RefreshTokenIfNeeded(tokenCfgAdapter, config.GetClientID())
 	if err != nil {
 		log.Debugf("[DEBUG] getClient: Token refresh check failed: %v", err)
 		return nil, fmt.Errorf("failed to ensure valid token: %w", err)
@@ -736,6 +740,36 @@ func (cw *clientWrapper) GetDockerFileStoreCredential(ctx context.Context, reque
 	log.Debugf("[DEBUG] ClientWrapper: SDK API call completed successfully")
 
 	return resp, nil
+}
+
+// GetMarketSkillCredential wraps the SDK client method
+func (cw *clientWrapper) GetMarketSkillCredential(ctx context.Context, request *client.GetMarketSkillCredentialRequest) (*client.GetMarketSkillCredentialResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	runtimeOptions := cw.getRuntimeOptions()
+	return sdkClient.GetMarketSkillCredentialWithOptions(request, runtimeOptions)
+}
+
+// CreateMarketSkill wraps the SDK client method
+func (cw *clientWrapper) CreateMarketSkill(ctx context.Context, request *client.CreateMarketSkillRequest) (*client.CreateMarketSkillResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	runtimeOptions := cw.getRuntimeOptions()
+	return sdkClient.CreateMarketSkillWithOptions(request, runtimeOptions)
+}
+
+// DescribeMarketSkillDetail wraps the SDK client method
+func (cw *clientWrapper) DescribeMarketSkillDetail(ctx context.Context, request *client.DescribeMarketSkillDetailRequest) (*client.DescribeMarketSkillDetailResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	runtimeOptions := cw.getRuntimeOptions()
+	return sdkClient.DescribeMarketSkillDetailWithOptions(request, runtimeOptions)
 }
 
 // CreateDockerImageTask wraps the SDK client method

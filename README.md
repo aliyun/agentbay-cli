@@ -4,7 +4,7 @@ A command-line interface for AgentBay services.
 
 ## Features
 
-AgentBay CLI provides comprehensive image management capabilities:
+AgentBay CLI provides image management and skills management:
 
 **Note**: The current version of the CLI tool supports creating and activating CodeSpace type images only.
 
@@ -13,6 +13,7 @@ AgentBay CLI provides comprehensive image management capabilities:
 - **Image Creation**: Build custom images from Dockerfiles with base image support; automatically parses and uploads COPY/ADD referenced files
 - **Image Management**: Activate, deactivate, and monitor image instances
 - **Image Listing**: Browse user and system images with separated display, pagination and filtering support
+- **Skills**: Push local skills, show skill details by ID
 - **Configuration Management**: Secure token storage and automatic token refresh
 
 ## Quick Start
@@ -39,6 +40,10 @@ agentbay image activate imgc-xxxxx...xxx
 
 # 6. Deactivate when done
 agentbay image deactivate imgc-xxxxx...xxx
+
+# Skills
+agentbay skills push ./my-skill
+agentbay skills show <skill-id>   # Show skill details
 ```
 
 **Note**: 
