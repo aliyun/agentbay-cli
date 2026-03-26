@@ -162,6 +162,8 @@ jobs:
           echo "✅ Build variables saved for official release v$VERSION"
 
       - name: Build Multi-platform Binaries
+        env:
+          CGO_ENABLED: "0"
         run: |
           echo "Building binaries for all platforms using unified dist target..."
           echo "Build version: $VERSION"
