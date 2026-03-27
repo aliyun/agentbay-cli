@@ -102,7 +102,7 @@ func TestPostLogout_ErrorReporting(t *testing.T) {
 
 func TestPostLogout_ErrorMessageFormat(t *testing.T) {
 	// Test that error messages have consistent format
-	expectedFormat := "[ERROR] Not authenticated. Please run 'agentbay login' first"
+	expectedFormat := "[ERROR] Not authenticated. Please run 'agentbay login' or set AGENTBAY_ACCESS_KEY_ID and AGENTBAY_ACCESS_KEY_SECRET"
 
 	t.Logf("Expected error message format: %s", expectedFormat)
 	t.Log("This format should be consistent across all commands that require authentication")
