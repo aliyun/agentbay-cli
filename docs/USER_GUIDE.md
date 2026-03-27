@@ -5,7 +5,7 @@ Quick guide to get you started with AgentBay CLI.
 ## Prerequisites
 
 - AgentBay CLI installed
-- Aliyun account
+- Aliyun account (for OAuth login or for RAM users issuing AccessKeys)
 - Network connection
 
 **Supported Image Types**: The current version of the CLI tool supports creating and activating **CodeSpace** type images only.
@@ -27,25 +27,43 @@ Authentication successful!
 You are now logged in to AgentBay!
 ```
 
+### Access Key authentication (optional)
+
+For scripts, CI, or environments without a browser, you can use RAM AccessKey credentials instead of `agentbay login`. Set both of the following (values are sensitive—do not commit them or paste them into tickets):
+
+```bash
+export AGENTBAY_ACCESS_KEY_ID="<your-access-key-id>"
+export AGENTBAY_ACCESS_KEY_SECRET="<your-access-key-secret>"
+# Optional: temporary credentials (STS)
+# export AGENTBAY_ACCESS_KEY_SESSION_TOKEN="<token>"
+```
+
+When these variables are set (non-empty), the CLI uses them for API calls. If you also have OAuth tokens saved from a previous login, AccessKey from the environment takes precedence for building the API client.
+
+**Security:** Rotate keys if they are exposed; prefer short-lived STS where possible.
+
 ## 2. Logout
 
 ```bash
 agentbay logout
 ```
 
-Clears your authentication tokens.
+Clears **OAuth** tokens stored in the CLI config file. It does not unset environment variables—if `AGENTBAY_ACCESS_KEY_ID` and `AGENTBAY_ACCESS_KEY_SECRET` are still set, commands may remain authenticated via AccessKey.
 
 ## 3. Skills
 
 Manage skills and skill groups. The following matches the current CLI; commands that are not yet backed by a full API only print an informational message.
 
+### Commands
+
 ```bash
-# Push local skill directory (requires SKILL.md with name/description in frontmatter)
+# Push a skill directory or a .zip (must include SKILL.md with name/description in frontmatter)
 agentbay skills push <skill-dir>
+agentbay skills push <skill.zip>
 
 agentbay skills list                  # List skills (placeholder until backend API)
 
-# Show skill details by ID (calls backend DescribeMarketSkillDetail)
+# Show skill details by ID (DescribeMarketSkillDetail)
 agentbay skills show <skill-id>
 
 # Create a skill group; prints [SUCCESS], Group ID, and group name. Use -v for raw API response.
@@ -136,7 +154,35 @@ computer-use-ubuntu-2204  Computer Use Linux Ubuntu 2... DedicatedDesktop     Av
 
 **Note**: System images are always available and don't require activation. Only user-created images need to be activated before use.
 
-## 5. Download Dockerfile Template
+## 5. Query image resource status
+
+Show the **image resource** lifecycle status (same notion as activate/deactivate: availability, activation, deployment). This is **not** the Docker build task status from `agentbay image create`.
+
+```bash
+agentbay image status <image-id>
+```
+
+**Example:**
+```bash
+agentbay image status imgc-0aae4rgjmea28aj00
+```
+
+**Common status values (API):**
+
+| Status | Meaning |
+|--------|---------|
+| `IMAGE_CREATING` | Image is being created |
+| `IMAGE_CREATE_FAILED` | Image creation failed |
+| `IMAGE_AVAILABLE` | Available, not activated (typical after deactivate) |
+| `RESOURCE_DEPLOYING` | Activation in progress |
+| `RESOURCE_PUBLISHED` | Activated and in use |
+| `RESOURCE_DELETING` | Deactivation in progress |
+| `RESOURCE_FAILED` | Activation or resource operation failed |
+| `RESOURCE_CEASED` | Resource ceased |
+
+Use `-v` for more log detail.
+
+## 6. Download Dockerfile Template
 
 ```bash
 agentbay image init --sourceImageId code-space-debian-12
@@ -167,7 +213,7 @@ Writing Dockerfile to /path/to/current/directory/Dockerfile...
 - If a `Dockerfile` already exists in the current directory, it will be overwritten. The command will warn you before overwriting.
 - **Important**: The first N lines (N is returned by the system) of the Dockerfile template are system-defined and cannot be modified. Only modify content after line N+1, otherwise the image build may fail.
 
-## 6. Create Image
+## 7. Create Image
 
 ```bash
 agentbay image create my-app --dockerfile ./Dockerfile --imageId code-space-debian-12
@@ -202,7 +248,7 @@ When creating an image, the CLI parses `COPY` and `ADD` instructions in your Doc
 - **Not supported**: Absolute paths, path traversal (e.g. `../`), URL sources in `ADD` (e.g. `ADD https://...`)
 - **Note**: Ensure all files referenced by COPY/ADD exist in the Dockerfile directory or its subdirectories
 
-## 7. Activate Image
+## 8. Activate Image
 
 User-created images need to be activated before use. System images are always available and don't require activation.
 
@@ -245,7 +291,7 @@ Waiting for activation to complete...
 
 Activation typically takes 1-2 minutes. If already activated, you'll see "No action needed."
 
-## 8. Deactivate Image
+## 9. Deactivate Image
 
 Deactivate custom images when done to save resources. Deactivating an activated user image releases related resources.
 
@@ -288,8 +334,9 @@ agentbay -v skills group create my-group
 
 **Q: Login issues?**
 - Check network connection
-- Ensure browser can access signin.aliyun.com
+- Ensure browser can access signin.aliyun.com (or the international sign-in host if using `AGENTBAY_ENV=international`)
 - Check firewall settings
+- For non-interactive use, set `AGENTBAY_ACCESS_KEY_ID` and `AGENTBAY_ACCESS_KEY_SECRET` instead of `agentbay login`
 
 **Q: Image build fails?**
 - Verify Dockerfile syntax
@@ -304,7 +351,7 @@ agentbay -v skills group create my-group
 - Only modify content after line N+1, otherwise the image build may fail
 
 **Q: Where is config stored?**
-`~/.config/agentbay/config.json` (macOS/Linux) or `%APPDATA%\agentbay\config.json` (Windows)
+`~/.config/agentbay/config.json` (macOS/Linux) or `%APPDATA%\agentbay\config.json` (Windows). OAuth tokens are stored there; AccessKey credentials are **not** saved by the CLI—only read from environment variables when set.
 
 **Q: Supported OS types?**
 Linux, Windows, Android

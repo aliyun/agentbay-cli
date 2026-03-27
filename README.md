@@ -8,19 +8,21 @@ AgentBay CLI provides image management and skills management:
 
 **Note**: The current version of the CLI tool supports creating and activating CodeSpace type images only.
 
-- **Authentication**: Secure OAuth-based login with Aliyun account integration
+- **Authentication**: OAuth login with Aliyun, or AccessKey via environment variables (`AGENTBAY_ACCESS_KEY_ID` / `AGENTBAY_ACCESS_KEY_SECRET`) for automation and CI
 - **Dockerfile Template**: Download Dockerfile templates from the cloud
 - **Image Creation**: Build custom images from Dockerfiles with base image support; automatically parses and uploads COPY/ADD referenced files
 - **Image Management**: Activate, deactivate, and monitor image instances
 - **Image Listing**: Browse user and system images with separated display, pagination and filtering support
+- **Image Status**: Query resource lifecycle status for an image by ID (`agentbay image status`)
 - **Skills**: Push local skills, show skill details by ID, create and list skill groups, add or remove skills in groups (skills list and group show are placeholders until backend APIs are available)
 - **Configuration Management**: Secure token storage and automatic token refresh
 
 ## Quick Start
 
 ```bash
-# 1. Log in to AgentBay
+# 1. Authenticate (pick one)
 agentbay login
+# Or set AGENTBAY_ACCESS_KEY_ID and AGENTBAY_ACCESS_KEY_SECRET (optional: AGENTBAY_ACCESS_KEY_SESSION_TOKEN for STS)
 
 # 2. List available images
 agentbay image list                    # List user images (default)
@@ -41,8 +43,12 @@ agentbay image activate imgc-xxxxx...xxx
 # 6. Deactivate when done
 agentbay image deactivate imgc-xxxxx...xxx
 
-# Skills (optional; skills list is not yet implemented)
+# Optional: check resource status (activate/deactivate lifecycle, not Docker build task)
+agentbay image status imgc-xxxxx...xxx
+
+# Skills (optional; directory or .zip with SKILL.md frontmatter; list/group show placeholders)
 agentbay skills push ./my-skill
+agentbay skills push ./my-skill.zip
 agentbay skills show <skill-id>              # Show skill details
 agentbay skills group create my-group        # Prints group-id
 agentbay skills group list                   # List your groups
@@ -51,6 +57,7 @@ agentbay skills group remove-skill <group-id> <skill-id>
 ```
 
 **Note**: 
+- With both OAuth tokens and AccessKey env set, the CLI prefers AccessKey for API calls.
 - System images are always available and don't require activation. Only user-created images need to be activated before use.
 - When downloading Dockerfile templates, the first N lines (N is returned by the system) are system-defined and cannot be modified. Only modify content after line N+1.
 - Available sourceImageID for production environment: 
