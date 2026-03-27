@@ -12,8 +12,8 @@ import (
 
 // Environment variable names for AccessKey-style authentication (alternative to OAuth).
 const (
-	EnvAccessKeyID          = "AGENTBAY_ACCESS_KEY_ID"
-	EnvAccessKeySecret      = "AGENTBAY_ACCESS_KEY_SECRET"
+	EnvAccessKeyID           = "AGENTBAY_ACCESS_KEY_ID"
+	EnvAccessKeySecret       = "AGENTBAY_ACCESS_KEY_SECRET"
 	EnvAccessKeySessionToken = "AGENTBAY_ACCESS_KEY_SESSION_TOKEN"
 )
 
