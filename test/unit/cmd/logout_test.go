@@ -33,6 +33,16 @@ func TestLogoutCmd(t *testing.T) {
 		}
 	}()
 
+	origAK, origSK, origSess := os.Getenv(config.EnvAccessKeyID), os.Getenv(config.EnvAccessKeySecret), os.Getenv(config.EnvAccessKeySessionToken)
+	_ = os.Unsetenv(config.EnvAccessKeyID)
+	_ = os.Unsetenv(config.EnvAccessKeySecret)
+	_ = os.Unsetenv(config.EnvAccessKeySessionToken)
+	defer func() {
+		restoreLogoutEnv(config.EnvAccessKeyID, origAK)
+		restoreLogoutEnv(config.EnvAccessKeySecret, origSK)
+		restoreLogoutEnv(config.EnvAccessKeySessionToken, origSess)
+	}()
+
 	t.Run("logout command should have correct metadata", func(t *testing.T) {
 		assert.Equal(t, "logout", cmd.LogoutCmd.Use)
 		assert.Equal(t, "Log out from AgentBay", cmd.LogoutCmd.Short)
@@ -147,4 +157,12 @@ func TestLogoutCmd(t *testing.T) {
 		require.NoError(t, err)
 		assert.False(t, cfg.IsAuthenticated())
 	})
+}
+
+func restoreLogoutEnv(key, val string) {
+	if val == "" {
+		_ = os.Unsetenv(key)
+	} else {
+		_ = os.Setenv(key, val)
+	}
 }

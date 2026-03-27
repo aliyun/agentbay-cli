@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/agentbay/agentbay-cli/cmd"
+	"github.com/agentbay/agentbay-cli/internal/config"
 )
 
 func TestImageInitCommand_Metadata(t *testing.T) {
@@ -80,6 +81,10 @@ func TestImageInitCommand_Authentication(t *testing.T) {
 	}()
 
 	t.Run("should fail when not authenticated", func(t *testing.T) {
+		_ = os.Unsetenv(config.EnvAccessKeyID)
+		_ = os.Unsetenv(config.EnvAccessKeySecret)
+		_ = os.Unsetenv(config.EnvAccessKeySessionToken)
+
 		// Find the init command
 		var imageInitCmd *cobra.Command
 		for _, subCmd := range cmd.ImageCmd.Commands() {
