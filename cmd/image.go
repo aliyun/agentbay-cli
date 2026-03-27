@@ -155,6 +155,30 @@ Examples:
 	RunE: runImageInit,
 }
 
+var imageStatusCmd = &cobra.Command{
+	Use:   "status <image-id>",
+	Short: "Show resource status for an image",
+	Long: `Query lifecycle / deployment status for an image by ID (GetMcpImageInfo).
+
+This is the image resource status used by activate/deactivate, not the Docker build
+task status shown during 'agentbay image create'.
+
+Common resource status values (API):
+  IMAGE_CREATING       — Image is being created
+  IMAGE_CREATE_FAILED  — Image creation failed
+  IMAGE_AVAILABLE      — Available, not activated (deactivated)
+  RESOURCE_DEPLOYING   — Activation in progress
+  RESOURCE_PUBLISHED   — Activated
+  RESOURCE_DELETING    — Deactivation in progress
+  RESOURCE_FAILED      — Activation or resource operation failed
+  RESOURCE_CEASED      — Resource ceased
+
+Examples:
+  agentbay image status imgc-xxxxxxxxxxxxxx`,
+	Args: cobra.ExactArgs(1),
+	RunE: runImageStatus,
+}
+
 func init() {
 	// Add flags to image create command
 	imageCreateCmd.Flags().StringP("dockerfile", "f", "", "Path to the Dockerfile (required)")
@@ -187,6 +211,7 @@ func init() {
 	ImageCmd.AddCommand(imageActivateCmd)
 	ImageCmd.AddCommand(imageDeactivateCmd)
 	ImageCmd.AddCommand(imageInitCmd)
+	ImageCmd.AddCommand(imageStatusCmd)
 }
 
 func runImageCreate(cmd *cobra.Command, args []string) error {
@@ -247,8 +272,8 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 	}
 
 	if !cfg.IsAuthenticated() {
-		fmt.Fprintf(os.Stderr, "[ERROR] Not authenticated. Please run 'agentbay login' first\n")
-		return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
+		config.FprintNotAuthenticated(os.Stderr)
+		return config.ErrNotAuthenticated()
 	}
 
 	// Create API client
@@ -650,8 +675,8 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	}
 
 	if !cfg.IsAuthenticated() {
-		fmt.Fprintf(os.Stderr, "[ERROR] Not authenticated. Please run 'agentbay login' first\n")
-		return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
+		config.FprintNotAuthenticated(os.Stderr)
+		return config.ErrNotAuthenticated()
 	}
 
 	// Create API client
@@ -1047,8 +1072,8 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 	}
 
 	if !cfg.IsAuthenticated() {
-		fmt.Fprintf(os.Stderr, "[ERROR] Not authenticated. Please run 'agentbay login' first\n")
-		return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
+		config.FprintNotAuthenticated(os.Stderr)
+		return config.ErrNotAuthenticated()
 	}
 
 	// Create API client
@@ -1209,8 +1234,8 @@ func runImageDeactivate(cmd *cobra.Command, args []string) error {
 	}
 
 	if !cfg.IsAuthenticated() {
-		fmt.Fprintf(os.Stderr, "[ERROR] Not authenticated. Please run 'agentbay login' first\n")
-		return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
+		config.FprintNotAuthenticated(os.Stderr)
+		return config.ErrNotAuthenticated()
 	}
 
 	// Create API client
@@ -1383,8 +1408,8 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 	}
 
 	if !cfg.IsAuthenticated() {
-		fmt.Fprintf(os.Stderr, "[ERROR] Not authenticated. Please run 'agentbay login' first\n")
-		return fmt.Errorf("not authenticated. Please run 'agentbay login' first")
+		config.FprintNotAuthenticated(os.Stderr)
+		return config.ErrNotAuthenticated()
 	}
 
 	// Create API client
@@ -1494,6 +1519,64 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func runImageStatus(_ *cobra.Command, args []string) error {
+	imageId := args[0]
+
+	cfg, err := config.GetConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[ERROR] Failed to load configuration: %v\n", err)
+		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+	if !cfg.IsAuthenticated() {
+		config.FprintNotAuthenticated(os.Stderr)
+		return config.ErrNotAuthenticated()
+	}
+
+	apiClient := agentbay.NewClientFromConfig(cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	fmt.Printf("[STATUS] Querying image '%s'...\n", imageId)
+	imageInfo, err := GetImageInfo(ctx, apiClient, imageId)
+	if err != nil {
+		return fmt.Errorf("failed to get image info: %w", err)
+	}
+
+	typeLabel := imageInfo.ImageType
+	if typeLabel == "" {
+		typeLabel = "(unknown)"
+	}
+
+	fmt.Printf("[INFO] Image ID: %s\n", imageId)
+	fmt.Printf("[INFO] Image type: %s\n", typeLabel)
+	fmt.Printf("[INFO] Resource status (API): %s\n", imageInfo.ResourceStatus)
+	fmt.Printf("[INFO] Resource status (display): %s\n", TranslateImageResourceStatus(imageInfo.ResourceStatus))
+	fmt.Printf("[INFO] Deployment: %s\n", summarizeDeploymentState(imageInfo.ResourceStatus))
+
+	if IsSystemImage(imageInfo.ImageType) {
+		fmt.Printf("[NOTE] System images do not use activate/deactivate; status is informational.\n")
+	}
+
+	return nil
+}
+
+func summarizeDeploymentState(resourceStatus string) string {
+	switch {
+	case IsActivated(resourceStatus):
+		return "Activated"
+	case IsDeactivated(resourceStatus):
+		return "Not activated"
+	case IsActivating(resourceStatus):
+		return "Activating"
+	case IsDeactivating(resourceStatus):
+		return "Deactivating"
+	case IsFailed(resourceStatus):
+		return "Failed"
+	default:
+		return TranslateImageResourceStatus(resourceStatus)
+	}
 }
 
 // downloadDockerfileFromOSS downloads Dockerfile content from OSS URL

@@ -12,7 +12,6 @@ import (
 	"github.com/agentbay/agentbay-cli/internal/agentbay"
 	"github.com/agentbay/agentbay-cli/internal/client"
 	"github.com/alibabacloud-go/tea/dara"
-	log "github.com/sirupsen/logrus"
 )
 
 // ImageResourceStatus represents the possible states of an image resource
@@ -120,7 +119,6 @@ func IsAuthenticationError(err error) bool {
 
 	for _, pattern := range authErrorPatterns {
 		if strings.Contains(errMsg, strings.ToLower(pattern)) {
-			log.Debugf("[DEBUG] Detected authentication error pattern '%s' in: %s", pattern, err.Error())
 			return true
 		}
 	}
@@ -164,8 +162,6 @@ type ImageInfo struct {
 
 // GetImageInfo retrieves the current status and type for the given image ID
 func GetImageInfo(ctx context.Context, apiClient agentbay.Client, imageId string) (*ImageInfo, error) {
-	log.Debugf("[DEBUG] GetImageInfo: Querying info for image %s", imageId)
-
 	request := &client.GetMcpImageInfoRequest{}
 	request.SetImageId(imageId)
 
@@ -194,19 +190,16 @@ func GetImageInfo(ctx context.Context, apiClient agentbay.Client, imageId string
 	if resp.Headers != nil {
 		if resourceStatus, ok := resp.Headers["X-Image-Resource-Status"]; ok && resourceStatus != nil {
 			info.ResourceStatus = dara.StringValue(resourceStatus)
-			log.Debugf("[DEBUG] Got ImageResourceStatus from header: %s", info.ResourceStatus)
 		}
 
 		if imageType, ok := resp.Headers["X-Image-Type"]; ok && imageType != nil {
 			info.ImageType = dara.StringValue(imageType)
-			log.Debugf("[DEBUG] Got ImageType from header: %s", info.ImageType)
 		}
 	}
 
 	// Fallback to ImageInfo.Status if ImageResourceStatus not available
 	if info.ResourceStatus == "" && resp.Body.Data.ImageInfo != nil && resp.Body.Data.ImageInfo.Status != nil {
 		imageInfoStatus := dara.StringValue(resp.Body.Data.ImageInfo.Status)
-		log.Debugf("[DEBUG] Using ImageInfo.Status as fallback: %s", imageInfoStatus)
 		info.ResourceStatus = imageInfoStatus
 	}
 
@@ -214,7 +207,6 @@ func GetImageInfo(ctx context.Context, apiClient agentbay.Client, imageId string
 		return nil, fmt.Errorf("no status information available in response")
 	}
 
-	log.Debugf("[DEBUG] GetImageInfo: Returning status=%s, type=%s", info.ResourceStatus, info.ImageType)
 	return info, nil
 }
 
@@ -333,14 +325,10 @@ func pollForStatus(
 		// Get current status
 		status, err := GetImageResourceStatus(timeoutCtx, apiClient, imageId)
 		if err != nil {
-			log.Debugf("[DEBUG] Failed to get status (attempt %d/%d): %v", attempts, config.MaxAttempts, err)
 			// Don't fail immediately on API errors, continue polling
 		} else {
 			currentStatus := ImageResourceStatus(status)
 			translatedStatus := TranslateImageResourceStatus(status)
-
-			log.Debugf("[DEBUG] Polling attempt %d/%d: Current status = %s (%s)",
-				attempts, config.MaxAttempts, status, translatedStatus)
 
 			// Check if we've reached a target status
 			for _, expectedStatus := range expectedStatuses {
