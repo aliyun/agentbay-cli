@@ -138,9 +138,12 @@ func (c *Config) ClearTokens() error {
 	return c.Save()
 }
 
-// IsAuthenticated checks if the user is authenticated (has tokens)
+// IsAuthenticated checks if the user can call the API: OAuth access token in config, or AccessKey pair in the environment.
 func (c *Config) IsAuthenticated() bool {
-	return c.Token != nil && c.Token.AccessToken != ""
+	if c.Token != nil && c.Token.AccessToken != "" {
+		return true
+	}
+	return HasAccessKeyFromEnv()
 }
 
 // IsTokenExpired checks if the access token is expired

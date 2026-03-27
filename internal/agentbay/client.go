@@ -90,7 +90,6 @@ func (dt *debugTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 			// Cache XML responses for fallback parsing
 			if bytes.Contains(body, []byte("<?xml")) && (bytes.Contains(body, []byte("GetDockerFileStoreCredentialResponse")) || bytes.Contains(body, []byte("CreateDockerImageTaskResponse")) || bytes.Contains(body, []byte("GetDockerImageTaskResponse")) || bytes.Contains(body, []byte("ListMcpImagesResponse")) || bytes.Contains(body, []byte("GetMcpImageInfoResponse")) || bytes.Contains(body, []byte("CreateResourceGroupResponse")) || bytes.Contains(body, []byte("DeleteResourceGroupResponse")) || bytes.Contains(body, []byte("GetDockerfileTemplateResponse"))) {
 				xmlResponseCache = string(body)
-				log.Debugf("[DEBUG] Cached XML response for fallback parsing")
 			}
 
 			// Restore the body for normal processing
@@ -158,11 +157,11 @@ func NewClientFromConfig(cfg *config.Config) Client {
 
 // getClient returns the underlying SDK client, creating it if necessary
 func (cw *clientWrapper) getClient() (*client.Client, error) {
-	log.Debugf("[DEBUG] getClient: Creating new SDK client...")
+	if ak, sk, session, ok := config.AccessKeyFromEnv(); ok {
+		return newSDKClientWithAccessKeys(cw.apiConfig, ak, sk, session)
+	}
 
 	// Refresh token if needed (checks expiry and refreshes automatically)
-	log.Debugf("[DEBUG] getClient: Checking if token refresh is needed...")
-
 	// Create an adapter to bridge config.Config to auth.TokenConfig
 	tokenCfgAdapter := auth.NewConfigAdapter(
 		func() (string, string, time.Time, error) {
@@ -175,31 +174,15 @@ func (cw *clientWrapper) getClient() (*client.Client, error) {
 
 	err := auth.RefreshTokenIfNeeded(tokenCfgAdapter, config.GetClientID())
 	if err != nil {
-		log.Debugf("[DEBUG] getClient: Token refresh check failed: %v", err)
 		return nil, fmt.Errorf("failed to ensure valid token: %w", err)
 	}
 
-	// Get authentication token (now guaranteed to be valid or refreshed)
-	log.Debugf("[DEBUG] getClient: Getting authentication token...")
 	token, err := cw.config.GetToken()
 	if err != nil {
-		log.Debugf("[DEBUG] getClient: Failed to get authentication token: %v", err)
 		return nil, fmt.Errorf("failed to get authentication token: %w", err)
 	}
-	log.Debugf("[DEBUG] getClient: Authentication token obtained")
-	log.Debugf("[DEBUG] getClient: Access token length: %d", len(token.AccessToken))
-	if len(token.AccessToken) > 20 {
-		log.Debugf("[DEBUG] getClient: Access token preview: %s...", token.AccessToken[:20])
-	} else {
-		log.Debugf("[DEBUG] getClient: Full access token (short): '%s'", token.AccessToken)
-	}
 
-	// Create OpenAPI config
-	// For Alibaba Cloud SDK, we should pass only the hostname, not the full URL
-	endpoint := cw.apiConfig.Endpoint // Use raw endpoint without https:// prefix
-	log.Debugf("[DEBUG] getClient: Creating OpenAPI config with endpoint: %s", endpoint)
-	log.Debugf("[DEBUG] getClient: Timeout: %d ms", cw.apiConfig.TimeoutMs)
-
+	endpoint := cw.apiConfig.Endpoint
 	openapiConfig := &openapiutil.Config{
 		// Use BearerToken for OAuth authentication (backend now supports BearerToken)
 		BearerToken:    dara.String(token.AccessToken),
@@ -209,9 +192,7 @@ func (cw *clientWrapper) getClient() (*client.Client, error) {
 		UserAgent:      dara.String("AgentBay-CLI/1.0"),
 	}
 
-	// Set custom HTTP client for XML response caching (always needed for fallback parsing)
-	log.Debugf("[DEBUG] getClient: Setting up HTTP transport for XML response caching")
-
+	// Custom HTTP client for XML response caching (fallback parsing)
 	// Create a custom transport that wraps the default transport
 	baseTransport := http.DefaultTransport
 	if baseTransport == nil {
@@ -235,16 +216,11 @@ func (cw *clientWrapper) getClient() (*client.Client, error) {
 	// Set the custom HTTP client in OpenAPI config
 	openapiConfig.HttpClient = debugClient
 
-	// Create the client using the generated SDK client constructor
-	log.Debugf("[DEBUG] getClient: Calling client.NewClient...")
 	sdkClient, err := client.NewClient(openapiConfig)
 	if err != nil {
-		log.Debugf("[DEBUG] getClient: client.NewClient failed: %v", err)
 		return nil, fmt.Errorf("failed to create API client: %w", err)
 	}
-	log.Debugf("[DEBUG] getClient: SDK client created successfully")
 
-	// Don't cache the client to ensure token refresh check on each API call
 	return sdkClient, nil
 }
 
@@ -956,27 +932,26 @@ func (cw *clientWrapper) ListMcpImages(ctx context.Context, request *client.List
 	if err != nil {
 		return nil, err
 	}
+	return cw.listMcpImagesWithSDKClient(sdkClient, request)
+}
 
-	// Get runtime options with debug enabled if verbose
+// listMcpImagesWithSDKClient performs ListMcpImages using an already-configured SDK client (OAuth or access key).
+func (cw *clientWrapper) listMcpImagesWithSDKClient(sdkClient *client.Client, request *client.ListMcpImagesRequest) (*client.ListMcpImagesResponse, error) {
 	runtimeOptions := cw.getRuntimeOptions()
 
-	// Log basic request information in verbose mode
 	if log.GetLevel() >= log.DebugLevel {
 		log.Debugf("[DEBUG] Making ListMcpImages request...")
 	}
 
 	resp, err := sdkClient.ListMcpImagesWithOptions(request, runtimeOptions)
 
-	// Log detailed response information in verbose mode
 	if log.GetLevel() >= log.DebugLevel {
 		if err != nil {
-			// Check if this is a known XML parsing error
 			errStr := err.Error()
 			if bytes.Contains([]byte(errStr), []byte("readObjectStart: expect { or n, but found")) || bytes.Contains([]byte(errStr), []byte("invalid character '<' looking for beginning of value")) {
 				log.Debugf("[DEBUG] ListMcpImages HTTP Response: XML format detected, will use custom parser")
 			} else {
 				log.Debugf("[DEBUG] ListMcpImages HTTP Response Error: %v", err)
-				// Try to extract more details from the error
 				log.Debugf("[DEBUG] Error type: %T", err)
 				log.Debugf("[DEBUG] Error string: %s", err.Error())
 			}
@@ -986,16 +961,13 @@ func (cw *clientWrapper) ListMcpImages(ctx context.Context, request *client.List
 	}
 
 	if err != nil {
-		// Check if this is an XML parsing error
 		errStr := err.Error()
 		if bytes.Contains([]byte(errStr), []byte("readObjectStart: expect { or n, but found")) || bytes.Contains([]byte(errStr), []byte("invalid character '<' looking for beginning of value")) {
 			log.Debugf("[DEBUG] SDK returned XML response, using custom XML parser...")
 
-			// Use cached XML response if available
 			if xmlResponseCache != "" {
 				log.Debugf("[DEBUG] Parsing cached XML response...")
 
-				// Parse the cached XML directly
 				customResponse, parseErr := cw.parseListMcpImagesXMLResponse([]byte(xmlResponseCache))
 				if parseErr != nil {
 					log.Debugf("[DEBUG] Custom XML parsing failed: %v", parseErr)
@@ -1004,10 +976,9 @@ func (cw *clientWrapper) ListMcpImages(ctx context.Context, request *client.List
 
 				log.Debugf("[DEBUG] XML response parsed successfully")
 				return customResponse, nil
-			} else {
-				log.Debugf("[DEBUG] No cached XML response available")
-				return nil, fmt.Errorf("XML parsing failed and no cached response available: %w", err)
 			}
+			log.Debugf("[DEBUG] No cached XML response available")
+			return nil, fmt.Errorf("XML parsing failed and no cached response available: %w", err)
 		}
 
 		log.Debugf("[DEBUG] ClientWrapper: SDK API call failed: %v", err)
