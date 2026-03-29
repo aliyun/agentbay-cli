@@ -398,9 +398,6 @@ func (client *Client) GetDockerFileStoreCredentialWithOptions(request *GetDocker
 
 	req := &openapiutil.OpenApiRequest{
 		Query: openapiutil.Query(query),
-		Headers: map[string]*string{
-			"Accept": dara.String("application/xml"),
-		},
 	}
 	params := &openapiutil.Params{
 		Action:      dara.String("GetDockerFileStoreCredential"),
@@ -411,7 +408,8 @@ func (client *Client) GetDockerFileStoreCredentialWithOptions(request *GetDocker
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
-		BodyType:    dara.String("xml"),
+		// Backend returns JSON (RequestId, Data.OssUrl, etc.); xml bodyType caused dara.Convert to fail.
+		BodyType: dara.String("json"),
 	}
 	_result = &GetDockerFileStoreCredentialResponse{}
 	_body, _err := client.CallApi(params, req, runtime)
@@ -1123,9 +1121,6 @@ func (client *Client) CreateDockerImageTaskWithOptions(request *CreateDockerImag
 
 	req := &openapiutil.OpenApiRequest{
 		Query: openapiutil.Query(query),
-		Headers: map[string]*string{
-			"Accept": dara.String("application/xml"),
-		},
 	}
 	params := &openapiutil.Params{
 		Action:      dara.String("CreateDockerImageTask"),
@@ -1136,7 +1131,7 @@ func (client *Client) CreateDockerImageTaskWithOptions(request *CreateDockerImag
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
-		BodyType:    dara.String("xml"),
+		BodyType:    dara.String("json"),
 	}
 	_result = &CreateDockerImageTaskResponse{}
 	_body, _err := client.CallApi(params, req, runtime)
@@ -1190,9 +1185,6 @@ func (client *Client) GetDockerImageTaskWithOptions(request *GetDockerImageTaskR
 
 	req := &openapiutil.OpenApiRequest{
 		Query: openapiutil.Query(query),
-		Headers: map[string]*string{
-			"Accept": dara.String("application/xml"),
-		},
 	}
 	params := &openapiutil.Params{
 		Action:      dara.String("GetDockerImageTask"),
@@ -1203,7 +1195,7 @@ func (client *Client) GetDockerImageTaskWithOptions(request *GetDockerImageTaskR
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
-		BodyType:    dara.String("xml"),
+		BodyType:    dara.String("json"),
 	}
 	_result = &GetDockerImageTaskResponse{}
 	_body, _err := client.CallApi(params, req, runtime)

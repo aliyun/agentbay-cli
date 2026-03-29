@@ -88,7 +88,7 @@ func (dt *debugTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		body, err := io.ReadAll(resp.Body)
 		if err == nil {
 			// Cache XML responses for fallback parsing
-			if bytes.Contains(body, []byte("<?xml")) && (bytes.Contains(body, []byte("GetDockerFileStoreCredentialResponse")) || bytes.Contains(body, []byte("CreateDockerImageTaskResponse")) || bytes.Contains(body, []byte("GetDockerImageTaskResponse")) || bytes.Contains(body, []byte("ListMcpImagesResponse")) || bytes.Contains(body, []byte("GetMcpImageInfoResponse")) || bytes.Contains(body, []byte("CreateResourceGroupResponse")) || bytes.Contains(body, []byte("DeleteResourceGroupResponse")) || bytes.Contains(body, []byte("GetDockerfileTemplateResponse"))) {
+			if bytes.Contains(body, []byte("<?xml")) && (bytes.Contains(body, []byte("CreateDockerImageTaskResponse")) || bytes.Contains(body, []byte("GetDockerImageTaskResponse")) || bytes.Contains(body, []byte("ListMcpImagesResponse")) || bytes.Contains(body, []byte("GetMcpImageInfoResponse")) || bytes.Contains(body, []byte("CreateResourceGroupResponse")) || bytes.Contains(body, []byte("DeleteResourceGroupResponse")) || bytes.Contains(body, []byte("GetDockerfileTemplateResponse"))) {
 				xmlResponseCache = string(body)
 			}
 
@@ -232,57 +232,6 @@ func (cw *clientWrapper) getRuntimeOptions() *dara.RuntimeOptions {
 	// set in the OpenAPI config during client creation
 
 	return runtimeOptions
-}
-
-// XMLGetDockerFileStoreCredentialResponse represents the XML response structure
-type XMLGetDockerFileStoreCredentialResponse struct {
-	XMLName        xml.Name `xml:"GetDockerFileStoreCredentialResponse"`
-	RequestId      string   `xml:"RequestId"`
-	HttpStatusCode int      `xml:"HttpStatusCode"`
-	Data           struct {
-		TaskId string `xml:"TaskId"`
-		OssUrl string `xml:"OssUrl"`
-	} `xml:"Data"`
-	Code    string `xml:"Code"`
-	Success bool   `xml:"Success"`
-}
-
-// parseXMLResponse parses XML response and converts it to SDK response format
-func (cw *clientWrapper) parseXMLResponse(xmlData []byte) (*client.GetDockerFileStoreCredentialResponse, error) {
-	log.Debugf("[DEBUG] Parsing XML data: %s", string(xmlData))
-
-	var xmlResp XMLGetDockerFileStoreCredentialResponse
-	if err := xml.Unmarshal(xmlData, &xmlResp); err != nil {
-		log.Debugf("[DEBUG] XML unmarshal failed: %v", err)
-		return nil, fmt.Errorf("failed to parse XML response: %w", err)
-	}
-
-	log.Debugf("[DEBUG] Parsed XML data:")
-	log.Debugf("[DEBUG] - RequestId: %s", xmlResp.RequestId)
-	log.Debugf("[DEBUG] - HttpStatusCode: %d", xmlResp.HttpStatusCode)
-	log.Debugf("[DEBUG] - Code: %s", xmlResp.Code)
-	log.Debugf("[DEBUG] - Success: %t", xmlResp.Success)
-	log.Debugf("[DEBUG] - TaskId: %s", xmlResp.Data.TaskId)
-	log.Debugf("[DEBUG] - OssUrl: %s", xmlResp.Data.OssUrl)
-
-	// Convert to SDK response format
-	response := &client.GetDockerFileStoreCredentialResponse{
-		Headers:    make(map[string]*string),
-		StatusCode: dara.Int32(int32(xmlResp.HttpStatusCode)),
-		Body: &client.GetDockerFileStoreCredentialResponseBody{
-			RequestId:      dara.String(xmlResp.RequestId),
-			HttpStatusCode: dara.Int32(int32(xmlResp.HttpStatusCode)),
-			Code:           dara.String(xmlResp.Code),
-			Success:        dara.Bool(xmlResp.Success),
-			Data: &client.GetDockerFileStoreCredentialResponseBodyData{
-				TaskId: dara.String(xmlResp.Data.TaskId),
-				OssUrl: dara.String(xmlResp.Data.OssUrl),
-			},
-		},
-	}
-
-	log.Debugf("[DEBUG] Created SDK response with OssUrl: %s", xmlResp.Data.OssUrl)
-	return response, nil
 }
 
 // XMLCreateDockerImageTaskResponse represents the XML response structure for CreateDockerImageTask
@@ -652,74 +601,23 @@ func (cw *clientWrapper) parseDeleteResourceGroupXMLResponse(xmlData []byte) (*c
 
 // GetDockerFileStoreCredential wraps the SDK client method
 func (cw *clientWrapper) GetDockerFileStoreCredential(ctx context.Context, request *client.GetDockerFileStoreCredentialRequest) (*client.GetDockerFileStoreCredentialResponse, error) {
-	log.Debugf("[DEBUG] ClientWrapper: Getting SDK client...")
 	sdkClient, err := cw.getClient()
 	if err != nil {
-		log.Debugf("[DEBUG] ClientWrapper: Failed to get SDK client: %v", err)
 		return nil, err
 	}
-	log.Debugf("[DEBUG] ClientWrapper: SDK client obtained, making API call...")
-
-	// Get runtime options with debug enabled if verbose
 	runtimeOptions := cw.getRuntimeOptions()
-
-	// Log basic request information in verbose mode
 	if log.GetLevel() >= log.DebugLevel {
 		log.Debugf("[DEBUG] Making GetDockerFileStoreCredential request...")
 	}
-
 	resp, err := sdkClient.GetDockerFileStoreCredentialWithOptions(request, runtimeOptions)
-
-	// Log detailed response information in verbose mode
 	if log.GetLevel() >= log.DebugLevel {
 		if err != nil {
-			// Check if this is a known XML parsing error
-			errStr := err.Error()
-			if bytes.Contains([]byte(errStr), []byte("readObjectStart: expect { or n, but found")) {
-				log.Debugf("[DEBUG] HTTP Response: XML format detected, will use custom parser")
-			} else {
-				log.Debugf("[DEBUG] HTTP Response Error: %v", err)
-				// Try to extract more details from the error
-				log.Debugf("[DEBUG] Error type: %T", err)
-				log.Debugf("[DEBUG] Error string: %s", err.Error())
-			}
+			log.Debugf("[DEBUG] GetDockerFileStoreCredential API error: %v", err)
 		} else {
 			log.Debugf("[DEBUG] GetDockerFileStoreCredential request completed successfully")
 		}
 	}
-
-	if err != nil {
-		// Check if this is an XML parsing error
-		errStr := err.Error()
-		if bytes.Contains([]byte(errStr), []byte("readObjectStart: expect { or n, but found")) {
-			log.Debugf("[DEBUG] SDK returned XML response, using custom XML parser...")
-
-			// Use cached XML response if available
-			if xmlResponseCache != "" {
-				log.Debugf("[DEBUG] Parsing cached XML response...")
-
-				// Parse the cached XML directly
-				customResponse, parseErr := cw.parseXMLResponse([]byte(xmlResponseCache))
-				if parseErr != nil {
-					log.Debugf("[DEBUG] Custom XML parsing failed: %v", parseErr)
-					return nil, fmt.Errorf("XML parsing failed: %w", parseErr)
-				}
-
-				log.Debugf("[DEBUG] XML response parsed successfully")
-
-				return customResponse, nil
-			} else {
-				log.Debugf("[DEBUG] No cached XML response available")
-				return nil, fmt.Errorf("XML parsing failed and no cached response available: %w", err)
-			}
-		}
-
-		log.Debugf("[DEBUG] ClientWrapper: SDK API call failed: %v", err)
-		return nil, err
-	}
-	log.Debugf("[DEBUG] ClientWrapper: SDK API call completed successfully")
-
-	return resp, nil
+	return resp, err
 }
 
 // GetMarketSkillCredential wraps the SDK client method
@@ -1178,7 +1076,7 @@ func (cw *clientWrapper) parseGetMcpImageInfoXMLResponse(xmlData []byte) (*clien
 
 	// Convert ImageInfo
 	var imageInfo *client.GetMcpImageInfoResponseBodyDataImageInfo
-	if xmlResp.Data.ImageInfo.OsName != "" || xmlResp.Data.ImageInfo.Status != "" {
+	if xmlResp.Data.ImageInfo.OsName != "" || xmlResp.Data.ImageInfo.Status != "" || xmlResp.Data.ImageInfo.ImageType != "" {
 		imageInfo = &client.GetMcpImageInfoResponseBodyDataImageInfo{
 			OsName:         dara.String(xmlResp.Data.ImageInfo.OsName),
 			OsVersion:      dara.String(xmlResp.Data.ImageInfo.OsVersion),
@@ -1187,6 +1085,7 @@ func (cw *clientWrapper) parseGetMcpImageInfoXMLResponse(xmlData []byte) (*clien
 			DataDiskSize:   dara.Int32(xmlResp.Data.ImageInfo.DataDiskSize),
 			SystemDiskSize: dara.Int32(xmlResp.Data.ImageInfo.SystemDiskSize),
 			UpdateTime:     dara.String(xmlResp.Data.ImageInfo.UpdateTime),
+			ImageType:      dara.String(xmlResp.Data.ImageInfo.ImageType),
 		}
 	}
 
@@ -1214,12 +1113,13 @@ func (cw *clientWrapper) parseGetMcpImageInfoXMLResponse(xmlData []byte) (*clien
 			Success:        dara.Bool(xmlResp.Success),
 			Message:        dara.String(xmlResp.Message),
 			Data: &client.GetMcpImageInfoResponseBodyData{
-				ImageId:         dara.String(xmlResp.Data.ImageId),
-				ImageName:       dara.String(xmlResp.Data.ImageName),
-				ImageBuildType:  dara.String(xmlResp.Data.ImageBuildType),
-				ImageApplyScene: dara.String(xmlResp.Data.ImageApplyScene),
-				ImageInfo:       imageInfo,
-				ImageBuildInfo:  imageBuildInfo,
+				ImageId:             dara.String(xmlResp.Data.ImageId),
+				ImageName:           dara.String(xmlResp.Data.ImageName),
+				ImageBuildType:      dara.String(xmlResp.Data.ImageBuildType),
+				ImageApplyScene:     dara.String(xmlResp.Data.ImageApplyScene),
+				ImageResourceStatus: dara.String(xmlResp.Data.ImageResourceStatus),
+				ImageInfo:           imageInfo,
+				ImageBuildInfo:      imageBuildInfo,
 			},
 		},
 	}

@@ -38,9 +38,6 @@ func (client *Client) GetDockerFileStoreCredentialWithContext(ctx context.Contex
 
 	req := &openapiutil.OpenApiRequest{
 		Query: openapiutil.Query(query),
-		Headers: map[string]*string{
-			"Accept": dara.String("application/xml"),
-		},
 	}
 	params := &openapiutil.Params{
 		Action:      dara.String("GetDockerFileStoreCredential"),
@@ -51,7 +48,7 @@ func (client *Client) GetDockerFileStoreCredentialWithContext(ctx context.Contex
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
-		BodyType:    dara.String("xml"),
+		BodyType:    dara.String("json"),
 	}
 	_result = &GetDockerFileStoreCredentialResponse{}
 	_body, _err := client.CallApi(params, req, runtime)
@@ -183,9 +180,6 @@ func (client *Client) CreateDockerImageTaskWithContext(ctx context.Context, requ
 
 	req := &openapiutil.OpenApiRequest{
 		Query: openapiutil.Query(query),
-		Headers: map[string]*string{
-			"Accept": dara.String("application/xml"),
-		},
 	}
 	params := &openapiutil.Params{
 		Action:      dara.String("CreateDockerImageTask"),
@@ -196,7 +190,7 @@ func (client *Client) CreateDockerImageTaskWithContext(ctx context.Context, requ
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
-		BodyType:    dara.String("xml"),
+		BodyType:    dara.String("json"),
 	}
 	_result = &CreateDockerImageTaskResponse{}
 	_body, _err := client.CallApi(params, req, runtime)
@@ -232,9 +226,6 @@ func (client *Client) GetDockerImageTaskWithContext(ctx context.Context, request
 
 	req := &openapiutil.OpenApiRequest{
 		Query: openapiutil.Query(query),
-		Headers: map[string]*string{
-			"Accept": dara.String("application/xml"),
-		},
 	}
 	params := &openapiutil.Params{
 		Action:      dara.String("GetDockerImageTask"),
@@ -245,7 +236,7 @@ func (client *Client) GetDockerImageTaskWithContext(ctx context.Context, request
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
-		BodyType:    dara.String("xml"),
+		BodyType:    dara.String("json"),
 	}
 	_result = &GetDockerImageTaskResponse{}
 	_body, _err := client.CallApi(params, req, runtime)

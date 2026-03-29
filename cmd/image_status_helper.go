@@ -186,7 +186,7 @@ func GetImageInfo(ctx context.Context, apiClient agentbay.Client, imageId string
 
 	info := &ImageInfo{}
 
-	// Try to get ImageResourceStatus from response headers (stored during XML parsing)
+	// Try to get ImageResourceStatus from response headers (stored during XML parsing or wrapper)
 	if resp.Headers != nil {
 		if resourceStatus, ok := resp.Headers["X-Image-Resource-Status"]; ok && resourceStatus != nil {
 			info.ResourceStatus = dara.StringValue(resourceStatus)
@@ -197,10 +197,24 @@ func GetImageInfo(ctx context.Context, apiClient agentbay.Client, imageId string
 		}
 	}
 
+	// JSON body fields (SDK path does not populate X-* headers)
+	if info.ResourceStatus == "" && resp.Body.Data.ImageResourceStatus != nil {
+		info.ResourceStatus = dara.StringValue(resp.Body.Data.ImageResourceStatus)
+	}
+
 	// Fallback to ImageInfo.Status if ImageResourceStatus not available
 	if info.ResourceStatus == "" && resp.Body.Data.ImageInfo != nil && resp.Body.Data.ImageInfo.Status != nil {
 		imageInfoStatus := dara.StringValue(resp.Body.Data.ImageInfo.Status)
 		info.ResourceStatus = imageInfoStatus
+	}
+
+	if info.ImageType == "" && resp.Body.Data.ImageInfo != nil && resp.Body.Data.ImageInfo.ImageType != nil {
+		info.ImageType = dara.StringValue(resp.Body.Data.ImageInfo.ImageType)
+	}
+
+	// Match `image list` bucketing when the API omits ImageType on the JSON path
+	if info.ImageType == "" {
+		info.ImageType = inferImageTypeFromImageID(imageId)
 	}
 
 	if info.ResourceStatus == "" {
@@ -208,6 +222,14 @@ func GetImageInfo(ctx context.Context, apiClient agentbay.Client, imageId string
 	}
 
 	return info, nil
+}
+
+// inferImageTypeFromImageID returns User vs System using the same imgc- rule as runImageListWithBothTypes.
+func inferImageTypeFromImageID(imageId string) string {
+	if strings.HasPrefix(imageId, "imgc-") {
+		return "User"
+	}
+	return "System"
 }
 
 // GetImageResourceStatus retrieves the current ImageResourceStatus for the given image ID
