@@ -84,9 +84,10 @@ uninstall:
 # Cross-compilation targets
 .PHONY: build-linux build-windows build-darwin build-all
 
+# Linux: CGO_ENABLED=0 avoids linking against the builder's glibc (fixes GLIBC_x.xx not found on older distros).
 build-linux: deps
-	GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o bin/$(BINARY_NAME)-linux-amd64 .
-	GOOS=linux GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o bin/$(BINARY_NAME)-linux-arm64 .
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o bin/$(BINARY_NAME)-linux-amd64 .
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o bin/$(BINARY_NAME)-linux-arm64 .
 
 build-windows: deps
 	GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o bin/$(BINARY_NAME)-windows-amd64.exe .
@@ -106,8 +107,8 @@ build-all: deps
 .PHONY: build-linux-optimized build-windows-optimized build-darwin-optimized build-all-optimized
 
 build-linux-optimized: deps
-	GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS_OPTIMIZED) -o bin/$(BINARY_NAME)-linux-amd64 .
-	GOOS=linux GOARCH=arm64 $(GOBUILD) $(LDFLAGS_OPTIMIZED) -o bin/$(BINARY_NAME)-linux-arm64 .
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS_OPTIMIZED) -o bin/$(BINARY_NAME)-linux-amd64 .
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(GOBUILD) $(LDFLAGS_OPTIMIZED) -o bin/$(BINARY_NAME)-linux-arm64 .
 
 build-windows-optimized: deps
 	GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS_OPTIMIZED) -o bin/$(BINARY_NAME)-windows-amd64.exe .
