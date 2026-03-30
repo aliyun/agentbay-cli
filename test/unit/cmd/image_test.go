@@ -170,10 +170,11 @@ func TestImageCreateCommandWithValidDockerfile(t *testing.T) {
 		t.Error("Expected error, but got none")
 	}
 	// The error could be authentication, validation, API related, or build failure, all are acceptable for this test
-	if !strings.Contains(err.Error(), "not authenticated") &&
-		!strings.Contains(err.Error(), "failed to get upload credentials") &&
-		!strings.Contains(err.Error(), "image build failed") &&
-		!strings.Contains(err.Error(), "command failed") {
+	low := strings.ToLower(err.Error())
+	if !strings.Contains(low, "not authenticated") &&
+		!strings.Contains(low, "failed to get upload credentials") &&
+		!strings.Contains(low, "image build failed") &&
+		!strings.Contains(low, "[error]") {
 		t.Errorf("Expected authentication, validation, API, or build error, but got: %s", err.Error())
 	}
 }

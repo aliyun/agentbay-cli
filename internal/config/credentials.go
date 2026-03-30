@@ -5,7 +5,6 @@ package config
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"strings"
 )
@@ -38,9 +37,4 @@ func AccessKeyFromEnv() (accessKeyID, accessKeySecret, securityToken string, ok 
 // ErrNotAuthenticated is returned when neither OAuth tokens nor AccessKey env credentials are available.
 func ErrNotAuthenticated() error {
 	return fmt.Errorf("not authenticated. Please run 'agentbay login' or set %s and %s", EnvAccessKeyID, EnvAccessKeySecret)
-}
-
-// FprintNotAuthenticated writes the standard CLI auth error line to w (include trailing newline).
-func FprintNotAuthenticated(w io.Writer) {
-	fmt.Fprintf(w, "[ERROR] Not authenticated. Please run 'agentbay login' or set %s and %s\n", EnvAccessKeyID, EnvAccessKeySecret)
 }

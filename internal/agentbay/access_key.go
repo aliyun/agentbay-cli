@@ -5,7 +5,6 @@ package agentbay
 
 import (
 	"fmt"
-	"net/http"
 
 	openapiutil "github.com/alibabacloud-go/darabonba-openapi/v2/utils"
 	"github.com/alibabacloud-go/tea/dara"
@@ -27,14 +26,6 @@ func newSDKClientWithAccessKeys(apiConfig *config.APIConfig, accessKeyID, access
 	if securityToken != "" {
 		openapiConfig.SecurityToken = dara.String(securityToken)
 	}
-
-	baseTransport := http.DefaultTransport
-	if baseTransport == nil {
-		baseTransport = &http.Transport{}
-	}
-	debugTransport := &debugTransport{base: baseTransport}
-	httpClient := &http.Client{Transport: debugTransport}
-	openapiConfig.HttpClient = &debugHttpClient{client: httpClient}
 
 	sdkClient, err := client.NewClient(openapiConfig)
 	if err != nil {

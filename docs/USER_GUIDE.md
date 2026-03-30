@@ -52,7 +52,7 @@ Clears **OAuth** tokens stored in the CLI config file. It does not unset environ
 
 ## 3. Skills
 
-Manage skills and skill groups. The following matches the current CLI; commands that are not yet backed by a full API only print an informational message.
+Manage skills. The following matches the current CLI; commands that are not yet backed by a full API only print an informational message.
 
 ### Commands
 
@@ -65,40 +65,13 @@ agentbay skills list                  # List skills (placeholder until backend A
 
 # Show skill details by ID (DescribeMarketSkillDetail)
 agentbay skills show <skill-id>
-
-# Create a skill group; prints [SUCCESS], Group ID, and group name. Use -v for raw API response.
-agentbay skills group create <name> [--description "..."]
-
-# List your skill groups (table: GROUP-ID, GROUP-NAME)
-agentbay skills group list
-
-agentbay skills group show <group-id>           # Placeholder until backend API
-
-# Add or remove a skill in a group
-agentbay skills group add-skill <group-id> <skill-id>
-agentbay skills group remove-skill <group-id> <skill-id>
 ```
-
-**Options (group create):** `--description`, `-d` — optional group description (backend may ignore until supported).
 
 **Example output (aligned with image CLI style):**
 ```
 # After skills push
 [SUCCESS] ✅ Skill created successfully!
 [RESULT] Skill ID: 35U2Ver2
-
-# After skills group create
-[SUCCESS] ✅ Group created successfully!
-[RESULT] Group ID: k4RS99VC
-[DOC] Group name: test_skill_group
-
-# After skills group list (with data)
-[OK] Found 6 groups.
-
-GROUP-ID             GROUP-NAME
---------------------------------------------
-NddfVFfd             default
-...
 ```
 
 ### Placeholder commands (not yet implemented)
@@ -106,7 +79,6 @@ NddfVFfd             default
 These commands exist but do not call a backend API; they only print a message that the API is not yet available:
 
 - **`agentbay skills list`** — Lists skills visible to you. Currently prints: backend list API is not yet available.
-- **`agentbay skills group show <group-id>`** — Group details and its skills. Currently prints: backend API is not yet available.
 
 ## 4. List Images
 
@@ -329,7 +301,6 @@ agentbay version
 ```bash
 agentbay -v image list
 agentbay -v skills push ./my-skill
-agentbay -v skills group create my-group
 ```
 
 **Q: Login issues?**

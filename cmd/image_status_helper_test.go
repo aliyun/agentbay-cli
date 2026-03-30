@@ -64,22 +64,6 @@ func (m *mockGetMcpImageInfoClient) DescribeMarketSkillDetail(ctx context.Contex
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (m *mockGetMcpImageInfoClient) CreateMarketSkillGroup(ctx context.Context, request *client.CreateMarketSkillGroupRequest) (*client.CreateMarketSkillGroupResponse, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
-func (m *mockGetMcpImageInfoClient) ListMarketGroupSkill(ctx context.Context, request *client.ListMarketGroupSkillRequest) (*client.ListMarketGroupSkillResponse, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
-func (m *mockGetMcpImageInfoClient) AddMarketGroupSkill(ctx context.Context, request *client.AddMarketGroupSkillRequest) (*client.AddMarketGroupSkillResponse, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
-func (m *mockGetMcpImageInfoClient) RemoveMarketGroupSkill(ctx context.Context, request *client.RemoveMarketGroupSkillRequest) (*client.RemoveMarketGroupSkillResponse, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
 var _ agentbay.Client = (*mockGetMcpImageInfoClient)(nil)
 
 func TestInferImageTypeFromImageID(t *testing.T) {

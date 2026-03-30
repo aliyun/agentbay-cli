@@ -24,17 +24,13 @@ import (
 
 const skillFileName = "SKILL.md"
 
-// Output style: label width for skill show, table column width for group list (no emoji).
-const (
-	skillDetailLabelW = 14
-	groupTableIDW     = 20
-	groupTableSepLen  = 44
-)
+// Output style: label width for skill show (no emoji).
+const skillDetailLabelW = 14
 
 var SkillsCmd = &cobra.Command{
 	Use:     "skills",
 	Short:   "Manage AgentBay skills",
-	Long:    "Push and list skills; show details; manage skill groups.",
+	Long:    "Push and list skills; show details.",
 	GroupID: "management",
 }
 
@@ -64,66 +60,10 @@ var skillsShowCmd = &cobra.Command{
 	RunE:  runSkillsShow,
 }
 
-// skills group
-var skillsGroupCmd = &cobra.Command{
-	Use:     "group",
-	Short:   "Manage skill groups",
-	Long:    "Create, list, and manage skill groups; add or remove skills in a group.",
-	GroupID: "",
-}
-
-var skillsGroupCreateCmd = &cobra.Command{
-	Use:   "create <name>",
-	Short: "Create a skill group",
-	Long:  `Create a new skill group. Optionally set description with --description.`,
-	Args:  cobra.ExactArgs(1),
-	RunE:  runSkillsGroupCreate,
-}
-
-var skillsGroupListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List skill groups",
-	Long:  `List skill groups for the current user.`,
-	Args:  cobra.NoArgs,
-	RunE:  runSkillsGroupList,
-}
-
-var skillsGroupShowCmd = &cobra.Command{
-	Use:   "show <group-id>",
-	Short: "Show group details",
-	Long:  `Show group details and its skills. (Placeholder: backend API coming soon.)`,
-	Args:  cobra.ExactArgs(1),
-	RunE:  runSkillsGroupShow,
-}
-
-var skillsGroupAddSkillCmd = &cobra.Command{
-	Use:   "add-skill <group-id> <skill-id>",
-	Short: "Add a skill to a group",
-	Long:  `Add a skill to a skill group.`,
-	Args:  cobra.ExactArgs(2),
-	RunE:  runSkillsGroupAddSkill,
-}
-
-var skillsGroupRemoveSkillCmd = &cobra.Command{
-	Use:   "remove-skill <group-id> <skill-id>",
-	Short: "Remove a skill from a group",
-	Long:  `Remove a skill from a skill group.`,
-	Args:  cobra.ExactArgs(2),
-	RunE:  runSkillsGroupRemoveSkill,
-}
-
 func init() {
 	SkillsCmd.AddCommand(skillsPushCmd)
 	SkillsCmd.AddCommand(skillsListCmd)
 	SkillsCmd.AddCommand(skillsShowCmd)
-
-	SkillsCmd.AddCommand(skillsGroupCmd)
-	skillsGroupCreateCmd.Flags().StringP("description", "d", "", "Description of the group")
-	skillsGroupCmd.AddCommand(skillsGroupCreateCmd)
-	skillsGroupCmd.AddCommand(skillsGroupListCmd)
-	skillsGroupCmd.AddCommand(skillsGroupShowCmd)
-	skillsGroupCmd.AddCommand(skillsGroupAddSkillCmd)
-	skillsGroupCmd.AddCommand(skillsGroupRemoveSkillCmd)
 }
 
 // parseSkillFrontmatter parses --- name: x description: y --- from SKILL.md content.
@@ -212,8 +152,7 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 	credResp, err := apiClient.GetMarketSkillCredential(ctx, credReq)
 	if err != nil {
 		printRequestIDFromErrIfVerbose(cmd, err)
-		fmt.Fprintf(os.Stderr, "[ERROR] Failed to get upload credential: %v\n", err)
-		return fmt.Errorf("get credential: %w", err)
+		return fmt.Errorf("[ERROR] Failed to get upload credential: %w", err)
 	}
 	if credResp.Body == nil || credResp.Body.Data == nil {
 		return fmt.Errorf("invalid response: missing credential data")
@@ -249,8 +188,7 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 			}
 		}
 		if err := uploadFileToOSS(zipPath, uploadURLStr); err != nil {
-			fmt.Fprintf(os.Stderr, "[ERROR] Failed to upload: %v\n", err)
-			return fmt.Errorf("upload: %w", err)
+			return fmt.Errorf("[ERROR] Failed to upload: %w", err)
 		}
 	} else {
 		// Directory: pack then upload
@@ -276,8 +214,7 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 			fmt.Fprintf(os.Stderr, "[DEBUG] Upload size: %d bytes, temp file: %s\n", zipBuf.Len(), tmpPath)
 		}
 		if err := uploadFileToOSS(tmpPath, uploadURLStr); err != nil {
-			fmt.Fprintf(os.Stderr, "[ERROR] Failed to upload: %v\n", err)
-			return fmt.Errorf("upload: %w", err)
+			return fmt.Errorf("[ERROR] Failed to upload: %w", err)
 		}
 	}
 
@@ -298,8 +235,7 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 			fmt.Fprintf(os.Stderr, "[DEBUG] Raw response: %s\n", createResp.RawBody)
 		}
 		printRequestIDFromErrIfVerbose(cmd, err)
-		fmt.Fprintf(os.Stderr, "[ERROR] Failed to create skill: %v\n", err)
-		return fmt.Errorf("create skill: %w", err)
+		return fmt.Errorf("[ERROR] Failed to create skill: %w", err)
 	}
 	var skillId string
 	if createResp.Body != nil && createResp.Body.Data != nil && createResp.Body.Data.SkillId != nil {
@@ -430,8 +366,7 @@ func runSkillsShow(cmd *cobra.Command, args []string) error {
 	resp, err := apiClient.DescribeMarketSkillDetail(ctx, req)
 	if err != nil {
 		printRequestIDFromErrIfVerbose(cmd, err)
-		fmt.Fprintf(os.Stderr, "[ERROR] Failed to get skill details: %v\n", err)
-		return fmt.Errorf("describe skill: %w", err)
+		return fmt.Errorf("[ERROR] Failed to get skill details: %w", err)
 	}
 	if resp.Body == nil || resp.Body.Data == nil {
 		fmt.Fprintf(os.Stderr, "[INFO] No details for skill %s\n", skillId)
@@ -495,135 +430,4 @@ func wrapText(s string, width int, indent string) string {
 		}
 	}
 	return strings.TrimSuffix(b.String(), "\n")
-}
-
-func runSkillsGroupCreate(cmd *cobra.Command, args []string) error {
-	name := args[0]
-	cfg, err := config.GetConfig()
-	if err != nil {
-		return fmt.Errorf("load config: %w", err)
-	}
-	apiClient := agentbay.NewClientFromConfig(cfg)
-	ctx := context.Background()
-
-	req := &client.CreateMarketSkillGroupRequest{GroupName: &name}
-	if desc, _ := cmd.Flags().GetString("description"); desc != "" {
-		_ = desc
-	}
-	resp, err := apiClient.CreateMarketSkillGroup(ctx, req)
-	if err != nil {
-		printRequestIDFromErrIfVerbose(cmd, err)
-		fmt.Fprintf(os.Stderr, "[ERROR] Failed to create group: %v\n", err)
-		return fmt.Errorf("create group: %w", err)
-	}
-	if verbose, _ := cmd.Flags().GetBool("verbose"); verbose && resp != nil && resp.RawBody != "" {
-		fmt.Fprintf(os.Stderr, "[DEBUG] Raw response: %s\n", resp.RawBody)
-	}
-	var groupId string
-	if resp.Body != nil && resp.Body.Data != nil && resp.Body.Data.GroupId != nil {
-		groupId = *resp.Body.Data.GroupId
-	}
-	if groupId == "" {
-		groupId = "<unknown>"
-	}
-	fmt.Println()
-	fmt.Printf("[SUCCESS] ✅ Group created successfully!\n")
-	fmt.Printf("[RESULT] Group ID: %s\n", groupId)
-	fmt.Printf("[DOC] Group name: %s\n", name)
-	return nil
-}
-
-func runSkillsGroupList(cmd *cobra.Command, args []string) error {
-	cfg, err := config.GetConfig()
-	if err != nil {
-		return fmt.Errorf("load config: %w", err)
-	}
-	apiClient := agentbay.NewClientFromConfig(cfg)
-	ctx := context.Background()
-
-	req := &client.ListMarketGroupSkillRequest{}
-	resp, err := apiClient.ListMarketGroupSkill(ctx, req)
-	if err != nil {
-		printRequestIDFromErrIfVerbose(cmd, err)
-		fmt.Fprintf(os.Stderr, "[ERROR] Failed to list groups: %v\n", err)
-		return fmt.Errorf("list groups: %w", err)
-	}
-	verbose, _ := cmd.Flags().GetBool("verbose")
-	if verbose && resp != nil && resp.Body != nil && resp.Body.ListMarketGroupSkillResponseBody != nil && resp.Body.ListMarketGroupSkillResponseBody.RequestId != nil {
-		fmt.Fprintf(os.Stderr, "[DEBUG] RequestId: %s\n", *resp.Body.ListMarketGroupSkillResponseBody.RequestId)
-	}
-	if resp.Body == nil || len(resp.Body.Data) == 0 {
-		fmt.Printf("\n[EMPTY] No groups found.\n")
-		return nil
-	}
-	fmt.Printf("\n[OK] Found %d groups.\n\n", len(resp.Body.Data))
-	fmt.Printf("%-*s %s\n", groupTableIDW, "GROUP-ID", "GROUP-NAME")
-	fmt.Println(strings.Repeat("-", groupTableSepLen))
-	for _, item := range resp.Body.Data {
-		gid := ""
-		if item.GroupId != nil {
-			gid = *item.GroupId
-		}
-		gname := ""
-		if item.GroupName != nil {
-			gname = *item.GroupName
-		}
-		fmt.Printf("%-*s %s\n", groupTableIDW, gid, gname)
-	}
-	return nil
-}
-
-func runSkillsGroupShow(cmd *cobra.Command, args []string) error {
-	fmt.Fprintf(os.Stderr, "[INFO] Group detail (show): backend API is not yet available. Group ID: %s\n", args[0])
-	return nil
-}
-
-func runSkillsGroupAddSkill(cmd *cobra.Command, args []string) error {
-	groupId, skillId := args[0], args[1]
-	cfg, err := config.GetConfig()
-	if err != nil {
-		return fmt.Errorf("load config: %w", err)
-	}
-	apiClient := agentbay.NewClientFromConfig(cfg)
-	ctx := context.Background()
-
-	req := &client.AddMarketGroupSkillRequest{GroupId: &groupId, SkillId: &skillId}
-	resp, err := apiClient.AddMarketGroupSkill(ctx, req)
-	if err != nil {
-		printRequestIDFromErrIfVerbose(cmd, err)
-		fmt.Fprintf(os.Stderr, "[ERROR] Failed to add skill to group: %v\n", err)
-		return fmt.Errorf("add skill to group: %w", err)
-	}
-	if resp != nil && resp.Body != nil && resp.Body.RequestId != nil {
-		printRequestIDIfVerbose(cmd, *resp.Body.RequestId)
-	}
-	fmt.Println()
-	fmt.Printf("[SUCCESS] ✅ Skill added to group.\n")
-	fmt.Printf("[RESULT] skill-id: %s  group-id: %s\n", skillId, groupId)
-	return nil
-}
-
-func runSkillsGroupRemoveSkill(cmd *cobra.Command, args []string) error {
-	groupId, skillId := args[0], args[1]
-	cfg, err := config.GetConfig()
-	if err != nil {
-		return fmt.Errorf("load config: %w", err)
-	}
-	apiClient := agentbay.NewClientFromConfig(cfg)
-	ctx := context.Background()
-
-	req := &client.RemoveMarketGroupSkillRequest{GroupId: &groupId, SkillId: &skillId}
-	resp, err := apiClient.RemoveMarketGroupSkill(ctx, req)
-	if err != nil {
-		printRequestIDFromErrIfVerbose(cmd, err)
-		fmt.Fprintf(os.Stderr, "[ERROR] Failed to remove skill from group: %v\n", err)
-		return fmt.Errorf("remove skill from group: %w", err)
-	}
-	if resp != nil && resp.Body != nil && resp.Body.RequestId != nil {
-		printRequestIDIfVerbose(cmd, *resp.Body.RequestId)
-	}
-	fmt.Println()
-	fmt.Printf("[SUCCESS] ✅ Skill removed from group.\n")
-	fmt.Printf("[RESULT] skill-id: %s  group-id: %s\n", skillId, groupId)
-	return nil
 }

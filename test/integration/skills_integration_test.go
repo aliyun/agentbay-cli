@@ -86,9 +86,8 @@ func TestSkillsPushCommand_Integration(t *testing.T) {
 					t.Errorf("Expected error but got none. stderr: %s", errOut.String())
 					return
 				}
-				// Optional: errContains (cobra uses it for "accepts 1 arg"; printErrorMessage returns "command failed")
-				if tt.errContains != "" && !strings.Contains(err.Error(), tt.errContains) && err.Error() != "command failed" {
-					t.Errorf("Expected error to contain %q or 'command failed', got: %s", tt.errContains, err.Error())
+				if tt.errContains != "" && !strings.Contains(err.Error(), tt.errContains) {
+					t.Errorf("Expected error to contain %q, got: %s", tt.errContains, err.Error())
 				}
 			} else {
 				if err != nil {
@@ -135,20 +134,4 @@ func TestSkillsShowCommand_Integration(t *testing.T) {
 
 	_ = rootCmd.Execute()
 	// Either succeeds (with empty data) or fails on config/describe - both are acceptable
-}
-
-func TestSkillsGroupShowCommand_Integration(t *testing.T) {
-	// skills group show <id> is a placeholder that always succeeds.
-	rootCmd := &cobra.Command{Use: "agentbay"}
-	rootCmd.AddGroup(&cobra.Group{ID: "management", Title: "Management Commands"})
-	rootCmd.AddCommand(cmd.SkillsCmd)
-
-	rootCmd.SetArgs([]string{"skills", "group", "show", "group-123"})
-	var errOut bytes.Buffer
-	rootCmd.SetErr(&errOut)
-
-	err := rootCmd.Execute()
-	if err != nil {
-		t.Errorf("skills group show should succeed (placeholder): %v", err)
-	}
 }

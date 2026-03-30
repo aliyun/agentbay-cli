@@ -92,7 +92,7 @@ type getDockerFileStoreCredentialDataXML struct {
 }
 
 // parseGetMarketSkillCredentialResponse builds GetMarketSkillCredentialResponse from CallApi map (bodyType "string").
-// Backend may return XML (pre-release) or JSON; we parse body manually like ListMarketGroupSkill.
+// Backend may return XML (pre-release) or JSON; we parse the body manually.
 func parseGetMarketSkillCredentialResponse(res map[string]interface{}) (*GetMarketSkillCredentialResponse, error) {
 	out := &GetMarketSkillCredentialResponse{}
 	bodyStr := ""
@@ -195,183 +195,6 @@ func parseGetDockerFileStoreCredentialResponse(res map[string]interface{}) (*Get
 		} else {
 			if err := json.Unmarshal([]byte(bodyStr), parsed); err != nil {
 				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
-			}
-		}
-	}
-	out.Body = parsed
-	if h, ok := res["headers"].(map[string]*string); ok {
-		out.Headers = h
-	} else if h, ok := res["headers"].(map[string]interface{}); ok {
-		out.Headers = make(map[string]*string)
-		for k, v := range h {
-			if s, ok := v.(string); ok {
-				out.Headers[k] = dara.String(s)
-			} else if p, ok := v.(*string); ok && p != nil {
-				out.Headers[k] = p
-			}
-		}
-	}
-	if sc, ok := res["statusCode"].(int); ok {
-		out.StatusCode = dara.Int32(int32(sc))
-	}
-	if sc, ok := res["statusCode"].(int32); ok {
-		out.StatusCode = &sc
-	}
-	if out.StatusCode == nil && res["statusCode"] != nil {
-		if n, err := strconv.Atoi(dara.ToString(res["statusCode"])); err == nil {
-			out.StatusCode = dara.Int32(int32(n))
-		}
-	}
-	return out, nil
-}
-
-// listMarketGroupSkillResponseXML is used only for XML unmarshaling; backend returns root ListMarketGroupSkillResponse with <Data><data>...</data><data>...</data></Data>.
-type listMarketGroupSkillResponseXML struct {
-	XMLName        xml.Name                                  `xml:"ListMarketGroupSkillResponse"`
-	HttpStatusCode *int32                                    `xml:"HttpStatusCode"`
-	Data           []listMarketGroupSkillResponseDataItemXML `xml:"Data>data"`
-	RequestId      *string                                   `xml:"RequestId"`
-	Code           *string                                   `xml:"Code"`
-	Success        *bool                                     `xml:"Success"`
-}
-
-type listMarketGroupSkillResponseDataItemXML struct {
-	GroupName *string `xml:"GroupName"`
-	GroupId   *string `xml:"GroupId"`
-}
-
-// parseListMarketGroupSkillResponse builds ListMarketGroupSkillResponse from CallApi map (bodyType "string").
-func parseListMarketGroupSkillResponse(res map[string]interface{}) (*ListMarketGroupSkillResponse, error) {
-	out := &ListMarketGroupSkillResponse{}
-	bodyStr := ""
-	switch v := res["body"].(type) {
-	case string:
-		bodyStr = v
-	case []byte:
-		bodyStr = string(v)
-	default:
-		return nil, &ErrWithRequestID{Err: errors.New("missing or invalid body in response"), RequestID: extractRequestIDFromResponse(res)}
-	}
-	parsed := &ListMarketGroupSkillResponseBody{}
-	if bodyStr != "" {
-		trimmed := strings.TrimSpace(bodyStr)
-		if len(trimmed) > 0 && trimmed[0] == '<' {
-			var xmlResp listMarketGroupSkillResponseXML
-			if err := xml.Unmarshal([]byte(bodyStr), &xmlResp); err != nil {
-				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
-			}
-			parsed.Code = xmlResp.Code
-			parsed.RequestId = xmlResp.RequestId
-			parsed.Success = xmlResp.Success
-			if len(xmlResp.Data) > 0 {
-				parsed.Data = make([]ListMarketGroupSkillResponseBodyDataItem, len(xmlResp.Data))
-				for i, d := range xmlResp.Data {
-					parsed.Data[i] = ListMarketGroupSkillResponseBodyDataItem{GroupName: d.GroupName, GroupId: d.GroupId}
-				}
-			}
-		} else {
-			if err := json.Unmarshal([]byte(bodyStr), parsed); err != nil {
-				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
-			}
-		}
-	}
-	out.Body = &ListMarketGroupSkillResponseBodyWrapper{ListMarketGroupSkillResponseBody: parsed}
-	if h, ok := res["headers"].(map[string]*string); ok {
-		out.Headers = h
-	} else if h, ok := res["headers"].(map[string]interface{}); ok {
-		out.Headers = make(map[string]*string)
-		for k, v := range h {
-			if s, ok := v.(string); ok {
-				out.Headers[k] = dara.String(s)
-			} else if p, ok := v.(*string); ok && p != nil {
-				out.Headers[k] = p
-			}
-		}
-	}
-	if sc, ok := res["statusCode"].(int); ok {
-		out.StatusCode = dara.Int32(int32(sc))
-	}
-	if sc, ok := res["statusCode"].(int32); ok {
-		out.StatusCode = &sc
-	}
-	if out.StatusCode == nil && res["statusCode"] != nil {
-		if n, err := strconv.Atoi(dara.ToString(res["statusCode"])); err == nil {
-			out.StatusCode = dara.Int32(int32(n))
-		}
-	}
-	return out, nil
-}
-
-// createMarketSkillGroupResponseXML is used only for XML unmarshaling; backend returns <Data>group-id</Data> (chardata) or <Data><GroupId>...</GroupId></Data>.
-type createMarketSkillGroupResponseXML struct {
-	XMLName        xml.Name                      `xml:"CreateMarketSkillGroupResponse"`
-	HttpStatusCode *int32                        `xml:"HttpStatusCode"`
-	Data           createMarketSkillGroupDataXML `xml:"Data"`
-	RequestId      *string                       `xml:"RequestId"`
-	Code           *string                       `xml:"Code"`
-	Success        *bool                         `xml:"Success"`
-}
-type createMarketSkillGroupDataXML struct {
-	Value   string  `xml:",chardata"`
-	GroupId *string `xml:"GroupId"`
-}
-
-// parseCreateMarketSkillGroupResponse builds CreateMarketSkillGroupResponse from CallApi map (bodyType "string").
-// Backend may return XML (pre-release) or JSON; we parse body manually like ListMarketGroupSkill.
-// JSON response may have Data as a string (group-id) or as an object {"GroupId": "..."}; we support both.
-func parseCreateMarketSkillGroupResponse(res map[string]interface{}) (*CreateMarketSkillGroupResponse, error) {
-	out := &CreateMarketSkillGroupResponse{}
-	bodyStr := ""
-	switch v := res["body"].(type) {
-	case string:
-		bodyStr = v
-	case []byte:
-		bodyStr = string(v)
-	default:
-		return nil, &ErrWithRequestID{Err: errors.New("missing or invalid body in response"), RequestID: extractRequestIDFromResponse(res)}
-	}
-	out.RawBody = bodyStr
-	parsed := &CreateMarketSkillGroupResponseBody{}
-	if bodyStr != "" {
-		trimmed := strings.TrimSpace(bodyStr)
-		if len(trimmed) > 0 && trimmed[0] == '<' {
-			var xmlResp createMarketSkillGroupResponseXML
-			if err := xml.Unmarshal([]byte(bodyStr), &xmlResp); err != nil {
-				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
-			}
-			parsed.Code = xmlResp.Code
-			parsed.RequestId = xmlResp.RequestId
-			parsed.Success = xmlResp.Success
-			if xmlResp.Data.GroupId != nil && *xmlResp.Data.GroupId != "" {
-				parsed.Data = &CreateMarketSkillGroupResponseBodyData{GroupId: xmlResp.Data.GroupId}
-			} else if s := strings.TrimSpace(xmlResp.Data.Value); s != "" {
-				parsed.Data = &CreateMarketSkillGroupResponseBodyData{GroupId: &s}
-			}
-		} else {
-			// JSON: backend may return "Data": "group-id-string" or "Data": {"GroupId": "..."}
-			var raw struct {
-				Code      *string     `json:"Code,omitempty"`
-				Data      interface{} `json:"Data,omitempty"`
-				RequestId *string     `json:"RequestId,omitempty"`
-				Success   *bool       `json:"Success,omitempty"`
-			}
-			if err := json.Unmarshal([]byte(bodyStr), &raw); err != nil {
-				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
-			}
-			parsed.Code = raw.Code
-			parsed.RequestId = raw.RequestId
-			parsed.Success = raw.Success
-			if raw.Data != nil {
-				switch v := raw.Data.(type) {
-				case string:
-					parsed.Data = &CreateMarketSkillGroupResponseBodyData{GroupId: &v}
-				default:
-					var dataObj CreateMarketSkillGroupResponseBodyData
-					b, _ := json.Marshal(raw.Data)
-					if err := json.Unmarshal(b, &dataObj); err == nil {
-						parsed.Data = &dataObj
-					}
-				}
 			}
 		}
 	}
@@ -526,7 +349,7 @@ func (client *Client) GetDockerFileStoreCredential(request *GetDockerFileStoreCr
 }
 
 // GetMarketSkillCredential 获取 Skill 上传凭证（OSS）
-// Uses BodyType "string" so the SDK returns raw body; backend may return XML, so we parse body manually (same as ListMarketGroupSkill).
+// Uses BodyType "string" so the SDK returns raw body; backend may return XML, so we parse the body manually.
 func (client *Client) GetMarketSkillCredentialWithOptions(request *GetMarketSkillCredentialRequest, runtime *dara.RuntimeOptions) (_result *GetMarketSkillCredentialResponse, _err error) {
 	_err = request.Validate()
 	if _err != nil {
@@ -586,7 +409,7 @@ type createMarketSkillResponseXML struct {
 }
 
 // parseCreateMarketSkillResponse builds CreateMarketSkillResponse from CallApi map (bodyType "string").
-// Backend may return XML (pre-release) or JSON; we parse body manually like CreateMarketSkillGroup.
+// Backend may return XML (pre-release) or JSON; we parse the body manually.
 func parseCreateMarketSkillResponse(res map[string]interface{}) (*CreateMarketSkillResponse, error) {
 	out := &CreateMarketSkillResponse{}
 	bodyStr := ""
@@ -840,341 +663,6 @@ func (client *Client) DescribeMarketSkillDetail(request *DescribeMarketSkillDeta
 	return _result, _err
 }
 
-// CreateMarketSkillGroup 创建技能组
-// Uses BodyType "string" so the SDK returns raw body; backend may return XML, so we parse body manually (same as ListMarketGroupSkill).
-func (client *Client) CreateMarketSkillGroupWithOptions(request *CreateMarketSkillGroupRequest, runtime *dara.RuntimeOptions) (_result *CreateMarketSkillGroupResponse, _err error) {
-	_err = request.Validate()
-	if _err != nil {
-		return _result, _err
-	}
-	query := map[string]interface{}{}
-	if !dara.IsNil(request.GroupName) {
-		query["GroupName"] = request.GroupName
-	}
-	req := &openapiutil.OpenApiRequest{
-		Query:   openapiutil.Query(query),
-		Headers: map[string]*string{"Accept": dara.String("application/json")},
-	}
-	params := &openapiutil.Params{
-		Action:      dara.String("CreateMarketSkillGroup"),
-		Version:     dara.String("2025-05-01"),
-		Protocol:    dara.String("HTTPS"),
-		Pathname:    dara.String("/"),
-		Method:      dara.String("POST"),
-		AuthType:    dara.String("AK"),
-		Style:       dara.String("RPC"),
-		ReqBodyType: dara.String("formData"),
-		BodyType:    dara.String("string"),
-	}
-	_result = &CreateMarketSkillGroupResponse{}
-	_body, _err := client.CallApi(params, req, runtime)
-	if _err != nil {
-		reqID := ""
-		if _body != nil {
-			reqID = extractRequestIDFromResponse(_body)
-		}
-		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
-	}
-	_result, _err = parseCreateMarketSkillGroupResponse(_body)
-	return _result, _err
-}
-
-func (client *Client) CreateMarketSkillGroup(request *CreateMarketSkillGroupRequest) (_result *CreateMarketSkillGroupResponse, _err error) {
-	runtime := &dara.RuntimeOptions{}
-	_result = &CreateMarketSkillGroupResponse{}
-	_body, _err := client.CreateMarketSkillGroupWithOptions(request, runtime)
-	if _err != nil {
-		return _result, _err
-	}
-	_result = _body
-	return _result, _err
-}
-
-// ListMarketGroupSkill 列出技能组
-// Uses BodyType "string" so the SDK returns raw body; backend may return XML, so we parse body manually.
-func (client *Client) ListMarketGroupSkillWithOptions(request *ListMarketGroupSkillRequest, runtime *dara.RuntimeOptions) (_result *ListMarketGroupSkillResponse, _err error) {
-	_err = request.Validate()
-	if _err != nil {
-		return _result, _err
-	}
-	query := map[string]interface{}{}
-	req := &openapiutil.OpenApiRequest{
-		Query:   openapiutil.Query(query),
-		Headers: map[string]*string{"Accept": dara.String("application/json")},
-	}
-	params := &openapiutil.Params{
-		Action:      dara.String("ListMarketGroupSkill"),
-		Version:     dara.String("2025-05-01"),
-		Protocol:    dara.String("HTTPS"),
-		Pathname:    dara.String("/"),
-		Method:      dara.String("GET"),
-		AuthType:    dara.String("AK"),
-		Style:       dara.String("RPC"),
-		ReqBodyType: dara.String("formData"),
-		BodyType:    dara.String("string"),
-	}
-	_result = &ListMarketGroupSkillResponse{}
-	_body, _err := client.CallApi(params, req, runtime)
-	if _err != nil {
-		reqID := ""
-		if _body != nil {
-			reqID = extractRequestIDFromResponse(_body)
-		}
-		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
-	}
-	_result, _err = parseListMarketGroupSkillResponse(_body)
-	return _result, _err
-}
-
-func (client *Client) ListMarketGroupSkill(request *ListMarketGroupSkillRequest) (_result *ListMarketGroupSkillResponse, _err error) {
-	runtime := &dara.RuntimeOptions{}
-	_result = &ListMarketGroupSkillResponse{}
-	_body, _err := client.ListMarketGroupSkillWithOptions(request, runtime)
-	if _err != nil {
-		return _result, _err
-	}
-	_result = _body
-	return _result, _err
-}
-
-// addMarketGroupSkillResponseXML is used only for XML unmarshaling; backend may return XML.
-type addMarketGroupSkillResponseXML struct {
-	XMLName   xml.Name `xml:"AddMarketGroupSkillResponse"`
-	Code      *string  `xml:"Code"`
-	Data      *bool    `xml:"Data"`
-	RequestId *string  `xml:"RequestId"`
-	Success   *bool    `xml:"Success"`
-}
-
-// parseAddMarketGroupSkillResponse builds AddMarketGroupSkillResponse from CallApi map (bodyType "string").
-func parseAddMarketGroupSkillResponse(res map[string]interface{}) (*AddMarketGroupSkillResponse, error) {
-	out := &AddMarketGroupSkillResponse{}
-	bodyStr := ""
-	switch v := res["body"].(type) {
-	case string:
-		bodyStr = v
-	case []byte:
-		bodyStr = string(v)
-	default:
-		return nil, &ErrWithRequestID{Err: errors.New("missing or invalid body in response"), RequestID: extractRequestIDFromResponse(res)}
-	}
-	parsed := &AddMarketGroupSkillResponseBody{}
-	if bodyStr != "" {
-		trimmed := strings.TrimSpace(bodyStr)
-		if len(trimmed) > 0 && trimmed[0] == '<' {
-			var xmlResp addMarketGroupSkillResponseXML
-			if err := xml.Unmarshal([]byte(bodyStr), &xmlResp); err != nil {
-				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
-			}
-			parsed.Code = xmlResp.Code
-			parsed.Data = xmlResp.Data
-			parsed.RequestId = xmlResp.RequestId
-			parsed.Success = xmlResp.Success
-		} else {
-			if err := json.Unmarshal([]byte(bodyStr), parsed); err != nil {
-				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
-			}
-		}
-	}
-	out.Body = parsed
-	if h, ok := res["headers"].(map[string]*string); ok {
-		out.Headers = h
-	} else if h, ok := res["headers"].(map[string]interface{}); ok {
-		out.Headers = make(map[string]*string)
-		for k, v := range h {
-			if s, ok := v.(string); ok {
-				out.Headers[k] = dara.String(s)
-			} else if p, ok := v.(*string); ok && p != nil {
-				out.Headers[k] = p
-			}
-		}
-	}
-	if sc, ok := res["statusCode"].(int); ok {
-		out.StatusCode = dara.Int32(int32(sc))
-	}
-	if sc, ok := res["statusCode"].(int32); ok {
-		out.StatusCode = &sc
-	}
-	if out.StatusCode == nil && res["statusCode"] != nil {
-		if n, err := strconv.Atoi(dara.ToString(res["statusCode"])); err == nil {
-			out.StatusCode = dara.Int32(int32(n))
-		}
-	}
-	return out, nil
-}
-
-// AddMarketGroupSkill 组内添加技能
-// Uses BodyType "string" so we parse XML/JSON manually (backend pre-release returns XML).
-func (client *Client) AddMarketGroupSkillWithOptions(request *AddMarketGroupSkillRequest, runtime *dara.RuntimeOptions) (_result *AddMarketGroupSkillResponse, _err error) {
-	_err = request.Validate()
-	if _err != nil {
-		return _result, _err
-	}
-	query := map[string]interface{}{}
-	if !dara.IsNil(request.GroupId) {
-		query["GroupId"] = request.GroupId
-	}
-	if !dara.IsNil(request.SkillId) {
-		query["SkillId"] = request.SkillId
-	}
-	req := &openapiutil.OpenApiRequest{
-		Query:   openapiutil.Query(query),
-		Headers: map[string]*string{"Accept": dara.String("application/json")},
-	}
-	params := &openapiutil.Params{
-		Action:      dara.String("AddMarketGroupSkill"),
-		Version:     dara.String("2025-05-01"),
-		Protocol:    dara.String("HTTPS"),
-		Pathname:    dara.String("/"),
-		Method:      dara.String("POST"),
-		AuthType:    dara.String("AK"),
-		Style:       dara.String("RPC"),
-		ReqBodyType: dara.String("formData"),
-		BodyType:    dara.String("string"),
-	}
-	_result = &AddMarketGroupSkillResponse{}
-	_body, _err := client.CallApi(params, req, runtime)
-	if _err != nil {
-		reqID := ""
-		if _body != nil {
-			reqID = extractRequestIDFromResponse(_body)
-		}
-		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
-	}
-	_result, _err = parseAddMarketGroupSkillResponse(_body)
-	return _result, _err
-}
-
-func (client *Client) AddMarketGroupSkill(request *AddMarketGroupSkillRequest) (_result *AddMarketGroupSkillResponse, _err error) {
-	runtime := &dara.RuntimeOptions{}
-	_result = &AddMarketGroupSkillResponse{}
-	_body, _err := client.AddMarketGroupSkillWithOptions(request, runtime)
-	if _err != nil {
-		return _result, _err
-	}
-	_result = _body
-	return _result, _err
-}
-
-// removeMarketGroupSkillResponseXML is used only for XML unmarshaling; backend may return XML.
-type removeMarketGroupSkillResponseXML struct {
-	XMLName   xml.Name `xml:"RemoveMarketGroupSkillResponse"`
-	Code      *string  `xml:"Code"`
-	Data      *bool    `xml:"Data"`
-	RequestId *string  `xml:"RequestId"`
-	Success   *bool    `xml:"Success"`
-}
-
-// parseRemoveMarketGroupSkillResponse builds RemoveMarketGroupSkillResponse from CallApi map (bodyType "string").
-func parseRemoveMarketGroupSkillResponse(res map[string]interface{}) (*RemoveMarketGroupSkillResponse, error) {
-	out := &RemoveMarketGroupSkillResponse{}
-	bodyStr := ""
-	switch v := res["body"].(type) {
-	case string:
-		bodyStr = v
-	case []byte:
-		bodyStr = string(v)
-	default:
-		return nil, &ErrWithRequestID{Err: errors.New("missing or invalid body in response"), RequestID: extractRequestIDFromResponse(res)}
-	}
-	parsed := &RemoveMarketGroupSkillResponseBody{}
-	if bodyStr != "" {
-		trimmed := strings.TrimSpace(bodyStr)
-		if len(trimmed) > 0 && trimmed[0] == '<' {
-			var xmlResp removeMarketGroupSkillResponseXML
-			if err := xml.Unmarshal([]byte(bodyStr), &xmlResp); err != nil {
-				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
-			}
-			parsed.Code = xmlResp.Code
-			parsed.Data = xmlResp.Data
-			parsed.RequestId = xmlResp.RequestId
-			parsed.Success = xmlResp.Success
-		} else {
-			if err := json.Unmarshal([]byte(bodyStr), parsed); err != nil {
-				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
-			}
-		}
-	}
-	out.Body = parsed
-	if h, ok := res["headers"].(map[string]*string); ok {
-		out.Headers = h
-	} else if h, ok := res["headers"].(map[string]interface{}); ok {
-		out.Headers = make(map[string]*string)
-		for k, v := range h {
-			if s, ok := v.(string); ok {
-				out.Headers[k] = dara.String(s)
-			} else if p, ok := v.(*string); ok && p != nil {
-				out.Headers[k] = p
-			}
-		}
-	}
-	if sc, ok := res["statusCode"].(int); ok {
-		out.StatusCode = dara.Int32(int32(sc))
-	}
-	if sc, ok := res["statusCode"].(int32); ok {
-		out.StatusCode = &sc
-	}
-	if out.StatusCode == nil && res["statusCode"] != nil {
-		if n, err := strconv.Atoi(dara.ToString(res["statusCode"])); err == nil {
-			out.StatusCode = dara.Int32(int32(n))
-		}
-	}
-	return out, nil
-}
-
-// RemoveMarketGroupSkill 组内移除技能
-// Uses BodyType "string" so we parse XML/JSON manually (backend pre-release returns XML).
-func (client *Client) RemoveMarketGroupSkillWithOptions(request *RemoveMarketGroupSkillRequest, runtime *dara.RuntimeOptions) (_result *RemoveMarketGroupSkillResponse, _err error) {
-	_err = request.Validate()
-	if _err != nil {
-		return _result, _err
-	}
-	query := map[string]interface{}{}
-	if !dara.IsNil(request.GroupId) {
-		query["GroupId"] = request.GroupId
-	}
-	if !dara.IsNil(request.SkillId) {
-		query["SkillId"] = request.SkillId
-	}
-	req := &openapiutil.OpenApiRequest{
-		Query:   openapiutil.Query(query),
-		Headers: map[string]*string{"Accept": dara.String("application/json")},
-	}
-	params := &openapiutil.Params{
-		Action:      dara.String("RemoveMarketGroupSkill"),
-		Version:     dara.String("2025-05-01"),
-		Protocol:    dara.String("HTTPS"),
-		Pathname:    dara.String("/"),
-		Method:      dara.String("POST"),
-		AuthType:    dara.String("AK"),
-		Style:       dara.String("RPC"),
-		ReqBodyType: dara.String("formData"),
-		BodyType:    dara.String("string"),
-	}
-	_result = &RemoveMarketGroupSkillResponse{}
-	_body, _err := client.CallApi(params, req, runtime)
-	if _err != nil {
-		reqID := ""
-		if _body != nil {
-			reqID = extractRequestIDFromResponse(_body)
-		}
-		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
-	}
-	_result, _err = parseRemoveMarketGroupSkillResponse(_body)
-	return _result, _err
-}
-
-func (client *Client) RemoveMarketGroupSkill(request *RemoveMarketGroupSkillRequest) (_result *RemoveMarketGroupSkillResponse, _err error) {
-	runtime := &dara.RuntimeOptions{}
-	_result = &RemoveMarketGroupSkillResponse{}
-	_body, _err := client.RemoveMarketGroupSkillWithOptions(request, runtime)
-	if _err != nil {
-		return _result, _err
-	}
-	_result = _body
-	return _result, _err
-}
-
 // Summary:
 //
 // 创建docker镜像任务
@@ -1207,7 +695,8 @@ func (client *Client) CreateDockerImageTaskWithOptions(request *CreateDockerImag
 	}
 
 	req := &openapiutil.OpenApiRequest{
-		Query: openapiutil.Query(query),
+		Query:   openapiutil.Query(query),
+		Headers: map[string]*string{"Accept": dara.String("application/json")},
 	}
 	params := &openapiutil.Params{
 		Action:      dara.String("CreateDockerImageTask"),
@@ -1218,14 +707,18 @@ func (client *Client) CreateDockerImageTaskWithOptions(request *CreateDockerImag
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
-		BodyType:    dara.String("json"),
+		BodyType:    dara.String("string"),
 	}
 	_result = &CreateDockerImageTaskResponse{}
 	_body, _err := client.CallApi(params, req, runtime)
 	if _err != nil {
-		return _result, _err
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
 	}
-	_err = dara.Convert(_body, &_result)
+	_result, _err = parseCreateDockerImageTaskResponse(_body)
 	return _result, _err
 }
 
@@ -1271,7 +764,8 @@ func (client *Client) GetDockerImageTaskWithOptions(request *GetDockerImageTaskR
 	}
 
 	req := &openapiutil.OpenApiRequest{
-		Query: openapiutil.Query(query),
+		Query:   openapiutil.Query(query),
+		Headers: map[string]*string{"Accept": dara.String("application/json")},
 	}
 	params := &openapiutil.Params{
 		Action:      dara.String("GetDockerImageTask"),
@@ -1282,14 +776,18 @@ func (client *Client) GetDockerImageTaskWithOptions(request *GetDockerImageTaskR
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
-		BodyType:    dara.String("json"),
+		BodyType:    dara.String("string"),
 	}
 	_result = &GetDockerImageTaskResponse{}
 	_body, _err := client.CallApi(params, req, runtime)
 	if _err != nil {
-		return _result, _err
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
 	}
-	_err = dara.Convert(_body, &_result)
+	_result, _err = parseGetDockerImageTaskResponse(_body)
 	return _result, _err
 }
 
@@ -1355,7 +853,8 @@ func (client *Client) ListMcpImagesWithOptions(request *ListMcpImagesRequest, ru
 	}
 
 	req := &openapiutil.OpenApiRequest{
-		Query: openapiutil.Query(query),
+		Query:   openapiutil.Query(query),
+		Headers: map[string]*string{"Accept": dara.String("application/json")},
 	}
 	params := &openapiutil.Params{
 		Action:      dara.String("ListMcpImages"),
@@ -1366,14 +865,18 @@ func (client *Client) ListMcpImagesWithOptions(request *ListMcpImagesRequest, ru
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
-		BodyType:    dara.String("json"),
+		BodyType:    dara.String("string"),
 	}
 	_result = &ListMcpImagesResponse{}
 	_body, _err := client.CallApi(params, req, runtime)
 	if _err != nil {
-		return _result, _err
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
 	}
-	_err = dara.Convert(_body, &_result)
+	_result, _err = parseListMcpImagesResponse(_body)
 	return _result, _err
 }
 
@@ -1415,7 +918,8 @@ func (client *Client) GetMcpImageInfoWithOptions(request *GetMcpImageInfoRequest
 	}
 
 	req := &openapiutil.OpenApiRequest{
-		Query: openapiutil.Query(query),
+		Query:   openapiutil.Query(query),
+		Headers: map[string]*string{"Accept": dara.String("application/json")},
 	}
 	params := &openapiutil.Params{
 		Action:      dara.String("GetMcpImageInfo"),
@@ -1426,14 +930,18 @@ func (client *Client) GetMcpImageInfoWithOptions(request *GetMcpImageInfoRequest
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
-		BodyType:    dara.String("json"),
+		BodyType:    dara.String("string"),
 	}
 	_result = &GetMcpImageInfoResponse{}
 	_body, _err := client.CallApi(params, req, runtime)
 	if _err != nil {
-		return _result, _err
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
 	}
-	_err = dara.Convert(_body, &_result)
+	_result, _err = parseGetMcpImageInfoResponse(_body)
 	return _result, _err
 }
 
@@ -1515,7 +1023,8 @@ func (client *Client) CreateResourceGroupWithOptions(request *CreateResourceGrou
 	}
 
 	req := &openapiutil.OpenApiRequest{
-		Body: openapiutil.ParseToMap(body),
+		Body:    openapiutil.ParseToMap(body),
+		Headers: map[string]*string{"Accept": dara.String("application/json")},
 	}
 	params := &openapiutil.Params{
 		Action:      dara.String("CreateResourceGroup"),
@@ -1526,14 +1035,18 @@ func (client *Client) CreateResourceGroupWithOptions(request *CreateResourceGrou
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
-		BodyType:    dara.String("json"),
+		BodyType:    dara.String("string"),
 	}
 	_result = &CreateResourceGroupResponse{}
 	_body, _err := client.CallApi(params, req, runtime)
 	if _err != nil {
-		return _result, _err
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
 	}
-	_err = dara.Convert(_body, &_result)
+	_result, _err = parseCreateResourceGroupResponse(_body)
 	return _result, _err
 }
 
@@ -1578,7 +1091,8 @@ func (client *Client) DeleteResourceGroupWithOptions(request *DeleteResourceGrou
 	}
 
 	req := &openapiutil.OpenApiRequest{
-		Body: openapiutil.ParseToMap(body),
+		Body:    openapiutil.ParseToMap(body),
+		Headers: map[string]*string{"Accept": dara.String("application/json")},
 	}
 	params := &openapiutil.Params{
 		Action:      dara.String("DeleteResourceGroup"),
@@ -1589,14 +1103,18 @@ func (client *Client) DeleteResourceGroupWithOptions(request *DeleteResourceGrou
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
-		BodyType:    dara.String("json"),
+		BodyType:    dara.String("string"),
 	}
 	_result = &DeleteResourceGroupResponse{}
 	_body, _err := client.CallApi(params, req, runtime)
 	if _err != nil {
-		return _result, _err
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
 	}
-	_err = dara.Convert(_body, &_result)
+	_result, _err = parseDeleteResourceGroupResponse(_body)
 	return _result, _err
 }
 
@@ -1646,25 +1164,30 @@ func (client *Client) GetDockerfileTemplateWithOptions(request *GetDockerfileTem
 	}
 
 	req := &openapiutil.OpenApiRequest{
-		Query: openapiutil.Query(query),
+		Query:   openapiutil.Query(query),
+		Headers: map[string]*string{"Accept": dara.String("application/json")},
 	}
 	params := &openapiutil.Params{
 		Action:      dara.String("GetDockerfileTemplate"),
 		Version:     dara.String("2025-05-01"),
 		Protocol:    dara.String("HTTPS"),
 		Pathname:    dara.String("/"),
-		Method:      dara.String("POST"),
+		Method:      dara.String("GET"),
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
-		BodyType:    dara.String("json"),
+		BodyType:    dara.String("string"),
 	}
 	_result = &GetDockerfileTemplateResponse{}
 	_body, _err := client.CallApi(params, req, runtime)
 	if _err != nil {
-		return _result, _err
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
 	}
-	_err = dara.Convert(_body, &_result)
+	_result, _err = parseGetDockerfileTemplateResponse(_body)
 	return _result, _err
 }
 

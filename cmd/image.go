@@ -24,15 +24,9 @@ import (
 	"github.com/alibabacloud-go/tea/dara"
 )
 
-// printErrorMessage prints multi-line error messages by printing each line separately
-// This avoids Windows line ending issues
+// printErrorMessage returns a multi-line error for Cobra to print once (avoids duplicate stderr + "Error:" lines).
 func printErrorMessage(lines ...string) error {
-	// Print each line to stderr for immediate display
-	for _, line := range lines {
-		fmt.Fprintln(os.Stderr, line)
-	}
-	// Return a simple error for the command framework
-	return fmt.Errorf("command failed")
+	return fmt.Errorf("%s", strings.Join(lines, "\n"))
 }
 
 var ImageCmd = &cobra.Command{
@@ -267,12 +261,10 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[ERROR] Failed to load configuration: %v\n", err)
-		return fmt.Errorf("failed to load configuration: %w", err)
+		return fmt.Errorf("[ERROR] Failed to load configuration: %w", err)
 	}
 
 	if !cfg.IsAuthenticated() {
-		config.FprintNotAuthenticated(os.Stderr)
 		return config.ErrNotAuthenticated()
 	}
 
@@ -319,11 +311,10 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 	credResp, err := apiClient.GetDockerFileStoreCredential(ctx, credReq)
 	if err != nil {
 		log.Debugf("[DEBUG] GetDockerFileStoreCredential API call failed: %v", err)
-		fmt.Printf("[ERROR] Failed to get upload credentials. Please check your authentication and try again.\n")
 		if log.GetLevel() >= log.DebugLevel {
 			fmt.Printf("[DEBUG] Error details: %v\n", err)
 		}
-		return fmt.Errorf("failed to get upload credentials: %w", err)
+		return fmt.Errorf("[ERROR] Failed to get upload credentials. Please check your authentication and try again: %w", err)
 	}
 	fmt.Printf(" Done.\n")
 	if credResp.Body == nil || credResp.Body.Data == nil {
@@ -338,11 +329,10 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 	fmt.Printf("[STEP 2/4] Uploading Dockerfile...\n")
 	fmt.Printf("Uploading file...")
 	if err = uploadFileToOSS(dockerfilePath, *ossUrl); err != nil {
-		fmt.Printf("[ERROR] Failed to upload Dockerfile. Please check your network connection and try again.\n")
 		if log.GetLevel() >= log.DebugLevel {
 			fmt.Printf("[DEBUG] Error details: %v\n", err)
 		}
-		return fmt.Errorf("failed to upload Dockerfile: %w", err)
+		return fmt.Errorf("[ERROR] Failed to upload Dockerfile. Please check your network connection and try again: %w", err)
 	}
 	fmt.Printf(" Done.\n")
 
@@ -410,8 +400,7 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 		}
 		credWg.Wait()
 		if firstCredErr != nil {
-			fmt.Printf("[ERROR] %v\n", firstCredErr)
-			return firstCredErr
+			return fmt.Errorf("[ERROR] %w", firstCredErr)
 		}
 		var firstUploadErr error
 		var uploadWg sync.WaitGroup
@@ -435,8 +424,7 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 		}
 		uploadWg.Wait()
 		if firstUploadErr != nil {
-			fmt.Printf("[ERROR] %v\n", firstUploadErr)
-			return firstUploadErr
+			return fmt.Errorf("[ERROR] %w", firstUploadErr)
 		}
 		fmt.Printf(" Done.\n")
 	}
@@ -470,8 +458,6 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Creating image task...")
 	createResp, err := apiClient.CreateDockerImageTask(ctx, createReq)
 	if err != nil {
-		// Show user-friendly error message in non-verbose mode
-		fmt.Printf("[ERROR] Failed to create Docker image task. Please try again.\n")
 		if log.GetLevel() >= log.DebugLevel {
 			fmt.Printf("[DEBUG] Error details: %v\n", err)
 		}
@@ -479,7 +465,7 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 		if createResp != nil && createResp.Body != nil && createResp.Body.GetRequestId() != nil {
 			fmt.Printf("[DEBUG] Request ID: %s\n", *createResp.Body.GetRequestId())
 		}
-		return fmt.Errorf("failed to create Docker image task: %w", err)
+		return fmt.Errorf("[ERROR] Failed to create Docker image task. Please try again: %w", err)
 	}
 	fmt.Printf(" Done.\n")
 
@@ -611,32 +597,31 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 				}
 
 				if isValidationError {
-					// Dockerfile validation failed
-					fmt.Printf("[ERROR] ❌ Dockerfile validation failed\n")
+					lines := []string{
+						"[ERROR] ❌ Dockerfile validation failed",
+					}
 					if taskMsg != nil && *taskMsg != "" {
-						fmt.Printf("[ERROR] Validation error: %s\n", *taskMsg)
+						lines = append(lines, "[ERROR] Validation error: "+*taskMsg)
 					}
-					fmt.Printf("[TIP] Please check your Dockerfile and ensure you haven't modified system-defined lines.\n")
-					fmt.Printf("[TIP] Use 'agentbay image init' to download a valid template.\n")
-					// Print Request ID for debugging
+					lines = append(lines,
+						"[TIP] Please check your Dockerfile and ensure you haven't modified system-defined lines.",
+						"[TIP] Use 'agentbay image init' to download a valid template.",
+					)
 					if taskResp.Body.GetRequestId() != nil {
-						fmt.Printf("[DEBUG] Request ID: %s\n", *taskResp.Body.GetRequestId())
+						lines = append(lines, fmt.Sprintf("[DEBUG] Request ID: %s", *taskResp.Body.GetRequestId()))
 					}
-					fmt.Printf("[DOC] Task ID: %s\n", *finalTaskId)
-					return fmt.Errorf("dockerfile validation failed")
-				} else {
-					// Actual build failure
-					fmt.Printf("[ERROR] ❌ Image build failed\n")
-					if taskMsg != nil && *taskMsg != "" {
-						fmt.Printf("[ERROR] Error details: %s\n", *taskMsg)
-					}
-					// Print Request ID for debugging
-					if taskResp.Body.GetRequestId() != nil {
-						fmt.Printf("[DEBUG] Request ID: %s\n", *taskResp.Body.GetRequestId())
-					}
-					fmt.Printf("[DOC] Task ID: %s\n", *finalTaskId)
-					return fmt.Errorf("image build failed")
+					lines = append(lines, fmt.Sprintf("[DOC] Task ID: %s", *finalTaskId))
+					return printErrorMessage(lines...)
 				}
+				lines := []string{"[ERROR] ❌ Image build failed"}
+				if taskMsg != nil && *taskMsg != "" {
+					lines = append(lines, "[ERROR] Error details: "+*taskMsg)
+				}
+				if taskResp.Body.GetRequestId() != nil {
+					lines = append(lines, fmt.Sprintf("[DEBUG] Request ID: %s", *taskResp.Body.GetRequestId()))
+				}
+				lines = append(lines, fmt.Sprintf("[DOC] Task ID: %s", *finalTaskId))
+				return printErrorMessage(lines...)
 			case "RUNNING", "PENDING", "Preparing":
 				// Continue polling
 				continue
@@ -670,12 +655,10 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[ERROR] Failed to load configuration: %v\n", err)
-		return fmt.Errorf("failed to load configuration: %w", err)
+		return fmt.Errorf("[ERROR] Failed to load configuration: %w", err)
 	}
 
 	if !cfg.IsAuthenticated() {
-		config.FprintNotAuthenticated(os.Stderr)
 		return config.ErrNotAuthenticated()
 	}
 
@@ -741,11 +724,10 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	resp, err := apiClient.ListMcpImages(ctx, req)
 	if err != nil {
 		log.Debugf("[DEBUG] ListMcpImages API call failed: %v", err)
-		fmt.Printf("[ERROR] Failed to fetch image list. Please check your authentication and try again.\n")
 		if log.GetLevel() >= log.DebugLevel {
 			fmt.Printf("[DEBUG] Error details: %v\n", err)
 		}
-		return fmt.Errorf("failed to fetch image list: %w", err)
+		return fmt.Errorf("[ERROR] Failed to fetch image list. Please check your authentication and try again: %w", err)
 	}
 	fmt.Printf(" Done.\n")
 
@@ -1067,12 +1049,10 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[ERROR] Failed to load configuration: %v\n", err)
-		return fmt.Errorf("failed to load configuration: %w", err)
+		return fmt.Errorf("[ERROR] Failed to load configuration: %w", err)
 	}
 
 	if !cfg.IsAuthenticated() {
-		config.FprintNotAuthenticated(os.Stderr)
 		return config.ErrNotAuthenticated()
 	}
 
@@ -1229,12 +1209,10 @@ func runImageDeactivate(cmd *cobra.Command, args []string) error {
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[ERROR] Failed to load configuration: %v\n", err)
-		return fmt.Errorf("failed to load configuration: %w", err)
+		return fmt.Errorf("[ERROR] Failed to load configuration: %w", err)
 	}
 
 	if !cfg.IsAuthenticated() {
-		config.FprintNotAuthenticated(os.Stderr)
 		return config.ErrNotAuthenticated()
 	}
 
@@ -1403,12 +1381,10 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[ERROR] Failed to load configuration: %v\n", err)
-		return fmt.Errorf("failed to load configuration: %w", err)
+		return fmt.Errorf("[ERROR] Failed to load configuration: %w", err)
 	}
 
 	if !cfg.IsAuthenticated() {
-		config.FprintNotAuthenticated(os.Stderr)
 		return config.ErrNotAuthenticated()
 	}
 
@@ -1440,8 +1416,7 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		log.Debugf("[DEBUG] GetDockerfileTemplate API call failed: %v", err)
 
-		fmt.Fprintf(os.Stderr, "\n[ERROR] Failed to get Dockerfile template: %v\n", err)
-		return fmt.Errorf("failed to get Dockerfile template: %w", err)
+		return fmt.Errorf("[ERROR] Failed to get Dockerfile template: %w", err)
 	}
 	fmt.Printf(" Done.\n")
 
@@ -1526,11 +1501,9 @@ func runImageStatus(_ *cobra.Command, args []string) error {
 
 	cfg, err := config.GetConfig()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[ERROR] Failed to load configuration: %v\n", err)
-		return fmt.Errorf("failed to load configuration: %w", err)
+		return fmt.Errorf("[ERROR] Failed to load configuration: %w", err)
 	}
 	if !cfg.IsAuthenticated() {
-		config.FprintNotAuthenticated(os.Stderr)
 		return config.ErrNotAuthenticated()
 	}
 

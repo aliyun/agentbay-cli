@@ -14,7 +14,7 @@ AgentBay CLI provides image management and skills management:
 - **Image Management**: Activate, deactivate, and monitor image instances
 - **Image Listing**: Browse user and system images with separated display, pagination and filtering support
 - **Image Status**: Query resource lifecycle status for an image by ID (`agentbay image status`)
-- **Skills**: Push local skills, show skill details by ID, create and list skill groups, add or remove skills in groups (skills list and group show are placeholders until backend APIs are available)
+- **Skills**: Push local skills and show skill details by ID (`skills list` is a placeholder until the backend list API is available)
 - **Configuration Management**: Secure token storage and automatic token refresh
 
 ## Quick Start
@@ -46,14 +46,10 @@ agentbay image deactivate imgc-xxxxx...xxx
 # Optional: check resource status (activate/deactivate lifecycle, not Docker build task)
 agentbay image status imgc-xxxxx...xxx
 
-# Skills (optional; directory or .zip with SKILL.md frontmatter; list/group show placeholders)
+# Skills (optional; directory or .zip with SKILL.md frontmatter; list is a placeholder)
 agentbay skills push ./my-skill
 agentbay skills push ./my-skill.zip
 agentbay skills show <skill-id>              # Show skill details
-agentbay skills group create my-group        # Prints group-id
-agentbay skills group list                   # List your groups
-agentbay skills group add-skill <group-id> <skill-id>
-agentbay skills group remove-skill <group-id> <skill-id>
 ```
 
 **Note**: 
