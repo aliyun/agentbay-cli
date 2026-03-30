@@ -4,9 +4,11 @@
 package client
 
 import (
+	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -168,6 +170,102 @@ func parseGetDockerImageTaskResponse(res map[string]interface{}) (*GetDockerImag
 		}
 		out.Body = parsed
 	}
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
+
+// --- CreateMarketSkill ---
+
+type xmlCreateMarketSkillResponse struct {
+	XMLName        xml.Name `xml:"CreateMarketSkillResponse"`
+	HttpStatusCode *int32   `xml:"HttpStatusCode"`
+	Data           string   `xml:"Data"`
+	RequestId      *string  `xml:"RequestId"`
+	Code           *string  `xml:"Code"`
+	Success        *bool    `xml:"Success"`
+}
+
+// createMarketSkillJSONWire decodes JSON without forcing Data to be an object; some gateways return Data as the skill id string.
+type createMarketSkillJSONWire struct {
+	Code           *string         `json:"Code"`
+	Data           json.RawMessage `json:"Data"`
+	HttpStatusCode *int32          `json:"HttpStatusCode"`
+	Message        *string         `json:"Message"`
+	RequestId      *string         `json:"RequestId"`
+	Success        *bool           `json:"Success"`
+}
+
+func parseCreateMarketSkillDataField(raw json.RawMessage) (*CreateMarketSkillResponseBodyData, error) {
+	if len(raw) == 0 {
+		return nil, nil
+	}
+	s := bytes.TrimSpace(raw)
+	if len(s) == 0 || string(s) == "null" {
+		return nil, nil
+	}
+	switch s[0] {
+	case '"':
+		var id string
+		if err := json.Unmarshal(s, &id); err != nil {
+			return nil, err
+		}
+		id = strings.TrimSpace(id)
+		if id == "" {
+			return nil, nil
+		}
+		return &CreateMarketSkillResponseBodyData{SkillId: &id}, nil
+	case '{':
+		var d CreateMarketSkillResponseBodyData
+		if err := json.Unmarshal(s, &d); err != nil {
+			return nil, err
+		}
+		return &d, nil
+	default:
+		return nil, fmt.Errorf("CreateMarketSkill response Data: unsupported JSON (expected string skill id or object)")
+	}
+}
+
+// parseCreateMarketSkillResponse builds CreateMarketSkillResponse from CallApi map (bodyType "string").
+// Backend may return XML or JSON; JSON may use Data as either a string (skill id) or an object {SkillId}.
+func parseCreateMarketSkillResponse(res map[string]interface{}) (*CreateMarketSkillResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &CreateMarketSkillResponse{RawBody: bodyStr}
+	parsed := &CreateMarketSkillResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xmlResp xmlCreateMarketSkillResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xmlResp); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = xmlResp.Code
+			parsed.HttpStatusCode = xmlResp.HttpStatusCode
+			parsed.RequestId = xmlResp.RequestId
+			parsed.Success = xmlResp.Success
+			if s := strings.TrimSpace(xmlResp.Data); s != "" {
+				parsed.Data = &CreateMarketSkillResponseBodyData{SkillId: &s}
+			}
+		} else {
+			var wire createMarketSkillJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = wire.Code
+			parsed.HttpStatusCode = wire.HttpStatusCode
+			parsed.Message = wire.Message
+			parsed.RequestId = wire.RequestId
+			parsed.Success = wire.Success
+			data, derr := parseCreateMarketSkillDataField(wire.Data)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: derr, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Data = data
+		}
+	}
+	out.Body = parsed
 	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
 	return out, nil
 }
