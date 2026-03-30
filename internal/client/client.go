@@ -75,6 +75,22 @@ type getMarketSkillCredentialDataXML struct {
 	OssFilePath *string `xml:"OssFilePath"`
 }
 
+// getDockerFileStoreCredentialResponseXML mirrors Aliyun XML root GetDockerFileStoreCredentialResponse.
+type getDockerFileStoreCredentialResponseXML struct {
+	XMLName        xml.Name                             `xml:"GetDockerFileStoreCredentialResponse"`
+	Code           *string                              `xml:"Code"`
+	Data           *getDockerFileStoreCredentialDataXML `xml:"Data"`
+	HttpStatusCode *int32                               `xml:"HttpStatusCode"`
+	Message        *string                              `xml:"Message"`
+	RequestId      *string                              `xml:"RequestId"`
+	Success        *bool                                `xml:"Success"`
+}
+
+type getDockerFileStoreCredentialDataXML struct {
+	OssUrl *string `xml:"OssUrl"`
+	TaskId *string `xml:"TaskId"`
+}
+
 // parseGetMarketSkillCredentialResponse builds GetMarketSkillCredentialResponse from CallApi map (bodyType "string").
 // Backend may return XML (pre-release) or JSON; we parse body manually like ListMarketGroupSkill.
 func parseGetMarketSkillCredentialResponse(res map[string]interface{}) (*GetMarketSkillCredentialResponse, error) {
@@ -108,6 +124,72 @@ func parseGetMarketSkillCredentialResponse(res map[string]interface{}) (*GetMark
 					Url:         d.Url,
 					OssBucket:   d.OssBucket,
 					OssFilePath: d.OssFilePath,
+				}
+			}
+		} else {
+			if err := json.Unmarshal([]byte(bodyStr), parsed); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+		}
+	}
+	out.Body = parsed
+	if h, ok := res["headers"].(map[string]*string); ok {
+		out.Headers = h
+	} else if h, ok := res["headers"].(map[string]interface{}); ok {
+		out.Headers = make(map[string]*string)
+		for k, v := range h {
+			if s, ok := v.(string); ok {
+				out.Headers[k] = dara.String(s)
+			} else if p, ok := v.(*string); ok && p != nil {
+				out.Headers[k] = p
+			}
+		}
+	}
+	if sc, ok := res["statusCode"].(int); ok {
+		out.StatusCode = dara.Int32(int32(sc))
+	}
+	if sc, ok := res["statusCode"].(int32); ok {
+		out.StatusCode = &sc
+	}
+	if out.StatusCode == nil && res["statusCode"] != nil {
+		if n, err := strconv.Atoi(dara.ToString(res["statusCode"])); err == nil {
+			out.StatusCode = dara.Int32(int32(n))
+		}
+	}
+	return out, nil
+}
+
+// parseGetDockerFileStoreCredentialResponse builds GetDockerFileStoreCredentialResponse from CallApi map (bodyType "string").
+// Backend may return XML (e.g. Bearer/OAuth) or JSON (e.g. AK); same pattern as GetMarketSkillCredential.
+func parseGetDockerFileStoreCredentialResponse(res map[string]interface{}) (*GetDockerFileStoreCredentialResponse, error) {
+	out := &GetDockerFileStoreCredentialResponse{}
+	bodyStr := ""
+	switch v := res["body"].(type) {
+	case string:
+		bodyStr = v
+	case []byte:
+		bodyStr = string(v)
+	default:
+		return nil, &ErrWithRequestID{Err: errors.New("missing or invalid body in response"), RequestID: extractRequestIDFromResponse(res)}
+	}
+	parsed := &GetDockerFileStoreCredentialResponseBody{}
+	if bodyStr != "" {
+		trimmed := strings.TrimSpace(bodyStr)
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xmlResp getDockerFileStoreCredentialResponseXML
+			if err := xml.Unmarshal([]byte(bodyStr), &xmlResp); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = xmlResp.Code
+			parsed.HttpStatusCode = xmlResp.HttpStatusCode
+			parsed.Message = xmlResp.Message
+			parsed.RequestId = xmlResp.RequestId
+			parsed.Success = xmlResp.Success
+			if xmlResp.Data != nil {
+				d := xmlResp.Data
+				parsed.Data = &GetDockerFileStoreCredentialResponseBodyData{
+					OssUrl: d.OssUrl,
+					TaskId: d.TaskId,
 				}
 			}
 		} else {
@@ -397,7 +479,8 @@ func (client *Client) GetDockerFileStoreCredentialWithOptions(request *GetDocker
 	}
 
 	req := &openapiutil.OpenApiRequest{
-		Query: openapiutil.Query(query),
+		Query:   openapiutil.Query(query),
+		Headers: map[string]*string{"Accept": dara.String("application/json")},
 	}
 	params := &openapiutil.Params{
 		Action:      dara.String("GetDockerFileStoreCredential"),
@@ -408,15 +491,19 @@ func (client *Client) GetDockerFileStoreCredentialWithOptions(request *GetDocker
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
-		// Backend returns JSON (RequestId, Data.OssUrl, etc.); xml bodyType caused dara.Convert to fail.
-		BodyType: dara.String("json"),
+		// BodyType "string": backend may return XML (Bearer) or JSON (AK); parse manually like GetMarketSkillCredential.
+		BodyType: dara.String("string"),
 	}
 	_result = &GetDockerFileStoreCredentialResponse{}
 	_body, _err := client.CallApi(params, req, runtime)
 	if _err != nil {
-		return _result, _err
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
 	}
-	_err = dara.Convert(_body, &_result)
+	_result, _err = parseGetDockerFileStoreCredentialResponse(_body)
 	return _result, _err
 }
 
