@@ -591,7 +591,50 @@ func parseDeleteResourceGroupResponse(res map[string]interface{}) (*DeleteResour
 	return out, nil
 }
 
+// int32FromFlexibleJSON parses a JSON value that may be a number or a decimal string (some gateways stringify ints).
+func int32FromFlexibleJSON(raw json.RawMessage) (*int32, error) {
+	if len(raw) == 0 {
+		return nil, nil
+	}
+	var v interface{}
+	if err := json.Unmarshal(raw, &v); err != nil {
+		return nil, err
+	}
+	if v == nil {
+		return nil, nil
+	}
+	switch x := v.(type) {
+	case float64:
+		return dara.Int32(int32(x)), nil
+	case string:
+		s := strings.TrimSpace(x)
+		if s == "" {
+			return nil, nil
+		}
+		n, err := strconv.ParseInt(s, 10, 32)
+		if err != nil {
+			return nil, err
+		}
+		return dara.Int32(int32(n)), nil
+	default:
+		return nil, fmt.Errorf("expected number or string, got %T", v)
+	}
+}
+
 // --- GetDockerfileTemplate ---
+
+type getDockerfileTemplateJSONWire struct {
+	Code           *string `json:"Code"`
+	Data           *struct {
+		OssDownloadUrl    *string         `json:"OssDownloadUrl"`
+		NonEditLineNum    json.RawMessage `json:"NonEditLineNum"`
+		DockerfileContent *string         `json:"DockerfileContent"`
+	} `json:"Data"`
+	HttpStatusCode *int32  `json:"HttpStatusCode"`
+	Message        *string `json:"Message"`
+	RequestId      *string `json:"RequestId"`
+	Success        *bool   `json:"Success"`
+}
 
 type xmlGetDockerfileTemplateResponse struct {
 	XMLName        xml.Name `xml:"GetDockerfileTemplateResponse"`
@@ -647,8 +690,26 @@ func parseGetDockerfileTemplateResponse(res map[string]interface{}) (*GetDockerf
 	} else {
 		parsed := &GetDockerfileTemplateResponseBody{}
 		if bodyStr != "" {
-			if err := json.Unmarshal([]byte(bodyStr), parsed); err != nil {
+			var wire getDockerfileTemplateJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
 				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = wire.Code
+			parsed.HttpStatusCode = wire.HttpStatusCode
+			parsed.Message = wire.Message
+			parsed.RequestId = wire.RequestId
+			parsed.Success = wire.Success
+			if wire.Data != nil {
+				data := &GetDockerfileTemplateResponseBodyData{
+					OssDownloadUrl:    wire.Data.OssDownloadUrl,
+					DockerfileContent: wire.Data.DockerfileContent,
+				}
+				n, err := int32FromFlexibleJSON(wire.Data.NonEditLineNum)
+				if err != nil {
+					return nil, &ErrWithRequestID{Err: fmt.Errorf("Data.NonEditLineNum: %w", err), RequestID: extractRequestIDFromResponse(res)}
+				}
+				data.NonEditLineNum = n
+				parsed.Data = data
 			}
 		}
 		out.Body = parsed
