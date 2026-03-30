@@ -186,3 +186,8 @@ func (client *Client) CreateResourceGroupWithContext(ctx context.Context, reques
 func (client *Client) DeleteResourceGroupWithContext(ctx context.Context, request *DeleteResourceGroupRequest, runtime *dara.RuntimeOptions) (_result *DeleteResourceGroupResponse, _err error) {
 	return client.DeleteResourceGroupWithOptions(request, runtime)
 }
+
+// GetDockerfileTemplateWithContext 下载 dockerfile 模版（响应体 XML/JSON 双解析在 WithOptions 中）
+func (client *Client) GetDockerfileTemplateWithContext(ctx context.Context, request *GetDockerfileTemplateRequest, runtime *dara.RuntimeOptions) (_result *GetDockerfileTemplateResponse, _err error) {
+	return client.GetDockerfileTemplateWithOptions(request, runtime)
+}
