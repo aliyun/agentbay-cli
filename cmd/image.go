@@ -468,6 +468,9 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("[ERROR] Failed to create Docker image task. Please try again: %w", err)
 	}
 	fmt.Printf(" Done.\n")
+	if createResp.Body != nil && createResp.Body.GetRequestId() != nil {
+		printRequestIDIfVerbose(cmd, *createResp.Body.GetRequestId())
+	}
 
 	// Debug: Print create task response (simplified)
 	if log.GetLevel() >= log.DebugLevel && createResp.Body != nil && createResp.Body.Data != nil {
