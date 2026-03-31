@@ -148,7 +148,7 @@ jobs:
           echo "Repository URL: https://github.com/agentbay/${{ env.HOMEBREW_TAP_REPO }}.git"
           
           # Clone target repository
-          git clone "https://x-access-token:${{ secrets.HOMEBREW_TAP_TOKEN }}@github.com/agentbay/${{ env.HOMEBREW_TAP_REPO }}.git" homebrew-tap
+          git clone "https://x-access-token:${{ secrets.HOMEBREW_TAP_TOKEN }}@github.com/aliyun/${{ env.HOMEBREW_TAP_REPO }}.git" homebrew-tap
           
           echo "✅ Successfully cloned homebrew-agentbay repository"
           
@@ -191,35 +191,185 @@ jobs:
           cat "${{ env.TARGET_RB_PATH }}"
           echo "========================"
 
+      - name: Generate README.md file
+        run: |
+          echo "📝 Generating README.md file..."
+          
+          # Create README.md content
+          cat > /tmp/README.md << 'EOF'
+          # Agentbay Cloud Homebrew Tap
+
+          This is the official Homebrew tap for Agentbay Cloud, providing a convenient way to install the Agentbay command-line tool.
+
+          ## Quick Installation
+
+          ### Install via Tap (Recommended)
+
+          ```bash
+          # 1. Add Agentbay Cloud's Homebrew tap
+          brew tap aliyun/agentbay
+
+          # 2. Install agentbay command-line tool
+          brew install agentbay
+
+          # 3. Verify installation
+          agentbay version
+          ```
+
+          ## Usage
+
+          After installation, you can use the following commands:
+
+          ```bash
+          # Check version information
+          agentbay version
+
+          # View help information
+          agentbay --help
+
+          # Use Agentbay commands
+          agentbay [command] [options]
+          ```
+
+          ## Update and Uninstall
+
+          ### Update to Latest Version
+
+          ```bash
+          # update only agentbay
+          brew upgrade agentbay
+          ```
+
+          ### Uninstall
+
+          ```bash
+          # Uninstall agentbay
+          brew uninstall agentbay
+
+          # Remove tap (optional)
+          brew untap aliyun/agentbay
+          ```
+
+          ## Project Information
+
+          - **Project Homepage**: https://github.com/aliyun/agentbay-cli
+          - **Current Version**: v$VERSION
+          - **License**: MIT
+          - **Description**: Secure infrastructure for running AI-generated code
+
+          ## Troubleshooting
+
+          ### Common Issues
+
+          1. **Installation Failed**
+             ```bash
+             # Update Homebrew
+             brew update
+             
+             # Clean cache
+             brew cleanup
+             
+             # Reinstall
+             brew reinstall agentbay
+             ```
+
+          2. **Network Issues (Especially for Chinese Users)**
+             
+             The Formula has been configured with Chinese mirror sources. If you still have issues:
+             ```bash
+             # Set Go proxy
+             export GOPROXY=https://goproxy.cn,direct
+             export GOSUMDB=sum.golang.google.cn
+             
+             # Reinstall
+             brew reinstall agentbay
+             ```
+
+          3. **Permission Issues**
+             ```bash
+             # Fix Homebrew permissions
+             sudo chown -R $(whoami) $(brew --prefix)/*
+             ```
+
+          ## Developer Information
+
+          ### Formula File Description
+
+          `Formula/agentbay.rb` contains:
+          - **Build Dependencies**: Go language environment
+          - **Network Optimization**: Configured with Chinese mirror sources to improve download speed
+          - **Version Information**: Automatically injects version number, Git commit, and build time
+          - **Test Cases**: Validates installation and basic functionality
+
+          ## Support
+
+          If you encounter issues:
+
+          - Check [Issues](https://github.com/aliyun/homebrew-agentbay/issues)
+          - Create a new Issue to report problems
+          - View [Agentbay CLI Project](https://github.com/aliyun/agentbay-cli)
+
+          ## Related Links
+
+          - [Homebrew Official Website](https://brew.sh/)
+          - [Agentbay CLI Project](https://github.com/aliyun/agentbay-cli)
+          - [Homebrew Tap Documentation](https://docs.brew.sh/Taps)
+          EOF
+          
+          echo "✅ README.md file generated successfully"
+          
+          # Display generated content for verification
+          echo "Generated README.md content preview:"
+          echo "===================================="
+          head -20 /tmp/README.md
+          echo "===================================="
+
+      - name: Update README.md in homebrew-agentbay repository
+        run: |
+          echo "📝 Updating README.md in homebrew-agentbay repository..."
+          
+          cd homebrew-tap
+          
+          # Copy README.md to target location (same level as Formula directory)
+          cp /tmp/README.md README.md
+          
+          echo "✅ README.md file updated in homebrew-agentbay repository"
+          
+          # Display file content for confirmation
+          echo "Updated README.md content preview:"
+          echo "=================================="
+          head -10 README.md
+          echo "=================================="
+
       - name: Commit and push changes
         env:
           GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
           cd homebrew-tap
           
-          echo "📝 Preparing to commit and push Formula file..."
+          echo "📝 Preparing to commit and push Formula and README files..."
           
-          # Add changes (regardless of whether there are actual changes)
-          git add "${{ env.TARGET_RB_PATH }}"
+          # Add changes (both Formula and README)
+          git add "${{ env.TARGET_RB_PATH }}" README.md
           
           # Create commit message
-          COMMIT_MSG="Update agentbay formula to version $VERSION
+          COMMIT_MSG="Update agentbay formula and README to version $VERSION
           
           - Updated from source repository: ${{ github.repository }}
           - Source file: ${{ env.SOURCE_RB_PATH }}
-          - Target file: ${{ env.TARGET_RB_PATH }}
+          - Target files: ${{ env.TARGET_RB_PATH }}, README.md
           - Triggered by: ${{ github.actor }}
           - Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           - Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
           
           # Commit changes (allow empty commit)
           git commit -m "$COMMIT_MSG" --allow-empty
-          echo "✅ Formula committed successfully"
+          echo "✅ Formula and README committed successfully"
           
           # Push to remote repository
           echo "Pushing changes to homebrew-agentbay repository..."
           if git push origin main 2>/dev/null || git push origin master 2>/dev/null; then
-            echo "✅ Successfully pushed Formula to homebrew-agentbay repository"
+            echo "✅ Successfully pushed Formula and README to homebrew-agentbay repository"
           else
             echo "⚠️ Failed to push to existing branch, trying to create new branch..."
             git push -u origin HEAD:main
