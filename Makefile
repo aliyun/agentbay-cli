@@ -1,5 +1,8 @@
 # Copyright 2025 AgentBay CLI Contributors
 # SPDX-License-Identifier: Apache-2.0
+#
+# Test copy of Makefile with dist/hash targets for homebrew CI alignment.
+# Try: make -f makefiletest dist && make -f makefiletest hash
 
 # Build variables
 BINARY_NAME=agentbay
@@ -22,7 +25,7 @@ GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 
 # Build targets
-.PHONY: all build clean test test-unit test-integration test-all coverage test-coverage deps help
+.PHONY: all build clean test test-unit test-integration test-all coverage test-coverage deps help dist hash
 
 all: test-unit build
 
@@ -48,7 +51,7 @@ test-all: deps
 
 coverage: deps
 	$(GOTEST) -v -coverprofile=coverage.out ./test/unit/... ./internal/... ./cmd/...
-	$(GOCMD) tool cover -html=coverage.out -o coverage.html
+	$(GOMOD) tool cover -html=coverage.out -o coverage.html
 
 test-coverage: coverage
 
@@ -102,6 +105,27 @@ build-all: deps
 	$(MAKE) build-linux
 	$(MAKE) build-windows
 	$(MAKE) build-darwin
+
+# Distribution targets (for CI/CD — matches .github/workflows/homebrew.yml)
+dist: build-all
+	@echo "✅ Distribution build completed for all platforms"
+
+hash:
+	@echo "🔐 Generating SHA256 hash files for all binaries..."
+	@for file in bin/*; do \
+		if [ -f "$$file" ] && [ "$${file##*.}" != "sha256" ]; then \
+			echo "Generating hash for $$file"; \
+			if command -v sha256sum >/dev/null 2>&1; then \
+				sha256sum "$$file" > "$$file.sha256"; \
+			elif command -v shasum >/dev/null 2>&1; then \
+				shasum -a 256 "$$file" > "$$file.sha256"; \
+			else \
+				echo "⚠️ No SHA256 tool available (sha256sum or shasum)"; \
+				break; \
+			fi; \
+		fi; \
+	done
+	@echo "✅ Hash generation completed"
 
 # Optimized cross-compilation targets - smaller binary size
 .PHONY: build-linux-optimized build-windows-optimized build-darwin-optimized build-all-optimized
@@ -216,14 +240,16 @@ help:
 	@echo "  build-windows- Cross-compile for Windows"
 	@echo "  build-darwin - Cross-compile for macOS"
 	@echo "  build-all    - Cross-compile for all platforms"
-	@echo "  help         - Show this help message" 
+	@echo "  dist         - Build distribution for all platforms (CI/CD)"
+	@echo "  hash         - Generate SHA256 hashes for all binaries in bin/"
+	@echo "  help         - Show this help message"
 	@echo "  build-optimized    - Build optimized binary (smaller size, no debug symbols)"
 	@echo "  build-linux-optimized - Cross-compile optimized binary for Linux"
 	@echo "  build-windows-optimized - Cross-compile optimized binary for Windows"
 	@echo "  build-darwin-optimized - Cross-compile optimized binary for macOS"
-	@echo "  build-all-optimized - Cross-compile optimized binaries for all platforms" 
+	@echo "  build-all-optimized - Cross-compile optimized binaries for all platforms"
 	@echo "  build-upx          - Build UPX-compressed binary (ultra-compact, requires upx)"
 	@echo "  build-linux-upx    - Build UPX-compressed binaries for Linux"
 	@echo "  build-windows-upx  - Build UPX-compressed binaries for Windows"
 	@echo "  build-darwin-upx   - Build UPX-compressed binaries for macOS"
-	@echo "  build-all-upx      - Build UPX-compressed binaries for all platforms" 
+	@echo "  build-all-upx      - Build UPX-compressed binaries for all platforms"
