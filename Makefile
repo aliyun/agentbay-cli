@@ -6,7 +6,12 @@ BINARY_NAME=agentbay
 VERSION?=dev
 GIT_COMMIT?=$(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
-LDFLAGS=-ldflags "-s -w -X github.com/agentbay/agentbay-cli/cmd.Version=$(VERSION) -X github.com/agentbay/agentbay-cli/cmd.GitCommit=$(GIT_COMMIT) -X github.com/agentbay/agentbay-cli/cmd.BuildDate=$(BUILD_DATE)"
+
+# Standard build flags with debug symbols
+LDFLAGS=-ldflags "-X github.com/agentbay/agentbay-cli/cmd.Version=$(VERSION) -X github.com/agentbay/agentbay-cli/cmd.GitCommit=$(GIT_COMMIT) -X github.com/agentbay/agentbay-cli/cmd.BuildDate=$(BUILD_DATE)"
+
+# Optimized build flags - strip debug symbols and symbol table for smaller binary
+LDFLAGS_OPTIMIZED=-ldflags "-s -w -X github.com/agentbay/agentbay-cli/cmd.Version=$(VERSION) -X github.com/agentbay/agentbay-cli/cmd.GitCommit=$(GIT_COMMIT) -X github.com/agentbay/agentbay-cli/cmd.BuildDate=$(BUILD_DATE)"
 
 # Go parameters
 GOCMD=go
@@ -17,7 +22,7 @@ GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 
 # Build targets
-.PHONY: all build clean test test-unit test-integration test-all coverage test-coverage deps help dist hash
+.PHONY: all build clean test test-unit test-integration test-all coverage test-coverage deps help
 
 all: test-unit build
 
@@ -211,6 +216,14 @@ help:
 	@echo "  build-windows- Cross-compile for Windows"
 	@echo "  build-darwin - Cross-compile for macOS"
 	@echo "  build-all    - Cross-compile for all platforms"
-	@echo "  dist         - Build distribution for all platforms (CI/CD)"
-	@echo "  hash         - Generate SHA256 hashes for all binaries"
 	@echo "  help         - Show this help message" 
+	@echo "  build-optimized    - Build optimized binary (smaller size, no debug symbols)"
+	@echo "  build-linux-optimized - Cross-compile optimized binary for Linux"
+	@echo "  build-windows-optimized - Cross-compile optimized binary for Windows"
+	@echo "  build-darwin-optimized - Cross-compile optimized binary for macOS"
+	@echo "  build-all-optimized - Cross-compile optimized binaries for all platforms" 
+	@echo "  build-upx          - Build UPX-compressed binary (ultra-compact, requires upx)"
+	@echo "  build-linux-upx    - Build UPX-compressed binaries for Linux"
+	@echo "  build-windows-upx  - Build UPX-compressed binaries for Windows"
+	@echo "  build-darwin-upx   - Build UPX-compressed binaries for macOS"
+	@echo "  build-all-upx      - Build UPX-compressed binaries for all platforms" 
