@@ -32,6 +32,16 @@ func TestConfig(t *testing.T) {
 		}
 	}()
 
+	origAK, origSK, origSess := os.Getenv(config.EnvAccessKeyID), os.Getenv(config.EnvAccessKeySecret), os.Getenv(config.EnvAccessKeySessionToken)
+	_ = os.Unsetenv(config.EnvAccessKeyID)
+	_ = os.Unsetenv(config.EnvAccessKeySecret)
+	_ = os.Unsetenv(config.EnvAccessKeySessionToken)
+	defer func() {
+		restoreEnvVar(config.EnvAccessKeyID, origAK)
+		restoreEnvVar(config.EnvAccessKeySecret, origSK)
+		restoreEnvVar(config.EnvAccessKeySessionToken, origSess)
+	}()
+
 	t.Run("GetConfig creates new config when file doesn't exist", func(t *testing.T) {
 		cfg, err := config.GetConfig()
 		assert.NoError(t, err)
@@ -193,4 +203,12 @@ func TestConfigFile(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, filepath.Join(tempDir, "config.json"), configFile)
 	})
+}
+
+func restoreEnvVar(key, val string) {
+	if val == "" {
+		_ = os.Unsetenv(key)
+	} else {
+		_ = os.Setenv(key, val)
+	}
 }

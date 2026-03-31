@@ -24,13 +24,13 @@ import (
 
 const skillFileName = "SKILL.md"
 
-// Output style: label width for skill show.
+// Output style: label width for skill show (no emoji).
 const skillDetailLabelW = 14
 
 var SkillsCmd = &cobra.Command{
 	Use:     "skills",
 	Short:   "Manage AgentBay skills",
-	Long:    "Push skills and show details.",
+	Long:    "Push and list skills; show details.",
 	GroupID: "management",
 }
 
@@ -44,6 +44,14 @@ Directory: packed to zip then uploaded. Zip: uploaded as-is.`,
 	RunE: runSkillsPush,
 }
 
+var skillsListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List cloud skills",
+	Long:  `List skills visible to you (yours and public). Backend list API coming soon.`,
+	Args:  cobra.NoArgs,
+	RunE:  runSkillsList,
+}
+
 var skillsShowCmd = &cobra.Command{
 	Use:   "show <skill-id>",
 	Short: "Show skill details",
@@ -54,6 +62,7 @@ var skillsShowCmd = &cobra.Command{
 
 func init() {
 	SkillsCmd.AddCommand(skillsPushCmd)
+	SkillsCmd.AddCommand(skillsListCmd)
 	SkillsCmd.AddCommand(skillsShowCmd)
 }
 
@@ -143,8 +152,7 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 	credResp, err := apiClient.GetMarketSkillCredential(ctx, credReq)
 	if err != nil {
 		printRequestIDFromErrIfVerbose(cmd, err)
-		fmt.Fprintf(os.Stderr, "[ERROR] Failed to get upload credential: %v\n", err)
-		return fmt.Errorf("get credential: %w", err)
+		return fmt.Errorf("[ERROR] Failed to get upload credential: %w", err)
 	}
 	if credResp.Body == nil || credResp.Body.Data == nil {
 		return fmt.Errorf("invalid response: missing credential data")
@@ -180,8 +188,7 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 			}
 		}
 		if err := uploadFileToOSS(zipPath, uploadURLStr); err != nil {
-			fmt.Fprintf(os.Stderr, "[ERROR] Failed to upload: %v\n", err)
-			return fmt.Errorf("upload: %w", err)
+			return fmt.Errorf("[ERROR] Failed to upload: %w", err)
 		}
 	} else {
 		// Directory: pack then upload
@@ -207,15 +214,20 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 			fmt.Fprintf(os.Stderr, "[DEBUG] Upload size: %d bytes, temp file: %s\n", zipBuf.Len(), tmpPath)
 		}
 		if err := uploadFileToOSS(tmpPath, uploadURLStr); err != nil {
-			fmt.Fprintf(os.Stderr, "[ERROR] Failed to upload: %v\n", err)
-			return fmt.Errorf("upload: %w", err)
+			return fmt.Errorf("[ERROR] Failed to upload: %w", err)
 		}
 	}
 
 	fmt.Printf("[STEP 3/3] Creating skill...\n")
+	// Pre-release credential URL path is often "null/<id>"; some backends reject "null" in OssFilePath.
+	// Pass only the suffix for CreateMarketSkill when path is exactly "null/<suffix>" so backend receives a valid path.
+	createOssPath := createOssFilePath
+	if strings.HasPrefix(createOssPath, "null/") && len(createOssPath) > 5 {
+		createOssPath = createOssPath[5:] // len("null/")
+	}
 	createReq := &client.CreateMarketSkillRequest{
 		OssBucket:   &createBucket,
-		OssFilePath: &createOssFilePath,
+		OssFilePath: &createOssPath,
 	}
 	createResp, err := apiClient.CreateMarketSkill(ctx, createReq)
 	if err != nil {
@@ -223,8 +235,7 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 			fmt.Fprintf(os.Stderr, "[DEBUG] Raw response: %s\n", createResp.RawBody)
 		}
 		printRequestIDFromErrIfVerbose(cmd, err)
-		fmt.Fprintf(os.Stderr, "[ERROR] Failed to create skill: %v\n", err)
-		return fmt.Errorf("create skill: %w", err)
+		return fmt.Errorf("[ERROR] Failed to create skill: %w", err)
 	}
 	var skillId string
 	if createResp.Body != nil && createResp.Body.Data != nil && createResp.Body.Data.SkillId != nil {
@@ -337,6 +348,11 @@ func zipSkillDir(dir string) (*bytes.Buffer, error) {
 	return buf, nil
 }
 
+func runSkillsList(cmd *cobra.Command, args []string) error {
+	fmt.Fprintln(os.Stderr, "[INFO] List skills: backend list API is not yet available. This command will be enabled when the API is ready.")
+	return nil
+}
+
 func runSkillsShow(cmd *cobra.Command, args []string) error {
 	skillId := args[0]
 	cfg, err := config.GetConfig()
@@ -350,8 +366,7 @@ func runSkillsShow(cmd *cobra.Command, args []string) error {
 	resp, err := apiClient.DescribeMarketSkillDetail(ctx, req)
 	if err != nil {
 		printRequestIDFromErrIfVerbose(cmd, err)
-		fmt.Fprintf(os.Stderr, "[ERROR] Failed to get skill details: %v\n", err)
-		return fmt.Errorf("describe skill: %w", err)
+		return fmt.Errorf("[ERROR] Failed to get skill details: %w", err)
 	}
 	if resp.Body == nil || resp.Body.Data == nil {
 		fmt.Fprintf(os.Stderr, "[INFO] No details for skill %s\n", skillId)
@@ -416,4 +431,3 @@ func wrapText(s string, width int, indent string) string {
 	}
 	return strings.TrimSuffix(b.String(), "\n")
 }
-

@@ -26,56 +26,37 @@ var LogoutCmd = &cobra.Command{
 func runLogout(cmd *cobra.Command) error {
 	fmt.Println("Logging out from AgentBay...")
 
-	// Load configuration
 	cfg, err := config.GetConfig()
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	// Check if we have valid tokens for API logout
-	hasValidTokens := cfg.IsAuthenticated()
-
-	if hasValidTokens {
-		// Attempt to revoke server tokens
+	token, tokenErr := cfg.GetToken()
+	if tokenErr == nil && token.RefreshToken != "" {
 		fmt.Println("Revoking server tokens...")
-
-		token, err := cfg.GetToken()
+		err = auth.RevokeTokenWithHint(GetClientID(), token.RefreshToken, "refresh_token")
 		if err != nil {
-			fmt.Printf("Warning: Could not get tokens for revocation: %v\n", err)
+			fmt.Printf("Warning: Could not revoke refresh token: %v\n", err)
 		} else {
-			// Note: Aliyun OAuth service only supports revoking refresh_token
-			// Access tokens are short-lived and will expire automatically
-			// Revoking the refresh token also invalidates associated access tokens
-
-			// Try to revoke refresh token
-			if token.RefreshToken != "" {
-				err = auth.RevokeTokenWithHint(GetClientID(), token.RefreshToken, "refresh_token")
-				if err != nil {
-					fmt.Printf("Warning: Could not revoke refresh token: %v\n", err)
-				} else {
-					fmt.Println("Refresh token revoked successfully")
-				}
-			}
+			fmt.Println("Refresh token revoked successfully")
 		}
+	} else if tokenErr == nil && token.AccessToken != "" {
+		fmt.Println("No refresh token to revoke; clearing local OAuth data only")
 	} else {
-		fmt.Println("No active session found")
+		fmt.Println("No OAuth tokens in local config")
 	}
 
-	// Always perform local cleanup
 	fmt.Println("Clearing local authentication data...")
-
-	// Clear tokens from config
 	err = cfg.ClearTokens()
 	if err != nil {
 		return fmt.Errorf("failed to clear local authentication data: %w", err)
 	}
 
-	// Success message
-	if hasValidTokens {
-		fmt.Println("Successfully logged out from AgentBay")
-	} else {
-		fmt.Println("Successfully logged out from AgentBay (local session cleared)")
+	if config.HasAccessKeyFromEnv() {
+		fmt.Printf("Note: %s and %s are still set; unset them to stop using access key authentication.\n",
+			config.EnvAccessKeyID, config.EnvAccessKeySecret)
 	}
 
+	fmt.Println("Successfully logged out from AgentBay")
 	return nil
 }

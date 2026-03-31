@@ -105,9 +105,9 @@ func TestParseOSSBucketAndPath(t *testing.T) {
 			errContains: "host",
 		},
 		{
-			name:        "invalid URL",
-			ossURL:      ":not-a-url",
-			wantErr:     true,
+			name:    "invalid URL",
+			ossURL:  ":not-a-url",
+			wantErr: true,
 		},
 		{
 			name:        "host not in bucket.oss form",
@@ -171,7 +171,7 @@ func TestStrPtr(t *testing.T) {
 
 func TestRunSkillsPush_validationOnly(t *testing.T) {
 	// Tests that runSkillsPush fails before any API call (config/network).
-	// printErrorMessage returns "command failed"; detailed text is only on stderr.
+	// Validation errors come from printErrorMessage (multi-line text in returned error).
 	tests := []struct {
 		name  string
 		setup func(t *testing.T) string // returns skill dir path
@@ -198,12 +198,16 @@ func TestRunSkillsPush_validationOnly(t *testing.T) {
 			skillDir := tt.setup(t)
 			err := runSkillsPush(skillsPushCmd, []string{skillDir})
 			require.Error(t, err)
-			// printErrorMessage returns "command failed"; other paths return wrapped errors
-			assert.True(t, err.Error() == "command failed" || strings.Contains(err.Error(), "skill directory") ||
-				strings.Contains(err.Error(), "reading") || strings.Contains(err.Error(), "load config"),
+			low := strings.ToLower(err.Error())
+			assert.True(t, strings.Contains(err.Error(), "[ERROR]") || strings.Contains(low, "skill directory") ||
+				strings.Contains(low, "reading") || strings.Contains(low, "load config"),
 				"unexpected error: %s", err.Error())
 		})
 	}
 }
 
-
+func TestRunSkillsList(t *testing.T) {
+	// runSkillsList is a placeholder that prints to stderr and returns nil.
+	err := runSkillsList(skillsListCmd, nil)
+	require.NoError(t, err)
+}

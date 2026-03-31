@@ -79,9 +79,10 @@ uninstall:
 # Cross-compilation targets
 .PHONY: build-linux build-windows build-darwin build-all
 
+# Linux: CGO_ENABLED=0 avoids linking against the builder's glibc (fixes GLIBC_x.xx not found on older distros).
 build-linux: deps
-	GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o bin/$(BINARY_NAME)-linux-amd64 .
-	GOOS=linux GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o bin/$(BINARY_NAME)-linux-arm64 .
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o bin/$(BINARY_NAME)-linux-amd64 .
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o bin/$(BINARY_NAME)-linux-arm64 .
 
 build-windows: deps
 	GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o bin/$(BINARY_NAME)-windows-amd64.exe .
@@ -97,26 +98,95 @@ build-all: deps
 	$(MAKE) build-windows
 	$(MAKE) build-darwin
 
-# Distribution targets (for CI/CD)
-dist: build-all
-	@echo "✅ Distribution build completed for all platforms"
+# Optimized cross-compilation targets - smaller binary size
+.PHONY: build-linux-optimized build-windows-optimized build-darwin-optimized build-all-optimized
 
-hash:
-	@echo "🔐 Generating SHA256 hash files for all binaries..."
-	@for file in bin/*; do \
-		if [ -f "$$file" ] && [ "$${file##*.}" != "sha256" ]; then \
-			echo "Generating hash for $$file"; \
-			if command -v sha256sum >/dev/null 2>&1; then \
-				sha256sum "$$file" > "$$file.sha256"; \
-			elif command -v shasum >/dev/null 2>&1; then \
-				shasum -a 256 "$$file" > "$$file.sha256"; \
-			else \
-				echo "⚠️ No SHA256 tool available (sha256sum or shasum)"; \
-				break; \
-			fi; \
-		fi; \
-	done
-	@echo "✅ Hash generation completed"
+build-linux-optimized: deps
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS_OPTIMIZED) -o bin/$(BINARY_NAME)-linux-amd64 .
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(GOBUILD) $(LDFLAGS_OPTIMIZED) -o bin/$(BINARY_NAME)-linux-arm64 .
+
+build-windows-optimized: deps
+	GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS_OPTIMIZED) -o bin/$(BINARY_NAME)-windows-amd64.exe .
+	GOOS=windows GOARCH=arm64 $(GOBUILD) $(LDFLAGS_OPTIMIZED) -o bin/$(BINARY_NAME)-windows-arm64.exe .
+
+build-darwin-optimized: deps
+	GOOS=darwin GOARCH=amd64 $(GOBUILD) $(LDFLAGS_OPTIMIZED) -o bin/$(BINARY_NAME)-darwin-amd64 .
+	GOOS=darwin GOARCH=arm64 $(GOBUILD) $(LDFLAGS_OPTIMIZED) -o bin/$(BINARY_NAME)-darwin-arm64 .
+
+build-all-optimized: deps
+	@mkdir -p bin
+	$(MAKE) build-linux-optimized
+	$(MAKE) build-windows-optimized
+	$(MAKE) build-darwin-optimized
+
+# Optimized builds - smaller binary size with stripped debug symbols
+.PHONY: build-optimized
+
+build-optimized: deps
+	$(GOBUILD) $(LDFLAGS_OPTIMIZED) -o $(BINARY_NAME) .
+
+# UPX compression targets - ultra-compressed binaries for production
+.PHONY: build-upx build-linux-upx build-windows-upx build-darwin-upx build-all-upx
+
+build-upx: build-optimized
+	@if command -v upx >/dev/null 2>&1; then \
+		echo "[UPX] Compressing binary..."; \
+		upx --best --lzma $(BINARY_NAME); \
+		echo "[UPX] Compression complete"; \
+		ls -lh $(BINARY_NAME); \
+	else \
+		echo "[ERROR] UPX not installed. Install with: brew install upx"; \
+		exit 1; \
+	fi
+
+build-linux-upx: build-linux-optimized
+	@if command -v upx >/dev/null 2>&1; then \
+		echo "[UPX] Compressing Linux binaries..."; \
+		upx --best --lzma bin/$(BINARY_NAME)-linux-amd64; \
+		upx --best --lzma bin/$(BINARY_NAME)-linux-arm64; \
+		echo "[UPX] Compression complete"; \
+		ls -lh bin/$(BINARY_NAME)-linux-*; \
+	else \
+		echo "[ERROR] UPX not installed. Install with: brew install upx"; \
+		exit 1; \
+	fi
+
+build-windows-upx: build-windows-optimized
+	@if command -v upx >/dev/null 2>&1; then \
+		echo "[UPX] Compressing Windows binaries..."; \
+		upx --best --lzma bin/$(BINARY_NAME)-windows-amd64.exe; \
+		upx --best --lzma bin/$(BINARY_NAME)-windows-arm64.exe; \
+		echo "[UPX] Compression complete"; \
+		ls -lh bin/$(BINARY_NAME)-windows-*; \
+	else \
+		echo "[ERROR] UPX not installed. Install with: brew install upx"; \
+		exit 1; \
+	fi
+
+build-darwin-upx: build-darwin-optimized
+	@if command -v upx >/dev/null 2>&1; then \
+		echo "[UPX] Compressing macOS binaries..."; \
+		upx --best --lzma bin/$(BINARY_NAME)-darwin-amd64; \
+		upx --best --lzma bin/$(BINARY_NAME)-darwin-arm64; \
+		echo "[UPX] Compression complete"; \
+		ls -lh bin/$(BINARY_NAME)-darwin-*; \
+	else \
+		echo "[ERROR] UPX not installed. Install with: brew install upx"; \
+		exit 1; \
+	fi
+
+build-all-upx: build-all-optimized
+	@if command -v upx >/dev/null 2>&1; then \
+		echo "[UPX] Compressing all binaries..."; \
+		for file in bin/$(BINARY_NAME)-*; do \
+			upx --best --lzma "$$file"; \
+		done; \
+		echo "[UPX] Compression complete"; \
+		ls -lh bin/; \
+	else \
+		echo "[ERROR] UPX not installed. Install with: brew install upx"; \
+		exit 1; \
+	fi
 
 # Help target
 help:

@@ -22,13 +22,14 @@ func TestSkillsCmd(t *testing.T) {
 		assert.True(t, strings.Contains(cmd.SkillsCmd.Long, "skill"))
 	})
 
-	t.Run("skills has subcommands push show", func(t *testing.T) {
+	t.Run("skills has subcommands push list show", func(t *testing.T) {
 		children := cmd.SkillsCmd.Commands()
 		names := make([]string, len(children))
 		for i, c := range children {
 			names[i] = c.Name()
 		}
 		assert.Contains(t, names, "push")
+		assert.Contains(t, names, "list")
 		assert.Contains(t, names, "show")
 	})
 
@@ -50,6 +51,19 @@ func TestSkillsCmd(t *testing.T) {
 		assert.Error(t, err)
 	})
 
+	t.Run("skills list accepts no arguments", func(t *testing.T) {
+		var listCmd *cobra.Command
+		for _, c := range cmd.SkillsCmd.Commands() {
+			if c.Name() == "list" {
+				listCmd = c
+				break
+			}
+		}
+		requireNotNil(t, listCmd)
+		assert.NoError(t, listCmd.Args(listCmd, []string{}))
+		assert.Error(t, listCmd.Args(listCmd, []string{"extra"}))
+	})
+
 	t.Run("skills show requires one argument", func(t *testing.T) {
 		var showCmd *cobra.Command
 		for _, c := range cmd.SkillsCmd.Commands() {
@@ -63,7 +77,6 @@ func TestSkillsCmd(t *testing.T) {
 		assert.NoError(t, showCmd.Args(showCmd, []string{"skill-123"}))
 		assert.Error(t, showCmd.Args(showCmd, []string{"a", "b"}))
 	})
-
 }
 
 // requireNotNil helps avoid importing cmd package twice for *cobra.Command type.

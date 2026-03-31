@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -66,37 +67,37 @@ func TestIsPortOccupied(t *testing.T) {
 	})
 
 	t.Run("IsPortOccupied should be accurate for concurrent checks", func(t *testing.T) {
-		// Find an available port
-		listener, err := net.Listen("tcp", ":0")
-		require.NoError(t, err)
-		portNum := listener.Addr().(*net.TCPAddr).Port
-		listener.Close()
-		port := fmt.Sprintf("%d", portNum)
-
-		// Verify port is available before concurrent checks
-		assert.False(t, auth.IsPortOccupied(port), "Port should be available before concurrent checks")
-
-		// Test concurrent checks (but don't occupy the port)
-		results := make(chan bool, 10)
+		// IsPortOccupied binds with Listen then closes; concurrent checks on the *same* port
+		// race each other and can spuriously see "in use". Use a distinct ephemeral port per goroutine.
+		var wg sync.WaitGroup
+		var mu sync.Mutex
+		var firstListenErr error
+		availableReports := 0
 		for i := 0; i < 10; i++ {
+			wg.Add(1)
 			go func() {
-				results <- auth.IsPortOccupied(port)
+				defer wg.Done()
+				ln, err := net.Listen("tcp", ":0")
+				if err != nil {
+					mu.Lock()
+					if firstListenErr == nil {
+						firstListenErr = err
+					}
+					mu.Unlock()
+					return
+				}
+				p := fmt.Sprintf("%d", ln.Addr().(*net.TCPAddr).Port)
+				ln.Close()
+				if !auth.IsPortOccupied(p) {
+					mu.Lock()
+					availableReports++
+					mu.Unlock()
+				}
 			}()
 		}
-
-		// All should return false (port is available)
-		// Note: In rare cases, another process might occupy the port between checks
-		// So we allow for some flexibility
-		falseCount := 0
-		for i := 0; i < 10; i++ {
-			occupied := <-results
-			if !occupied {
-				falseCount++
-			}
-		}
-		// At least most checks should return false (port is available)
-		// Allow for race conditions where port might be temporarily occupied
-		assert.GreaterOrEqual(t, falseCount, 5, "Most concurrent checks should report port as available")
+		wg.Wait()
+		require.NoError(t, firstListenErr)
+		assert.Equal(t, 10, availableReports, "each unique free port should report as available under concurrency")
 	})
 }
 

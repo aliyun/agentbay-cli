@@ -4,6 +4,7 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
@@ -14,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -84,11 +86,32 @@ type TokenResponse struct {
 	IDToken      string `json:"id_token"`
 }
 
-// RefreshResponse represents the OAuth refresh token response
+// RefreshResponse is the normalized OAuth refresh token response (expires_in parsed to seconds).
 type RefreshResponse struct {
-	AccessToken string `json:"access_token"`
-	TokenType   string `json:"token_type"`
-	ExpiresIn   int    `json:"expires_in"`
+	AccessToken string
+	TokenType   string
+	ExpiresIn   int
+}
+
+// parseOAuthExpiresIn decodes expires_in whether the server sends a JSON string or number (e.g. Aliyun uses "3599").
+func parseOAuthExpiresIn(raw json.RawMessage) (int, error) {
+	raw = bytes.TrimSpace(raw)
+	if len(raw) == 0 || string(raw) == "null" {
+		return 0, fmt.Errorf("expires_in missing")
+	}
+	var s string
+	if err := json.Unmarshal(raw, &s); err == nil {
+		v, err := strconv.Atoi(strings.TrimSpace(s))
+		if err != nil {
+			return 0, fmt.Errorf("expires_in string: %w", err)
+		}
+		return v, nil
+	}
+	var n int
+	if err := json.Unmarshal(raw, &n); err != nil {
+		return 0, fmt.Errorf("expires_in: %w", err)
+	}
+	return n, nil
 }
 
 // BuildAuthURL constructs the OAuth authorization URL
@@ -145,16 +168,46 @@ func RefreshAccessToken(clientID, refreshToken string) (*RefreshResponse, error)
 	}
 	defer resp.Body.Close()
 
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read refresh response body: %w", err)
+	}
+
 	if resp.StatusCode != http.StatusOK {
+		log.Warnf("OAuth token refresh HTTP %d, body: %s", resp.StatusCode, truncateForLog(bodyBytes, 2048))
 		return nil, fmt.Errorf("token refresh failed with status: %d", resp.StatusCode)
 	}
 
-	var refreshResponse RefreshResponse
-	if err := json.NewDecoder(resp.Body).Decode(&refreshResponse); err != nil {
+	var payload struct {
+		AccessToken string          `json:"access_token"`
+		TokenType   string          `json:"token_type"`
+		ExpiresIn   json.RawMessage `json:"expires_in"`
+	}
+	if err := json.Unmarshal(bodyBytes, &payload); err != nil {
 		return nil, fmt.Errorf("failed to decode refresh response: %w", err)
 	}
 
-	return &refreshResponse, nil
+	expiresSec, err := parseOAuthExpiresIn(payload.ExpiresIn)
+	if err != nil {
+		log.Warnf("OAuth refresh: invalid expires_in, using 3600s default: %v", err)
+		expiresSec = 3600
+	}
+
+	refreshResponse := &RefreshResponse{
+		AccessToken: payload.AccessToken,
+		TokenType:   payload.TokenType,
+		ExpiresIn:   expiresSec,
+	}
+
+	return refreshResponse, nil
+}
+
+func truncateForLog(b []byte, max int) string {
+	s := string(b)
+	if len(s) <= max {
+		return s
+	}
+	return s[:max] + "...(truncated)"
 }
 
 // RevokeToken revokes the given token with an optional token type hint
@@ -382,31 +435,37 @@ type TokenConfig interface {
 	ClearTokens() error
 }
 
-// RefreshTokenIfNeeded checks and refreshes token if it's about to expire (within 5 minutes)
-// This provides automatic token management for seamless API access
+// tokenRefreshLeeway is how long before access-token expiry we trigger refresh.
+const tokenRefreshLeeway = 5 * time.Minute
+
+// RefreshTokenIfNeeded checks and refreshes token if it's about to expire (within tokenRefreshLeeway).
 func RefreshTokenIfNeeded(cfg TokenConfig, clientID string) error {
 	_, refreshToken, expiresAt, err := cfg.GetTokens()
 	if err != nil {
 		return fmt.Errorf("no valid token found: %w", err)
 	}
 
-	// Check if token is about to expire (within 5 minutes)
-	if !cfg.IsTokenExpired() && time.Until(expiresAt) > 5*time.Minute {
-		log.Debug("Token is still valid, no refresh needed")
+	until := time.Until(expiresAt)
+	expired := cfg.IsTokenExpired()
+	refreshLen := len(refreshToken)
+
+	if refreshLen == 0 {
+		log.Warn("RefreshTokenIfNeeded: refresh_token is empty; refresh will likely fail")
+	}
+
+	if !expired && until > tokenRefreshLeeway {
 		return nil
 	}
 
-	log.Info("Token is approaching expiry or expired, refreshing...")
-
-	// Perform token refresh
 	refreshResp, err := RefreshAccessToken(clientID, refreshToken)
 	if err != nil {
-		// If refresh fails, clear the tokens
-		cfg.ClearTokens()
+		log.Warnf("Token refresh failed, clearing local OAuth tokens: %v", err)
+		if clearErr := cfg.ClearTokens(); clearErr != nil {
+			log.Warnf("ClearTokens after failed refresh: %v", clearErr)
+		}
 		return fmt.Errorf("token refresh failed, please run 'agentbay login' to reauthenticate: %w", err)
 	}
 
-	// Save new access token
 	err = cfg.RefreshTokens(
 		refreshResp.AccessToken,
 		refreshResp.TokenType,
@@ -416,6 +475,5 @@ func RefreshTokenIfNeeded(cfg TokenConfig, clientID string) error {
 		return fmt.Errorf("failed to save refreshed tokens: %w", err)
 	}
 
-	log.Info("Token refreshed successfully")
 	return nil
 }

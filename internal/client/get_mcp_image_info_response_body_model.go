@@ -99,12 +99,13 @@ func (s *GetMcpImageInfoResponseBody) Validate() error {
 }
 
 type GetMcpImageInfoResponseBodyData struct {
-	ImageApplyScene *string                                        `json:"ImageApplyScene,omitempty" xml:"ImageApplyScene,omitempty"`
-	ImageBuildInfo  *GetMcpImageInfoResponseBodyDataImageBuildInfo `json:"ImageBuildInfo,omitempty" xml:"ImageBuildInfo,omitempty" type:"Struct"`
-	ImageBuildType  *string                                        `json:"ImageBuildType,omitempty" xml:"ImageBuildType,omitempty"`
-	ImageId         *string                                        `json:"ImageId,omitempty" xml:"ImageId,omitempty"`
-	ImageInfo       *GetMcpImageInfoResponseBodyDataImageInfo      `json:"ImageInfo,omitempty" xml:"ImageInfo,omitempty" type:"Struct"`
-	ImageName       *string                                        `json:"ImageName,omitempty" xml:"ImageName,omitempty"`
+	ImageApplyScene     *string                                        `json:"ImageApplyScene,omitempty" xml:"ImageApplyScene,omitempty"`
+	ImageBuildInfo      *GetMcpImageInfoResponseBodyDataImageBuildInfo `json:"ImageBuildInfo,omitempty" xml:"ImageBuildInfo,omitempty" type:"Struct"`
+	ImageBuildType      *string                                        `json:"ImageBuildType,omitempty" xml:"ImageBuildType,omitempty"`
+	ImageId             *string                                        `json:"ImageId,omitempty" xml:"ImageId,omitempty"`
+	ImageInfo           *GetMcpImageInfoResponseBodyDataImageInfo      `json:"ImageInfo,omitempty" xml:"ImageInfo,omitempty" type:"Struct"`
+	ImageName           *string                                        `json:"ImageName,omitempty" xml:"ImageName,omitempty"`
+	ImageResourceStatus *string                                        `json:"ImageResourceStatus,omitempty" xml:"ImageResourceStatus,omitempty"`
 }
 
 func (s GetMcpImageInfoResponseBodyData) String() string {
@@ -139,6 +140,10 @@ func (s *GetMcpImageInfoResponseBodyData) GetImageName() *string {
 	return s.ImageName
 }
 
+func (s *GetMcpImageInfoResponseBodyData) GetImageResourceStatus() *string {
+	return s.ImageResourceStatus
+}
+
 func (s *GetMcpImageInfoResponseBodyData) SetImageApplyScene(v string) *GetMcpImageInfoResponseBodyData {
 	s.ImageApplyScene = &v
 	return s
@@ -166,6 +171,11 @@ func (s *GetMcpImageInfoResponseBodyData) SetImageInfo(v *GetMcpImageInfoRespons
 
 func (s *GetMcpImageInfoResponseBodyData) SetImageName(v string) *GetMcpImageInfoResponseBodyData {
 	s.ImageName = &v
+	return s
+}
+
+func (s *GetMcpImageInfoResponseBodyData) SetImageResourceStatus(v string) *GetMcpImageInfoResponseBodyData {
+	s.ImageResourceStatus = &v
 	return s
 }
 
@@ -250,6 +260,7 @@ func (s *GetMcpImageInfoResponseBodyDataImageBuildInfo) Validate() error {
 
 type GetMcpImageInfoResponseBodyDataImageInfo struct {
 	DataDiskSize   *int32  `json:"DataDiskSize,omitempty" xml:"DataDiskSize,omitempty"`
+	ImageType      *string `json:"ImageType,omitempty" xml:"ImageType,omitempty"`
 	OsName         *string `json:"OsName,omitempty" xml:"OsName,omitempty"`
 	OsVersion      *string `json:"OsVersion,omitempty" xml:"OsVersion,omitempty"`
 	PlatformName   *string `json:"PlatformName,omitempty" xml:"PlatformName,omitempty"`
@@ -268,6 +279,10 @@ func (s GetMcpImageInfoResponseBodyDataImageInfo) GoString() string {
 
 func (s *GetMcpImageInfoResponseBodyDataImageInfo) GetDataDiskSize() *int32 {
 	return s.DataDiskSize
+}
+
+func (s *GetMcpImageInfoResponseBodyDataImageInfo) GetImageType() *string {
+	return s.ImageType
 }
 
 func (s *GetMcpImageInfoResponseBodyDataImageInfo) GetOsName() *string {
@@ -296,6 +311,11 @@ func (s *GetMcpImageInfoResponseBodyDataImageInfo) GetUpdateTime() *string {
 
 func (s *GetMcpImageInfoResponseBodyDataImageInfo) SetDataDiskSize(v int32) *GetMcpImageInfoResponseBodyDataImageInfo {
 	s.DataDiskSize = &v
+	return s
+}
+
+func (s *GetMcpImageInfoResponseBodyDataImageInfo) SetImageType(v string) *GetMcpImageInfoResponseBodyDataImageInfo {
+	s.ImageType = &v
 	return s
 }
 

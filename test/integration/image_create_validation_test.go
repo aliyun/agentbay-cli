@@ -93,16 +93,18 @@ func TestImageCreateValidation_NonexistentImageId(t *testing.T) {
 				// For non-empty imageId, verify error message appears
 				if tt.imageId != "" {
 					// Error could be authentication error (in test environment) or validation error (with real auth)
-					hasAuthError := strings.Contains(stderrStr, "Not authenticated")
-					hasValidationError := strings.Contains(stderrStr, "Source image not found") || strings.Contains(stderrStr, "source image not found")
+					combinedOut := buf.String() + stderrStr
+					lower := strings.ToLower(combinedOut)
+					hasAuthError := strings.Contains(lower, "not authenticated")
+					hasValidationError := strings.Contains(lower, "source image not found")
 
 					if !hasAuthError && !hasValidationError {
-						t.Errorf("Expected stderr to contain either auth or validation error for invalid imageId, got:\n%s", stderrStr)
+						t.Errorf("Expected output to contain either auth or validation error for invalid imageId, got:\n%s", combinedOut)
 					}
 
 					// If it's a validation error, verify that helpful tip is provided
-					if hasValidationError && !strings.Contains(stderrStr, "image list") {
-						t.Errorf("Expected stderr to suggest 'image list' command for validation error, got:\n%s", stderrStr)
+					if hasValidationError && !strings.Contains(lower, "image list") {
+						t.Errorf("Expected output to suggest 'image list' command for validation error, got:\n%s", combinedOut)
 					}
 				}
 			} else {
@@ -195,9 +197,10 @@ func TestImageCreate_ErrorMessageFormat(t *testing.T) {
 
 	// Check that error message is clear and actionable
 	output := buf.String() + err.Error() + stderrStr
+	lowerOut := strings.ToLower(output)
 
-	// Error message should contain helpful information
-	hasErrorIndicator := strings.Contains(output, "[ERROR]") || strings.Contains(output, "error") || strings.Contains(output, "failed")
+	// Cobra prints "Error:"; commands may print "[ERROR]" or "failed"
+	hasErrorIndicator := strings.Contains(lowerOut, "error") || strings.Contains(lowerOut, "failed")
 	if !hasErrorIndicator {
 		t.Errorf("Error message should contain error indicator. Got: %s", output)
 	}
