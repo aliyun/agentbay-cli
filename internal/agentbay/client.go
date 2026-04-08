@@ -30,6 +30,8 @@ type Client interface {
 	GetMarketSkillCredential(ctx context.Context, request *client.GetMarketSkillCredentialRequest) (*client.GetMarketSkillCredentialResponse, error)
 	CreateMarketSkill(ctx context.Context, request *client.CreateMarketSkillRequest) (*client.CreateMarketSkillResponse, error)
 	DescribeMarketSkillDetail(ctx context.Context, request *client.DescribeMarketSkillDetailRequest) (*client.DescribeMarketSkillDetailResponse, error)
+	// API Key
+	CreateApiKey(ctx context.Context, request *client.CreateApiKeyRequest) (*client.CreateApiKeyResponse, error)
 }
 
 // clientWrapper wraps the generated SDK client with additional functionality
@@ -203,4 +205,13 @@ func (cw *clientWrapper) GetDockerfileTemplate(ctx context.Context, request *cli
 		return nil, err
 	}
 	return sdkClient.GetDockerfileTemplateWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// CreateApiKey wraps the SDK client method
+func (cw *clientWrapper) CreateApiKey(ctx context.Context, request *client.CreateApiKeyRequest) (*client.CreateApiKeyResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.CreateApiKeyWithContext(ctx, request, cw.getRuntimeOptions())
 }
