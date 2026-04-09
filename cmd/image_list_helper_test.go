@@ -100,6 +100,14 @@ func (m *mockImageListClient) DescribeMarketSkillDetail(ctx context.Context, req
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockImageListClient) CreateApiKey(ctx context.Context, request *client.CreateApiKeyRequest) (*client.CreateApiKeyResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockImageListClient) ModifyMcpApiKeyConfig(ctx context.Context, request *client.ModifyMcpApiKeyConfigRequest) (*client.ModifyMcpApiKeyConfigResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 // Helper functions for testing
 func boolPtr(b bool) *bool {
 	return &b

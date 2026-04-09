@@ -1,3 +1,6 @@
+---
+trigger: always_on
+---
 # AgentBay CLI 开发规则
 
 ## 🚫 Git 提交规则
@@ -77,6 +80,64 @@ feat: add API key concurrency management CLI command
 ---
 
 ## 💻 Go 代码规范
+
+### ⚠️ 接口变更必须同步更新 Mock（重要！）
+
+**规则**: 当给接口（interface）添加新方法时，**必须立即更新所有实现该接口的 mock 类**！
+
+**问题案例**:
+```go
+// 在 internal/agentbay/client.go 中添加新方法
+type Client interface {
+    CreateApiKey(ctx context.Context, request *client.CreateApiKeyRequest) (*client.CreateApiKeyResponse, error)
+    ModifyMcpApiKeyConfig(ctx context.Context, request *client.ModifyMcpApiKeyConfigRequest) (*client.ModifyMcpApiKeyConfigResponse, error)
+}
+```
+
+**❌ 错误做法**: 只更新接口，不更新 mock 类
+- 导致 CI 编译失败
+- 错误信息：`*mockClient does not implement agentbay.Client (missing method CreateApiKey)`
+
+**✅ 正确做法**: 
+1. 找到所有实现该接口的 mock 类
+2. 为每个 mock 类添加新方法（返回 "not implemented" 错误）
+
+```go
+// cmd/image_status_helper_test.go
+func (m *mockGetMcpImageInfoClient) CreateApiKey(ctx context.Context, request *client.CreateApiKeyRequest) (*client.CreateApiKeyResponse, error) {
+    return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockGetMcpImageInfoClient) ModifyMcpApiKeyConfig(ctx context.Context, request *client.ModifyMcpApiKeyConfigRequest) (*client.ModifyMcpApiKeyConfigResponse, error) {
+    return nil, fmt.Errorf("not implemented")
+}
+
+// cmd/image_list_helper_test.go
+func (m *mockImageListClient) CreateApiKey(ctx context.Context, request *client.CreateApiKeyRequest) (*client.CreateApiKeyResponse, error) {
+    return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockImageListClient) ModifyMcpApiKeyConfig(ctx context.Context, request *client.ModifyMcpApiKeyConfigRequest) (*client.ModifyMcpApiKeyConfigResponse, error) {
+    return nil, fmt.Errorf("not implemented")
+}
+```
+
+**查找所有 mock 类的方法**:
+```bash
+# 搜索所有 mock 类定义
+grep -r "type mock.*Client struct" cmd/ test/
+
+# 搜索所有实现接口的声明
+grep -r "var _ agentbay.Client" cmd/ test/
+```
+
+**检查清单**:
+- [ ] 接口添加新方法后，立即搜索所有 mock 类
+- [ ] 为每个 mock 类添加对应的方法实现
+- [ ] 运行 `go test ./...` 确保编译通过
+- [ ] 本地验证后再提交代码
+
+---
 
 ### 单元测试
 

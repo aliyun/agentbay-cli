@@ -84,6 +84,28 @@ params := &openapiutil.Params{
 - 在 `Client` interface 中添加方法定义
 - 在 `clientWrapper` 中实现方法
 
+**⚠️ 重要：更新接口后必须同步更新所有 Mock 类！**
+
+```bash
+# 1. 查找所有实现该接口的 mock 类
+grep -r "type mock.*Client struct" cmd/ test/
+
+# 2. 为每个 mock 类添加新方法
+# 示例：在 cmd/image_status_helper_test.go 和 cmd/image_list_helper_test.go 中添加
+```
+
+```go
+// 为每个 mock 类添加（返回 "not implemented"）
+func (m *mockClient) NewMethod(ctx context.Context, request *client.NewRequest) (*client.NewResponse, error) {
+    return nil, fmt.Errorf("not implemented")
+}
+```
+
+**检查清单**:
+- [ ] 找到所有 mock 类（通常 2-3 个）
+- [ ] 为每个 mock 类添加新方法
+- [ ] 运行 `go test ./cmd/...` 确保编译通过
+
 #### 2.4 创建 CLI 命令
 
 在 `cmd/` 目录下创建命令文件：
@@ -221,6 +243,7 @@ git commit -m "feat: add <功能描述> CLI command
 - [references/api-format.md](references/api-format.md) - API 格式规范
 - [references/cli-design.md](references/cli-design.md) - CLI 设计规范
 - [references/test-requirements.md](references/test-requirements.md) - 测试要求
+- [references/mock-sync-guide.md](references/mock-sync-guide.md) - Mock 同步更新规范（重要！）
 - [references/document-template.md](references/document-template.md) - 文档模板
 
 ## 🛠️ 工具脚本
@@ -246,3 +269,8 @@ git commit -m "feat: add <功能描述> CLI command
 5. **测试覆盖**: 必须有单元测试，且所有测试通过
 6. **文档面向客户**: 对客文档不包含代码实现细节
 7. **不要自动提交**: 必须用户明确要求才执行 git commit
+8. **⚠️ 接口变更必须同步 Mock**: 给 `agentbay.Client` 接口添加新方法后，**必须立即更新所有 mock 类**！
+   - 查找所有 mock 类：`grep -r "type mock.*Client struct" cmd/ test/`
+   - 为每个 mock 类添加新方法（返回 `fmt.Errorf("not implemented")`）
+   - 常见 mock 类：`mockGetMcpImageInfoClient`, `mockImageListClient`
+   - 否则 CI 会报错：`*mockClient does not implement agentbay.Client (missing method Xxx)`
