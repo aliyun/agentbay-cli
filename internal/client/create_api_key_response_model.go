@@ -3,17 +3,12 @@ package client
 
 // CreateApiKeyResponseBody is the response body struct for CreateApiKey
 type CreateApiKeyResponseBody struct {
-	Code           *string                          `json:"Code,omitempty" xml:"Code,omitempty"`
-	Data           *CreateApiKeyResponseBodyData    `json:"Data,omitempty" xml:"Data,omitempty"`
-	HttpStatusCode *int32                           `json:"HttpStatusCode,omitempty" xml:"HttpStatusCode,omitempty"`
-	Message        *string                          `json:"Message,omitempty" xml:"Message,omitempty"`
-	RequestId      *string                          `json:"RequestId,omitempty" xml:"RequestId,omitempty"`
-	Success        *bool                            `json:"Success,omitempty" xml:"Success,omitempty"`
-}
-
-// CreateApiKeyResponseBodyData is the data struct for CreateApiKey response
-type CreateApiKeyResponseBodyData struct {
-	KeyId *string `json:"KeyId,omitempty" xml:"KeyId,omitempty"`
+	Code           *string `json:"Code,omitempty" xml:"Code,omitempty"`
+	Data           *string `json:"Data,omitempty" xml:"Data,omitempty"`
+	HttpStatusCode *int32  `json:"HttpStatusCode,omitempty" xml:"HttpStatusCode,omitempty"`
+	Message        *string `json:"Message,omitempty" xml:"Message,omitempty"`
+	RequestId      *string `json:"RequestId,omitempty" xml:"RequestId,omitempty"`
+	Success        *bool   `json:"Success,omitempty" xml:"Success,omitempty"`
 }
 
 // CreateApiKeyResponse is the response struct for CreateApiKey
@@ -31,10 +26,10 @@ func (s *CreateApiKeyResponseBody) GetCode() string {
 	return *s.Code
 }
 
-// GetKeyId returns the KeyId value or empty string if nil
-func (s *CreateApiKeyResponseBodyData) GetKeyId() string {
-	if s == nil || s.KeyId == nil {
+// GetData returns the KeyId string directly (Data field is the KeyId)
+func (s *CreateApiKeyResponseBody) GetData() string {
+	if s == nil || s.Data == nil {
 		return ""
 	}
-	return *s.KeyId
+	return *s.Data
 }

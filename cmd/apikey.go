@@ -73,8 +73,8 @@ func runApikeyCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("[ERROR] Failed to create API key: %w", err)
 	}
 	
-	if resp.Body == nil || resp.Body.Data == nil {
-		return fmt.Errorf("[ERROR] Invalid response: missing data")
+	if resp.Body == nil {
+		return fmt.Errorf("[ERROR] Invalid response: missing body")
 	}
 	
 	verbose, _ := cmd.Flags().GetBool("verbose")
@@ -82,7 +82,7 @@ func runApikeyCreate(cmd *cobra.Command, args []string) error {
 		printRequestIDIfVerbose(cmd, *resp.Body.RequestId)
 	}
 	
-	keyId := resp.Body.Data.GetKeyId()
+	keyId := resp.Body.GetData()
 	if keyId == "" {
 		return fmt.Errorf("[ERROR] Invalid response: missing KeyId")
 	}
