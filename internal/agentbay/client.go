@@ -32,6 +32,7 @@ type Client interface {
 	DescribeMarketSkillDetail(ctx context.Context, request *client.DescribeMarketSkillDetailRequest) (*client.DescribeMarketSkillDetailResponse, error)
 	// API Key
 	CreateApiKey(ctx context.Context, request *client.CreateApiKeyRequest) (*client.CreateApiKeyResponse, error)
+	ModifyMcpApiKeyConfig(ctx context.Context, request *client.ModifyMcpApiKeyConfigRequest) (*client.ModifyMcpApiKeyConfigResponse, error)
 }
 
 // clientWrapper wraps the generated SDK client with additional functionality
@@ -214,4 +215,13 @@ func (cw *clientWrapper) CreateApiKey(ctx context.Context, request *client.Creat
 		return nil, err
 	}
 	return sdkClient.CreateApiKeyWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// ModifyMcpApiKeyConfig wraps the SDK client method
+func (cw *clientWrapper) ModifyMcpApiKeyConfig(ctx context.Context, request *client.ModifyMcpApiKeyConfigRequest) (*client.ModifyMcpApiKeyConfigResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.ModifyMcpApiKeyConfigWithContext(ctx, request, cw.getRuntimeOptions())
 }

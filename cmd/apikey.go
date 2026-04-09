@@ -25,7 +25,7 @@ var ApiKeyCmd = &cobra.Command{
 }
 
 var apikeyCreateCmd = &cobra.Command{
-	Use:   "create <name>",
+	Use:   "create",
 	Short: "Create a new API key",
 	Long: `Create a new API key with the specified name.
 
@@ -34,20 +34,25 @@ Each key must have a unique name.
 
 Examples:
   # Create an API key
-  agentbay apikey create "my-api-key"
+  agentbay apikey create --name "my-api-key"
   
   # Create with verbose output
-  agentbay apikey create "production-key" -v`,
-	Args: cobra.ExactArgs(1),
+  agentbay apikey create --name "production-key" -v`,
 	RunE: runApikeyCreate,
 }
 
+var apikeyCreateName string
+
 func init() {
+	apikeyCreateCmd.Flags().StringVar(&apikeyCreateName, "name", "", "API key name (required)")
+	apikeyCreateCmd.MarkFlagRequired("name")
+	
 	ApiKeyCmd.AddCommand(apikeyCreateCmd)
+	ApiKeyCmd.AddCommand(ApiKeyConcurrencyCmd)
 }
 
 func runApikeyCreate(cmd *cobra.Command, args []string) error {
-	name := args[0]
+	name := apikeyCreateName
 	
 	cfg, err := config.GetConfig()
 	if err != nil {
