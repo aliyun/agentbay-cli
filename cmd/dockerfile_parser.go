@@ -7,6 +7,28 @@ import (
 	"strings"
 )
 
+// MaxCopyAddSourceFileBytes is the maximum allowed size for each local file
+// referenced by COPY or ADD before upload.
+const MaxCopyAddSourceFileBytes int64 = 1024 * 1024
+
+// ValidateCopyAddSourceFileSizes returns an error if any path is larger than MaxCopyAddSourceFileBytes.
+func ValidateCopyAddSourceFileSizes(contextDir string, paths []string) error {
+	for _, absPath := range paths {
+		info, err := os.Stat(absPath)
+		if err != nil {
+			return fmt.Errorf("cannot access COPY/ADD source file: %w", err)
+		}
+		if info.Size() > MaxCopyAddSourceFileBytes {
+			rel, relErr := RelativePathForUpload(contextDir, absPath)
+			if relErr != nil {
+				rel = absPath
+			}
+			return fmt.Errorf("%q is %d bytes; COPY/ADD sources must be at most %d bytes (1 MB)", rel, info.Size(), MaxCopyAddSourceFileBytes)
+		}
+	}
+	return nil
+}
+
 func ParseCOPYADDSources(dockerfileContent []byte, contextDir string) ([]string, error) {
 	lines := SplitDockerfileLines(dockerfileContent)
 	seen := make(map[string]struct{})

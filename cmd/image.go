@@ -255,6 +255,13 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	if err := ValidateCopyAddSourceFileSizes(contextDir, addCopyFiles); err != nil {
+		return printErrorMessage(
+			fmt.Sprintf("[ERROR] COPY/ADD file too large: %v", err),
+			"",
+			"[TIP] Each file referenced by COPY or ADD must be at most 1 MB (1,048,576 bytes).",
+		)
+	}
 
 	fmt.Printf("[BUILD] Creating image '%s'...\n", imageName)
 

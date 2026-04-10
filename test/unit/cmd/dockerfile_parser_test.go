@@ -4,6 +4,7 @@
 package cmd_test
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -294,4 +295,20 @@ func TestIsURL(t *testing.T) {
 	assert.True(t, cmd.IsURL("https://example.com"))
 	assert.False(t, cmd.IsURL("local/file.txt"))
 	assert.False(t, cmd.IsURL("./relative"))
+}
+
+func TestValidateCopyAddSourceFileSizes(t *testing.T) {
+	tempDir := t.TempDir()
+	smallPath := filepath.Join(tempDir, "small.txt")
+	require.NoError(t, os.WriteFile(smallPath, bytes.Repeat([]byte("a"), 100), 0644))
+
+	require.NoError(t, cmd.ValidateCopyAddSourceFileSizes(tempDir, []string{smallPath}))
+
+	largePath := filepath.Join(tempDir, "large.bin")
+	require.NoError(t, os.WriteFile(largePath, make([]byte, cmd.MaxCopyAddSourceFileBytes+1), 0644))
+
+	err := cmd.ValidateCopyAddSourceFileSizes(tempDir, []string{largePath})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "large.bin")
+	assert.Contains(t, err.Error(), "COPY/ADD")
 }
