@@ -255,6 +255,13 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	if err := ValidateCopyAddSourceFileSizes(contextDir, addCopyFiles); err != nil {
+		return printErrorMessage(
+			fmt.Sprintf("[ERROR] COPY/ADD file too large: %v", err),
+			"",
+			"[TIP] Each file referenced by COPY or ADD must be at most 1 MB (1,048,576 bytes).",
+		)
+	}
 
 	fmt.Printf("[BUILD] Creating image '%s'...\n", imageName)
 
@@ -996,15 +1003,11 @@ func formatOSInfo(imageInfo *client.ListMcpImagesResponseBodyDataImageInfo) stri
 	return osName
 }
 
-func uploadFileToOSS(localPath, ossUrl string) error {
-	log.Debugf("[DEBUG] Starting file upload: %s", localPath)
-	content, err := os.ReadFile(localPath)
-	if err != nil {
-		return fmt.Errorf("failed to read file: %w", err)
-	}
+// ossPutContent performs a single PUT of content to a pre-signed OSS URL.
+func ossPutContent(ossUrl string, content []byte) (statusCode int, respBody string, transportErr error) {
 	req, err := http.NewRequest(http.MethodPut, ossUrl, bytes.NewReader(content))
 	if err != nil {
-		return fmt.Errorf("failed to create upload request: %w", err)
+		return 0, "", err
 	}
 	// OSS may return 307/308 redirect; without GetBody the redirect request sends an empty body and the object is stored empty.
 	req.GetBody = func() (io.ReadCloser, error) {
@@ -1016,14 +1019,51 @@ func uploadFileToOSS(localPath, ossUrl string) error {
 	httpClient := &http.Client{Timeout: 60 * time.Second}
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to upload: %w", err)
+		return 0, "", err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
+	body, _ := io.ReadAll(resp.Body)
+	return resp.StatusCode, string(body), nil
+}
+
+func uploadFileToOSS(localPath, ossUrl string) error {
+	log.Debugf("[DEBUG] Starting file upload: %s", localPath)
+	content, err := os.ReadFile(localPath)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %w", err)
 	}
-	return nil
+	cfg := client.DefaultRetryConfig()
+	delay := cfg.InitialDelay
+	var lastErr error
+	for attempt := 0; attempt <= cfg.MaxRetries; attempt++ {
+		if attempt > 0 {
+			if log.GetLevel() >= log.DebugLevel {
+				log.Debugf("[DEBUG] OSS upload retry %d/%d after %v: %v", attempt+1, cfg.MaxRetries+1, delay, lastErr)
+			}
+			time.Sleep(delay)
+			nd := time.Duration(float64(delay) * cfg.BackoffFactor)
+			if nd > cfg.MaxDelay {
+				nd = cfg.MaxDelay
+			}
+			delay = nd
+		}
+		status, body, transportErr := ossPutContent(ossUrl, content)
+		if transportErr != nil {
+			lastErr = fmt.Errorf("failed to upload: %w", transportErr)
+			if !client.IsRetryableError(transportErr) || attempt == cfg.MaxRetries {
+				return lastErr
+			}
+			continue
+		}
+		if status >= 200 && status < 300 {
+			return nil
+		}
+		lastErr = fmt.Errorf("upload failed with status %d: %s", status, body)
+		if !client.IsRetryableHTTPStatus(status) || attempt == cfg.MaxRetries {
+			return lastErr
+		}
+	}
+	return lastErr
 }
 
 // DefaultActivateCPU and DefaultActivateMemory are the default resource allocation when user does not specify --cpu/--memory
@@ -1555,30 +1595,62 @@ func summarizeDeploymentState(resourceStatus string) string {
 	}
 }
 
-// downloadDockerfileFromOSS downloads Dockerfile content from OSS URL
-func downloadDockerfileFromOSS(ossUrl string) ([]byte, error) {
-	log.Debugf("[DEBUG] Downloading from OSS URL: %s", ossUrl)
+// ossGetOnce performs a single GET from an OSS URL and returns the full body on success.
+func ossGetOnce(ossUrl string) (statusCode int, content []byte, transportErr error) {
 	req, err := http.NewRequest(http.MethodGet, ossUrl, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create download request: %w", err)
+		return 0, nil, err
 	}
 	req.Header.Set("User-Agent", "AgentBay-CLI/1.0")
 	httpClient := &http.Client{Timeout: 60 * time.Second}
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to download from OSS: %w", err)
+		return 0, nil, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("download failed with status %d: %s", resp.StatusCode, string(body))
+	body, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		return resp.StatusCode, nil, readErr
 	}
-	content, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read downloaded content: %w", err)
+	return resp.StatusCode, body, nil
+}
+
+// downloadDockerfileFromOSS downloads Dockerfile content from OSS URL
+func downloadDockerfileFromOSS(ossUrl string) ([]byte, error) {
+	log.Debugf("[DEBUG] Downloading from OSS URL: %s", ossUrl)
+	cfg := client.DefaultRetryConfig()
+	delay := cfg.InitialDelay
+	var lastErr error
+	for attempt := 0; attempt <= cfg.MaxRetries; attempt++ {
+		if attempt > 0 {
+			if log.GetLevel() >= log.DebugLevel {
+				log.Debugf("[DEBUG] OSS download retry %d/%d after %v: %v", attempt+1, cfg.MaxRetries+1, delay, lastErr)
+			}
+			time.Sleep(delay)
+			nd := time.Duration(float64(delay) * cfg.BackoffFactor)
+			if nd > cfg.MaxDelay {
+				nd = cfg.MaxDelay
+			}
+			delay = nd
+		}
+		status, content, transportErr := ossGetOnce(ossUrl)
+		if transportErr != nil {
+			lastErr = fmt.Errorf("failed to download from OSS: %w", transportErr)
+			if !client.IsRetryableError(transportErr) || attempt == cfg.MaxRetries {
+				return nil, lastErr
+			}
+			continue
+		}
+		if status >= 200 && status < 300 {
+			log.Debugf("[DEBUG] Downloaded %d bytes from OSS", len(content))
+			return content, nil
+		}
+		lastErr = fmt.Errorf("download failed with status %d: %s", status, string(content))
+		if !client.IsRetryableHTTPStatus(status) || attempt == cfg.MaxRetries {
+			return nil, lastErr
+		}
 	}
-	log.Debugf("[DEBUG] Downloaded %d bytes from OSS", len(content))
-	return content, nil
+	return nil, lastErr
 }
 
 // isDockerfileValidationError checks if the error message indicates a Dockerfile validation failure

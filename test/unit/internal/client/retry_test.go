@@ -171,3 +171,10 @@ func TestNetErrorRetryable(t *testing.T) {
 	// This should be retryable because it contains "i/o timeout"
 	assert.True(t, result)
 }
+
+func TestIsTransientGatewayError(t *testing.T) {
+	assert.True(t, client.IsTransientGatewayError(errors.New("Error: 503 Service Unavailable")))
+	assert.True(t, client.IsTransientGatewayError(errors.New("request throttled")))
+	assert.False(t, client.IsTransientGatewayError(errors.New("InvalidParameter: bad input")))
+	assert.False(t, client.IsTransientGatewayError(nil))
+}
