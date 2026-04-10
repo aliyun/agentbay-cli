@@ -149,7 +149,12 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("[STEP 1/3] Getting upload credential...\n")
 	credReq := &client.GetMarketSkillCredentialRequest{FileName: &skillZipName}
-	credResp, err := apiClient.GetMarketSkillCredential(ctx, credReq)
+	var credResp *client.GetMarketSkillCredentialResponse
+	err = withTransientRetry(client.DefaultRetryConfig(), "GetMarketSkillCredential", func() error {
+		var e error
+		credResp, e = apiClient.GetMarketSkillCredential(ctx, credReq)
+		return e
+	})
 	if err != nil {
 		printRequestIDFromErrIfVerbose(cmd, err)
 		return fmt.Errorf("[ERROR] Failed to get upload credential: %w", err)
@@ -229,7 +234,12 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 		OssBucket:   &createBucket,
 		OssFilePath: &createOssPath,
 	}
-	createResp, err := apiClient.CreateMarketSkill(ctx, createReq)
+	var createResp *client.CreateMarketSkillResponse
+	err = withTransientRetry(client.DefaultRetryConfig(), "CreateMarketSkill", func() error {
+		var e error
+		createResp, e = apiClient.CreateMarketSkill(ctx, createReq)
+		return e
+	})
 	if err != nil {
 		if createResp != nil && createResp.RawBody != "" {
 			fmt.Fprintf(os.Stderr, "[DEBUG] Raw response: %s\n", createResp.RawBody)

@@ -104,3 +104,30 @@ func IsRetryableHTTPStatus(statusCode int) bool {
 	}
 	return false
 }
+
+// IsTransientGatewayError returns true for network-layer failures and common
+// gateway / overload signals often wrapped by HTTP SDKs. Used for CLI retries
+// on API calls where the operation is safe to attempt again.
+func IsTransientGatewayError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if IsRetryableError(err) {
+		return true
+	}
+	msg := strings.ToLower(err.Error())
+	keywords := []string{
+		"timeout", "timed out", "connection reset", "connection refused",
+		"eof", "broken pipe", "tls handshake", "server closed",
+		"bad gateway", "service unavailable", "gateway timeout",
+		"too many requests", "throttl",
+		" status code 408", " status code 429",
+		" status code 500", " status code 502", " status code 503", " status code 504",
+	}
+	for _, k := range keywords {
+		if strings.Contains(msg, k) {
+			return true
+		}
+	}
+	return false
+}
