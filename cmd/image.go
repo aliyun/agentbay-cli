@@ -1177,7 +1177,7 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 
 	var appInstanceType string
 
-	// Handle advanced network flow - must be done BEFORE CreateResourceGroup
+	// Handle network-specific flow - must be done BEFORE CreateResourceGroup
 	// Because CreateResourceGroup will start the image, and SaveMcpPolicyData will fail if image is running
 	var effectiveDnsAddresses []string
 	if networkType == "ADVANCED" && shouldCreateResourceGroup {
@@ -1194,15 +1194,30 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Handle DEFAULT network flow - must be done BEFORE CreateResourceGroup
+	if networkType == "DEFAULT" && shouldCreateResourceGroup {
+		var err error
+		appInstanceType, err = getAppInstanceType(statusCtx, apiClient, imageId, cpu, memory)
+		if err != nil {
+			return err
+		}
+
+		// DescribeMcpPolicyData + SaveMcpPolicyData BEFORE CreateResourceGroup
+		err = handleDefaultNetworkActivation(statusCtx, apiClient, imageId, appInstanceType, cpu, memory)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Create resource group if needed
 	if shouldCreateResourceGroup {
 		// STEP numbering depends on network type:
-		// ADVANCED: STEP 1=DescribeInstanceTypes, STEP 2=DescribeMcpPolicyData, STEP 3=DescribeOfficeSites, STEP 4=SaveMcpPolicyData, STEP 5=CreateResourceGroup
-		// DEFAULT: STEP 2=CreateResourceGroup (no pre-steps)
+		// ADVANCED: STEP 1=DescribeInstanceTypes, STEP 2=DescribeMcpPolicyData, STEP 3=DescribeOfficeSites, STEP 4=SaveMcpPolicyData, STEP 5=CreateResourceGroup, STEP 6=Polling
+		// DEFAULT: STEP 1=DescribeInstanceTypes, STEP 2=DescribeMcpPolicyData, STEP 3=SaveMcpPolicyData, STEP 4=CreateResourceGroup, STEP 5=Polling
 		if networkType == "ADVANCED" {
 			fmt.Printf("[STEP 5/6] Creating resource group...")
 		} else {
-			fmt.Printf("[STEP 2/4] Creating resource group...")
+			fmt.Printf("[STEP 4/5] Creating resource group...")
 		}
 		createReq := &client.CreateResourceGroupRequest{
 			ImageId: dara.String(imageId),
@@ -1220,7 +1235,7 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 			log.Debugf("[DEBUG] After SetMemory, createReq.Memory = %v", createReq.Memory)
 		}
 
-		// Add advanced network parameters
+		// Add network parameters based on network type
 		if networkType == "ADVANCED" {
 			createReq.SetOfficeSiteType("ADVANCED")
 			if sessionBandwidth > 0 {
@@ -1231,6 +1246,11 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 			}
 			if len(effectiveDnsAddresses) > 0 {
 				createReq.SetDnsAddress(effectiveDnsAddresses)
+			}
+		} else if networkType == "DEFAULT" {
+			createReq.SetOfficeSiteType("DEFAULT")
+			if appInstanceType != "" {
+				createReq.SetAppInstanceType(appInstanceType)
 			}
 		}
 
@@ -1299,7 +1319,7 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Poll for activation completion (STEP 6/6 for ADVANCED, STEP 3/4 for DEFAULT)
+	// Poll for activation completion (STEP 6/6 for ADVANCED, STEP 5/5 for DEFAULT)
 	fmt.Printf("Waiting for activation to complete...\n")
 	pollingCtx := context.Background() // Don't use timeout context, polling has its own timeout
 	pollingConfig := DefaultActivatePollingConfig()
@@ -1920,4 +1940,87 @@ func handleAdvancedNetworkActivation(ctx context.Context, apiClient agentbay.Cli
 	}
 
 	return policyId, effectiveDnsAddresses, nil
+}
+
+// handleDefaultNetworkActivation handles the DEFAULT network activation flow
+// Flow: DescribeMcpPolicyData -> SaveMcpPolicyData
+// Returns: error
+func handleDefaultNetworkActivation(ctx context.Context, apiClient agentbay.Client, imageId, appInstanceType string, cpu, memory int) error {
+	// Step 1: DescribeMcpPolicyData - Get policy data
+	fmt.Printf("[STEP 2/5] Fetching policy data...")
+	policyReq := &client.DescribeMcpPolicyDataRequest{
+		ImageId: dara.String(imageId),
+	}
+	policyResp, err := apiClient.DescribeMcpPolicyData(ctx, policyReq)
+	if err != nil {
+		fmt.Printf(" Failed.\n")
+		return fmt.Errorf("failed to fetch policy data: %w", err)
+	}
+	// Log Request ID for debugging
+	if policyResp.Body != nil && policyResp.Body.GetRequestId() != nil {
+		fmt.Printf(" Done. (Action: DescribeMcpPolicyData, Request ID: %s)\n", *policyResp.Body.GetRequestId())
+	} else {
+		fmt.Printf(" Done. (Action: DescribeMcpPolicyData)\n")
+	}
+
+	// Step 2: SaveMcpPolicyData - Save updated policy data with DEFAULT network settings
+	fmt.Printf("[STEP 3/5] Saving policy configuration...")
+	saveReq := &client.SaveMcpPolicyDataRequest{}
+
+	// Copy existing data
+	if policyResp.Body != nil && policyResp.Body.Data != nil {
+		data := policyResp.Body.Data
+
+		// Set ImageId and PolicyId
+		saveReq.ImageId = dara.String(imageId)
+		if data.PolicyId != nil {
+			saveReq.PolicyId = data.PolicyId
+		}
+
+		// Copy GroupSpec and update with new values
+		if data.GroupSpec != nil {
+			saveReq.GroupSpec = &client.GroupSpec{
+				AppInstanceType: dara.String(appInstanceType),
+				RegionName:      data.GroupSpec.RegionName,
+				Memory:          dara.Int32(int32(memory)),
+				Cpu:             dara.Int32(int32(cpu)),
+				RegionId:        data.GroupSpec.RegionId,
+			}
+		}
+
+		// Copy other sections
+		saveReq.SandboxLifeCycle = data.SandboxLifeCycle
+		saveReq.ScreenSettings = data.ScreenSettings
+		saveReq.NetworkConfig = data.NetworkConfig
+		saveReq.DisplayConfig = data.DisplayConfig
+		if data.GroupSpec != nil && data.GroupSpec.RegionId != nil {
+			saveReq.RegionId = data.GroupSpec.RegionId
+		}
+
+		// Update NetworkData with DEFAULT network settings
+		// For DEFAULT network, set VpcId, DnsAddress, VpcName to empty strings
+		saveReq.NetworkData = &client.NetworkData{
+			OfficeSiteType: dara.String("DEFAULT"),
+			VpcId:          dara.String(""),
+			DnsAddress:     dara.String(""),
+			VpcName:        dara.String(""),
+		}
+	} else {
+		fmt.Printf(" Failed.\n")
+		return fmt.Errorf("invalid policy data response")
+	}
+
+	saveResp, err := apiClient.SaveMcpPolicyData(ctx, saveReq)
+	if err != nil {
+		fmt.Printf(" Failed.\n")
+		return fmt.Errorf("failed to save policy data: %w", err)
+	}
+	// Log Request ID for debugging
+	if saveResp.Body != nil && saveResp.Body.GetRequestId() != nil {
+		fmt.Printf(" Done. (Action: SaveMcpPolicyData, Request ID: %s)\n", *saveResp.Body.GetRequestId())
+	} else {
+		fmt.Printf(" Done. (Action: SaveMcpPolicyData)\n")
+	}
+
+	return nil
 }
