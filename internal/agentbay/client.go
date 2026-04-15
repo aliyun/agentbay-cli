@@ -33,6 +33,11 @@ type Client interface {
 	// API Key
 	CreateApiKey(ctx context.Context, request *client.CreateApiKeyRequest) (*client.CreateApiKeyResponse, error)
 	ModifyMcpApiKeyConfig(ctx context.Context, request *client.ModifyMcpApiKeyConfigRequest) (*client.ModifyMcpApiKeyConfigResponse, error)
+	// Advanced Network
+	DescribeInstanceTypes(ctx context.Context, request *client.DescribeInstanceTypesRequest) (*client.DescribeInstanceTypesResponse, error)
+	DescribeMcpPolicyData(ctx context.Context, request *client.DescribeMcpPolicyDataRequest) (*client.DescribeMcpPolicyDataResponse, error)
+	SaveMcpPolicyData(ctx context.Context, request *client.SaveMcpPolicyDataRequest) (*client.SaveMcpPolicyDataResponse, error)
+	DescribeOfficeSites(ctx context.Context, request *client.DescribeOfficeSitesRequest) (*client.DescribeOfficeSitesResponse, error)
 }
 
 // clientWrapper wraps the generated SDK client with additional functionality
@@ -224,4 +229,40 @@ func (cw *clientWrapper) ModifyMcpApiKeyConfig(ctx context.Context, request *cli
 		return nil, err
 	}
 	return sdkClient.ModifyMcpApiKeyConfigWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// DescribeInstanceTypes wraps the SDK client method
+func (cw *clientWrapper) DescribeInstanceTypes(ctx context.Context, request *client.DescribeInstanceTypesRequest) (*client.DescribeInstanceTypesResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.DescribeInstanceTypesWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// DescribeMcpPolicyData wraps the SDK client method
+func (cw *clientWrapper) DescribeMcpPolicyData(ctx context.Context, request *client.DescribeMcpPolicyDataRequest) (*client.DescribeMcpPolicyDataResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.DescribeMcpPolicyDataWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// SaveMcpPolicyData wraps the SDK client method
+func (cw *clientWrapper) SaveMcpPolicyData(ctx context.Context, request *client.SaveMcpPolicyDataRequest) (*client.SaveMcpPolicyDataResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.SaveMcpPolicyDataWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// DescribeOfficeSites wraps the SDK client method
+func (cw *clientWrapper) DescribeOfficeSites(ctx context.Context, request *client.DescribeOfficeSitesRequest) (*client.DescribeOfficeSitesResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.DescribeOfficeSitesWithContext(ctx, request, cw.getRuntimeOptions())
 }

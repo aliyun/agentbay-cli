@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -949,6 +950,16 @@ func (client *Client) CreateResourceGroupWithOptions(request *CreateResourceGrou
 
 	if !dara.IsNil(request.VpcId) {
 		body["VpcId"] = request.VpcId
+	}
+
+	if !dara.IsNil(request.AppInstanceType) {
+		body["AppInstanceType"] = request.AppInstanceType
+	}
+
+	// Handle DnsAddress with special format: DnsAddress.1, DnsAddress.2, ...
+	for i, addr := range request.DnsAddress {
+		key := fmt.Sprintf("DnsAddress.%d", i+1)
+		body[key] = addr
 	}
 
 	req := &openapiutil.OpenApiRequest{

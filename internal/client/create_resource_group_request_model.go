@@ -34,17 +34,19 @@ type iCreateResourceGroupRequest interface {
 }
 
 type CreateResourceGroupRequest struct {
-	BizRegionId      *string `json:"BizRegionId,omitempty" xml:"BizRegionId,omitempty"`
-	Cpu              *int32  `json:"Cpu,omitempty" xml:"Cpu,omitempty"`
-	ImageId          *string `json:"ImageId,omitempty" xml:"ImageId,omitempty"`
-	Memory           *int32  `json:"Memory,omitempty" xml:"Memory,omitempty"`
-	OfficeSiteId     *string `json:"OfficeSiteId,omitempty" xml:"OfficeSiteId,omitempty"`
-	OfficeSiteType   *string `json:"OfficeSiteType,omitempty" xml:"OfficeSiteType,omitempty"`
-	PolicyId         *string `json:"PolicyId,omitempty" xml:"PolicyId,omitempty"`
-	RegionId         *string `json:"RegionId,omitempty" xml:"RegionId,omitempty"`
-	SessionBandwidth *int32  `json:"SessionBandwidth,omitempty" xml:"SessionBandwidth,omitempty"`
-	VSwitchId        *string `json:"VSwitchId,omitempty" xml:"VSwitchId,omitempty"`
-	VpcId            *string `json:"VpcId,omitempty" xml:"VpcId,omitempty"`
+	BizRegionId      *string  `json:"BizRegionId,omitempty" xml:"BizRegionId,omitempty"`
+	Cpu              *int32   `json:"Cpu,omitempty" xml:"Cpu,omitempty"`
+	ImageId          *string  `json:"ImageId,omitempty" xml:"ImageId,omitempty"`
+	Memory           *int32   `json:"Memory,omitempty" xml:"Memory,omitempty"`
+	OfficeSiteId     *string  `json:"OfficeSiteId,omitempty" xml:"OfficeSiteId,omitempty"`
+	OfficeSiteType   *string  `json:"OfficeSiteType,omitempty" xml:"OfficeSiteType,omitempty"`
+	PolicyId         *string  `json:"PolicyId,omitempty" xml:"PolicyId,omitempty"`
+	RegionId         *string  `json:"RegionId,omitempty" xml:"RegionId,omitempty"`
+	SessionBandwidth *int32   `json:"SessionBandwidth,omitempty" xml:"SessionBandwidth,omitempty"`
+	VSwitchId        *string  `json:"VSwitchId,omitempty" xml:"VSwitchId,omitempty"`
+	VpcId            *string  `json:"VpcId,omitempty" xml:"VpcId,omitempty"`
+	AppInstanceType  *string  `json:"AppInstanceType,omitempty" xml:"AppInstanceType,omitempty"`
+	DnsAddress       []string `json:"DnsAddress,omitempty" xml:"DnsAddress,omitempty"`
 }
 
 func (s CreateResourceGroupRequest) String() string {
@@ -99,6 +101,14 @@ func (s *CreateResourceGroupRequest) GetVpcId() *string {
 	return s.VpcId
 }
 
+func (s *CreateResourceGroupRequest) GetAppInstanceType() *string {
+	return s.AppInstanceType
+}
+
+func (s *CreateResourceGroupRequest) GetDnsAddress() []string {
+	return s.DnsAddress
+}
+
 func (s *CreateResourceGroupRequest) SetBizRegionId(v string) *CreateResourceGroupRequest {
 	s.BizRegionId = &v
 	return s
@@ -151,6 +161,16 @@ func (s *CreateResourceGroupRequest) SetVSwitchId(v string) *CreateResourceGroup
 
 func (s *CreateResourceGroupRequest) SetVpcId(v string) *CreateResourceGroupRequest {
 	s.VpcId = &v
+	return s
+}
+
+func (s *CreateResourceGroupRequest) SetAppInstanceType(v string) *CreateResourceGroupRequest {
+	s.AppInstanceType = &v
+	return s
+}
+
+func (s *CreateResourceGroupRequest) SetDnsAddress(v []string) *CreateResourceGroupRequest {
+	s.DnsAddress = v
 	return s
 }
 
