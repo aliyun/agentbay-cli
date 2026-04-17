@@ -93,15 +93,14 @@ var imageActivateCmd = &cobra.Command{
 This command creates a resource group for the specified User image, making it 
 available for deployment. Only User type images can be activated.
 
-Supported CPU and Memory combinations:
-  2c4g  - 2 CPU cores with 4 GB memory (default)
-  4c8g  - 4 CPU cores with 8 GB memory
-  8c16g - 8 CPU cores with 16 GB memory
+CPU and memory must be specified together. Available combinations depend on 
+the image and are determined by the backend. If you specify an unsupported 
+combination, the command will show available options.
 
-If no CPU/memory is specified, 2c4g (2 CPU, 4 GB memory) will be used by default.
+If no CPU/memory is specified, the default configuration will be used.
 
 Examples:
-  # Activate with default resources (2c4g)
+  # Activate with default resources
   agentbay image activate imgc-xxxxxxxxxxxxxx
 
   # Activate with specific CPU and memory
@@ -183,8 +182,11 @@ func init() {
 	imageCreateCmd.MarkFlagRequired("imageId")
 
 	// Add flags to image activate command
-	imageActivateCmd.Flags().IntP("cpu", "c", 0, "CPU cores (2, 4, or 8; default: 2 when not specified)")
-	imageActivateCmd.Flags().IntP("memory", "m", 0, "Memory in GB (4, 8, or 16; default: 4 when not specified)")
+	imageActivateCmd.Flags().IntP("cpu", "c", 0, "CPU cores (must be specified together with --memory)")
+	imageActivateCmd.Flags().IntP("memory", "m", 0, "Memory in GB (must be specified together with --cpu)")
+	imageActivateCmd.Flags().String("network-type", "DEFAULT", "Network type: DEFAULT or ADVANCED (default: DEFAULT)")
+	imageActivateCmd.Flags().Int("session-bandwidth", 0, "Session bandwidth in Mbps (only for ADVANCED network)")
+	imageActivateCmd.Flags().StringArray("dns-address", []string{}, "DNS addresses (only for ADVANCED network, can be specified multiple times)")
 
 	// Add flags to image list command
 	imageListCmd.Flags().StringP("os-type", "o", "", "Filter by OS type: Linux, Android, or Windows (optional)")
@@ -927,28 +929,23 @@ func formatImageStatus(status string) string {
 	}
 }
 
-// ValidateCPUMemoryCombo validates that CPU and memory combination is supported
+// ValidateCPUMemoryCombo validates that CPU and memory are specified together
+// Note: We don't validate specific combinations here - the backend DescribeInstanceTypes
+// API will return the actual supported combinations and provide dynamic error messages
 func ValidateCPUMemoryCombo(cpu, memory int) error {
 	// If both are 0, use default (no validation needed)
 	if cpu == 0 && memory == 0 {
 		return nil
 	}
 
-	// If only one is specified, both must be specified
+	// If only one is specified, both must be specified together
 	if (cpu == 0 && memory > 0) || (cpu > 0 && memory == 0) {
-		return fmt.Errorf("both CPU and memory must be specified together. Supported combinations: 2c4g (--cpu 2 --memory 4), 4c8g (--cpu 4 --memory 8), 8c16g (--cpu 8 --memory 16)")
+		return fmt.Errorf("both CPU and memory must be specified together (e.g., --cpu 2 --memory 4)")
 	}
 
-	// Check supported combinations
-	validCombos := map[int]int{
-		2: 4,  // 2c4g
-		4: 8,  // 4c8g
-		8: 16, // 8c16g
-	}
-
-	expectedMemory, exists := validCombos[cpu]
-	if !exists || expectedMemory != memory {
-		return fmt.Errorf("invalid CPU/Memory combination: %dc%dg. Supported combinations: 2c4g (--cpu 2 --memory 4), 4c8g (--cpu 4 --memory 8), 8c16g (--cpu 8 --memory 16)", cpu, memory)
+	// Basic sanity check for positive values
+	if cpu < 0 || memory < 0 {
+		return fmt.Errorf("CPU and memory must be positive values")
 	}
 
 	return nil
@@ -1074,6 +1071,24 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 	imageId := args[0]
 	cpu, _ := cmd.Flags().GetInt("cpu")
 	memory, _ := cmd.Flags().GetInt("memory")
+	networkType, _ := cmd.Flags().GetString("network-type")
+	sessionBandwidth, _ := cmd.Flags().GetInt("session-bandwidth")
+	dnsAddresses, _ := cmd.Flags().GetStringArray("dns-address")
+
+	// Validate network type
+	if networkType != "DEFAULT" && networkType != "ADVANCED" {
+		return fmt.Errorf("[ERROR] Invalid network type: %s. Must be DEFAULT or ADVANCED", networkType)
+	}
+
+	// Validate advanced network parameters
+	if networkType == "DEFAULT" {
+		if sessionBandwidth > 0 {
+			return fmt.Errorf("[ERROR] --session-bandwidth is only valid for ADVANCED network")
+		}
+		if len(dnsAddresses) > 0 {
+			return fmt.Errorf("[ERROR] --dns-address is only valid for ADVANCED network")
+		}
+	}
 
 	// Apply default 2c4g when not specified
 	if cpu == 0 && memory == 0 {
@@ -1088,6 +1103,15 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 
 	fmt.Printf("[ACTIVATE] Activating image '%s'...\n", imageId)
 	fmt.Printf("[RESOURCE] CPU: %d cores, Memory: %d GB\n", cpu, memory)
+	if networkType == "ADVANCED" {
+		fmt.Printf("[NETWORK] Type: ADVANCED\n")
+		if sessionBandwidth > 0 {
+			fmt.Printf("[NETWORK] Session Bandwidth: %d Mbps\n", sessionBandwidth)
+		}
+		if len(dnsAddresses) > 0 {
+			fmt.Printf("[NETWORK] DNS Addresses: %s\n", strings.Join(dnsAddresses, ", "))
+		}
+	}
 
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
@@ -1151,9 +1175,50 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot activate image in current state: %s", TranslateImageResourceStatus(imageInfo.ResourceStatus))
 	}
 
+	var appInstanceType string
+
+	// Handle network-specific flow - must be done BEFORE CreateResourceGroup
+	// Because CreateResourceGroup will start the image, and SaveMcpPolicyData will fail if image is running
+	var effectiveDnsAddresses []string
+	if networkType == "ADVANCED" && shouldCreateResourceGroup {
+		var err error
+		appInstanceType, err = getAppInstanceType(statusCtx, apiClient, imageId, cpu, memory)
+		if err != nil {
+			return err
+		}
+
+		// DescribeMcpPolicyData + DescribeOfficeSites + SaveMcpPolicyData BEFORE CreateResourceGroup
+		_, effectiveDnsAddresses, err = handleAdvancedNetworkActivation(statusCtx, apiClient, imageId, appInstanceType, cpu, memory, sessionBandwidth, dnsAddresses)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Handle DEFAULT network flow - must be done BEFORE CreateResourceGroup
+	if networkType == "DEFAULT" && shouldCreateResourceGroup {
+		var err error
+		appInstanceType, err = getAppInstanceType(statusCtx, apiClient, imageId, cpu, memory)
+		if err != nil {
+			return err
+		}
+
+		// DescribeMcpPolicyData + SaveMcpPolicyData BEFORE CreateResourceGroup
+		err = handleDefaultNetworkActivation(statusCtx, apiClient, imageId, appInstanceType, cpu, memory)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Create resource group if needed
 	if shouldCreateResourceGroup {
-		fmt.Printf("Creating resource group...")
+		// STEP numbering depends on network type:
+		// ADVANCED: STEP 1=DescribeInstanceTypes, STEP 2=DescribeMcpPolicyData, STEP 3=DescribeOfficeSites, STEP 4=SaveMcpPolicyData, STEP 5=CreateResourceGroup, STEP 6=Polling
+		// DEFAULT: STEP 1=DescribeInstanceTypes, STEP 2=DescribeMcpPolicyData, STEP 3=SaveMcpPolicyData, STEP 4=CreateResourceGroup, STEP 5=Polling
+		if networkType == "ADVANCED" {
+			fmt.Printf("[STEP 5/6] Creating resource group...")
+		} else {
+			fmt.Printf("[STEP 4/5] Creating resource group...")
+		}
 		createReq := &client.CreateResourceGroupRequest{
 			ImageId: dara.String(imageId),
 		}
@@ -1168,6 +1233,25 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 			log.Debugf("[DEBUG] Setting Memory to %d", memory)
 			createReq.SetMemory(int32(memory))
 			log.Debugf("[DEBUG] After SetMemory, createReq.Memory = %v", createReq.Memory)
+		}
+
+		// Add network parameters based on network type
+		if networkType == "ADVANCED" {
+			createReq.SetOfficeSiteType("ADVANCED")
+			if sessionBandwidth > 0 {
+				createReq.SetSessionBandwidth(int32(sessionBandwidth))
+			}
+			if appInstanceType != "" {
+				createReq.SetAppInstanceType(appInstanceType)
+			}
+			if len(effectiveDnsAddresses) > 0 {
+				createReq.SetDnsAddress(effectiveDnsAddresses)
+			}
+		} else if networkType == "DEFAULT" {
+			createReq.SetOfficeSiteType("DEFAULT")
+			if appInstanceType != "" {
+				createReq.SetAppInstanceType(appInstanceType)
+			}
 		}
 
 		// Debug: Print request details
@@ -1185,6 +1269,12 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 				log.Debugf("[DEBUG] - Memory: %d", *createReq.Memory)
 			} else {
 				log.Debugf("[DEBUG] - Memory: nil")
+			}
+			if createReq.OfficeSiteType != nil {
+				log.Debugf("[DEBUG] - OfficeSiteType: %s", *createReq.OfficeSiteType)
+			}
+			if createReq.SessionBandwidth != nil {
+				log.Debugf("[DEBUG] - SessionBandwidth: %d", *createReq.SessionBandwidth)
 			}
 		}
 
@@ -1204,42 +1294,45 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("invalid response from server")
 		}
 
-		// Log Request ID for debugging
-		if createResp.Body.GetRequestId() != nil {
-			log.Debugf("[DEBUG] CreateResourceGroup Request ID: %s", *createResp.Body.GetRequestId())
-		}
-
 		success := createResp.Body.GetSuccess()
 		if success == nil || !*success {
 			fmt.Printf(" Failed.\n")
 			code := createResp.Body.GetCode()
 			message := createResp.Body.GetMessage()
-			if code != nil && message != nil {
-				if log.GetLevel() >= log.DebugLevel && createResp.Body.GetRequestId() != nil {
+			if createResp.Body.GetRequestId() != nil {
+				if code != nil && message != nil {
 					return fmt.Errorf("failed to create resource group: %s - %s (Request ID: %s)", *code, *message, *createResp.Body.GetRequestId())
 				}
-				return fmt.Errorf("failed to create resource group: %s - %s", *code, *message)
-			}
-			if log.GetLevel() >= log.DebugLevel && createResp.Body.GetRequestId() != nil {
 				return fmt.Errorf("failed to create resource group (Request ID: %s)", *createResp.Body.GetRequestId())
+			}
+			if code != nil && message != nil {
+				return fmt.Errorf("failed to create resource group: %s - %s", *code, *message)
 			}
 			return fmt.Errorf("failed to create resource group")
 		}
 
-		fmt.Printf(" Done.\n")
+		// Log Request ID for debugging
+		if createResp.Body.GetRequestId() != nil {
+			fmt.Printf(" Done. (Action: CreateResourceGroup, Request ID: %s)\n", *createResp.Body.GetRequestId())
+		} else {
+			fmt.Printf(" Done. (Action: CreateResourceGroup)\n")
+		}
 	}
 
-	// Poll for activation completion
+	// Poll for activation completion (STEP 6/6 for ADVANCED, STEP 5/5 for DEFAULT)
 	fmt.Printf("Waiting for activation to complete...\n")
 	pollingCtx := context.Background() // Don't use timeout context, polling has its own timeout
-	config := DefaultActivatePollingConfig()
+	pollingConfig := DefaultActivatePollingConfig()
 
-	if err := PollForActivation(pollingCtx, apiClient, imageId, config); err != nil {
+	if err := PollForActivation(pollingCtx, apiClient, imageId, pollingConfig); err != nil {
 		return fmt.Errorf("activation failed: %w", err)
 	}
 
 	fmt.Printf("[SUCCESS] Image activated successfully!\n")
 	fmt.Printf("[INFO] Image ID: %s\n", imageId)
+	if networkType == "ADVANCED" {
+		fmt.Printf("[INFO] Network Type: ADVANCED\n")
+	}
 
 	return nil
 }
@@ -1658,4 +1751,276 @@ func isDockerfileValidationError(taskMsg string) bool {
 	// Check for the specific Dockerfile validation error message
 	validationErrorMsg := "Image reference is Invalid. Please do not modify the image reference in Dockerfile"
 	return strings.Contains(taskMsg, validationErrorMsg)
+}
+
+// getAppInstanceType queries DescribeInstanceTypes to get AppInstanceType for given cpu and memory
+func getAppInstanceType(ctx context.Context, apiClient agentbay.Client, imageId string, cpu, memory int) (string, error) {
+	fmt.Printf("[STEP 1/6] Querying instance types...")
+	instanceTypesReq := &client.DescribeInstanceTypesRequest{
+		ImageId: dara.String(imageId),
+	}
+	instanceTypesResp, err := apiClient.DescribeInstanceTypes(ctx, instanceTypesReq)
+	if err != nil {
+		fmt.Printf(" Failed.\n")
+		return "", fmt.Errorf("failed to query instance types: %w", err)
+	}
+	// Log Request ID for debugging
+	if instanceTypesResp.Body != nil && instanceTypesResp.Body.GetRequestId() != nil {
+		fmt.Printf(" Done. (Action: DescribeInstanceTypes, Request ID: %s)\n", *instanceTypesResp.Body.GetRequestId())
+	} else {
+		fmt.Printf(" Done. (Action: DescribeInstanceTypes)\n")
+	}
+
+	// Find matching instance type
+	var matchedInstanceType *client.DescribeInstanceTypesResponseBodyDataInstanceType
+	if instanceTypesResp.Body != nil && instanceTypesResp.Body.Data != nil {
+		for _, item := range instanceTypesResp.Body.Data {
+			if item.Cpu != nil && item.Memory != nil && *item.Cpu == int32(cpu) && *item.Memory == int32(memory) {
+				matchedInstanceType = item
+				break
+			}
+		}
+	}
+
+	if matchedInstanceType == nil {
+		// Build list of available options
+		var availableOptions []string
+		if instanceTypesResp.Body != nil && instanceTypesResp.Body.Data != nil {
+			for _, item := range instanceTypesResp.Body.Data {
+				if item.Cpu != nil && item.Memory != nil {
+					opt := fmt.Sprintf("%dc%dg", *item.Cpu, *item.Memory)
+					availableOptions = append(availableOptions, opt)
+				}
+			}
+		}
+		errMsg := fmt.Sprintf("[ERROR] No matching instance type for %dc%dg.\n[TIP] Available options: %s", cpu, memory, strings.Join(availableOptions, ", "))
+		return "", fmt.Errorf(errMsg)
+	}
+
+	var appInstanceType string
+	if matchedInstanceType.AppInstanceType != nil {
+		appInstanceType = *matchedInstanceType.AppInstanceType
+		fmt.Printf("[INFO] Matched instance type: %s\n", appInstanceType)
+	}
+
+	return appInstanceType, nil
+}
+
+// handleAdvancedNetworkActivation handles the advanced network activation flow
+// Flow: DescribeMcpPolicyData -> DescribeOfficeSites -> SaveMcpPolicyData
+// Returns: policyId, effectiveDnsAddresses (default from DescribeOfficeSites if user not specified), error
+func handleAdvancedNetworkActivation(ctx context.Context, apiClient agentbay.Client, imageId, appInstanceType string, cpu, memory, sessionBandwidth int, dnsAddresses []string) (string, []string, error) {
+	// Step 1: DescribeMcpPolicyData - Get policy data
+	fmt.Printf("[STEP 2/6] Fetching policy data...")
+	policyReq := &client.DescribeMcpPolicyDataRequest{
+		ImageId: dara.String(imageId),
+	}
+	policyResp, err := apiClient.DescribeMcpPolicyData(ctx, policyReq)
+	if err != nil {
+		fmt.Printf(" Failed.\n")
+		return "", nil, fmt.Errorf("failed to fetch policy data: %w", err)
+	}
+	// Log Request ID for debugging
+	if policyResp.Body != nil && policyResp.Body.GetRequestId() != nil {
+		fmt.Printf(" Done. (Action: DescribeMcpPolicyData, Request ID: %s)\n", *policyResp.Body.GetRequestId())
+	} else {
+		fmt.Printf(" Done. (Action: DescribeMcpPolicyData)\n")
+	}
+
+	var policyId string
+	if policyResp.Body != nil && policyResp.Body.Data != nil && policyResp.Body.Data.PolicyId != nil {
+		policyId = *policyResp.Body.Data.PolicyId
+	}
+
+	// Get RegionName from GroupSpec.RegionId for DescribeOfficeSites
+	var regionName string
+	if policyResp.Body != nil && policyResp.Body.Data != nil && policyResp.Body.Data.GroupSpec != nil && policyResp.Body.Data.GroupSpec.RegionId != nil {
+		regionName = *policyResp.Body.Data.GroupSpec.RegionId
+	}
+
+	// Step 2: DescribeOfficeSites - Query office network to get default DNS addresses
+	var defaultDnsAddresses []string
+	fmt.Printf("[STEP 3/6] Querying office network...")
+	if regionName != "" {
+		officeSiteReq := &client.DescribeOfficeSitesRequest{
+			OfficeSiteType: dara.String("ADVANCED"),
+			RegionName:     dara.String(regionName),
+		}
+		officeSiteResp, err := apiClient.DescribeOfficeSites(ctx, officeSiteReq)
+		if err != nil {
+			fmt.Printf(" Failed.\n")
+			return "", nil, fmt.Errorf("failed to query office network: %w", err)
+		}
+		if officeSiteResp.Body != nil && officeSiteResp.Body.GetRequestId() != nil {
+			fmt.Printf(" Done. (Action: DescribeOfficeSites, Request ID: %s)\n", *officeSiteResp.Body.GetRequestId())
+		} else {
+			fmt.Printf(" Done. (Action: DescribeOfficeSites)\n")
+		}
+		if officeSiteResp.Body != nil && officeSiteResp.Body.Data != nil {
+			defaultDnsAddresses = officeSiteResp.Body.Data.DnsAddress
+			if len(defaultDnsAddresses) > 0 {
+				fmt.Printf("[INFO] Office network default DNS: %s\n", strings.Join(defaultDnsAddresses, ", "))
+			}
+		}
+	} else {
+		fmt.Printf(" Skipped. (RegionName not available)\n")
+	}
+
+	// Determine effective DNS addresses: user-specified takes priority, otherwise use default from DescribeOfficeSites
+	effectiveDnsAddresses := dnsAddresses
+	if len(effectiveDnsAddresses) == 0 && len(defaultDnsAddresses) > 0 {
+		effectiveDnsAddresses = defaultDnsAddresses
+		fmt.Printf("[INFO] Using default DNS addresses from office network: %s\n", strings.Join(effectiveDnsAddresses, ", "))
+	}
+
+	// Step 3: SaveMcpPolicyData - Save updated policy data
+	fmt.Printf("[STEP 4/6] Saving policy configuration...")
+	saveReq := &client.SaveMcpPolicyDataRequest{}
+
+	// Copy existing data
+	if policyResp.Body != nil && policyResp.Body.Data != nil {
+		data := policyResp.Body.Data
+
+		// Set ImageId and PolicyId
+		saveReq.ImageId = dara.String(imageId)
+		if data.PolicyId != nil {
+			saveReq.PolicyId = data.PolicyId
+		}
+
+		// Copy GroupSpec and update with new values
+		if data.GroupSpec != nil {
+			saveReq.GroupSpec = &client.GroupSpec{
+				AppInstanceType: dara.String(appInstanceType),
+				RegionName:      data.GroupSpec.RegionName,
+				Memory:          dara.Int32(int32(memory)),
+				Cpu:             dara.Int32(int32(cpu)),
+				RegionId:        data.GroupSpec.RegionId,
+			}
+		}
+
+		// Copy other sections
+		saveReq.SandboxLifeCycle = data.SandboxLifeCycle
+		saveReq.ScreenSettings = data.ScreenSettings
+		saveReq.NetworkConfig = data.NetworkConfig
+		saveReq.DisplayConfig = data.DisplayConfig
+		if data.GroupSpec != nil && data.GroupSpec.RegionId != nil {
+			saveReq.RegionId = data.GroupSpec.RegionId
+		}
+
+		// Update NetworkData with advanced network settings
+		saveReq.NetworkData = &client.NetworkData{
+			OfficeSiteType: dara.String("ADVANCED"),
+		}
+		if sessionBandwidth > 0 {
+			saveReq.NetworkData.SessionBandwidth = dara.Int32(int32(sessionBandwidth))
+		}
+		if data.NetworkData != nil {
+			saveReq.NetworkData.VpcId = data.NetworkData.VpcId
+			saveReq.NetworkData.VpcName = data.NetworkData.VpcName
+		}
+		if len(effectiveDnsAddresses) > 0 {
+			// Convert DNS addresses array to comma-separated string
+			saveReq.NetworkData.DnsAddress = dara.String(strings.Join(effectiveDnsAddresses, ","))
+		}
+	} else {
+		fmt.Printf(" Failed.\n")
+		return "", nil, fmt.Errorf("invalid policy data response")
+	}
+
+	saveResp, err := apiClient.SaveMcpPolicyData(ctx, saveReq)
+	if err != nil {
+		fmt.Printf(" Failed.\n")
+		return "", nil, fmt.Errorf("failed to save policy data: %w", err)
+	}
+	// Log Request ID for debugging
+	if saveResp.Body != nil && saveResp.Body.GetRequestId() != nil {
+		fmt.Printf(" Done. (Action: SaveMcpPolicyData, Request ID: %s)\n", *saveResp.Body.GetRequestId())
+	} else {
+		fmt.Printf(" Done. (Action: SaveMcpPolicyData)\n")
+	}
+
+	return policyId, effectiveDnsAddresses, nil
+}
+
+// handleDefaultNetworkActivation handles the DEFAULT network activation flow
+// Flow: DescribeMcpPolicyData -> SaveMcpPolicyData
+// Returns: error
+func handleDefaultNetworkActivation(ctx context.Context, apiClient agentbay.Client, imageId, appInstanceType string, cpu, memory int) error {
+	// Step 1: DescribeMcpPolicyData - Get policy data
+	fmt.Printf("[STEP 2/5] Fetching policy data...")
+	policyReq := &client.DescribeMcpPolicyDataRequest{
+		ImageId: dara.String(imageId),
+	}
+	policyResp, err := apiClient.DescribeMcpPolicyData(ctx, policyReq)
+	if err != nil {
+		fmt.Printf(" Failed.\n")
+		return fmt.Errorf("failed to fetch policy data: %w", err)
+	}
+	// Log Request ID for debugging
+	if policyResp.Body != nil && policyResp.Body.GetRequestId() != nil {
+		fmt.Printf(" Done. (Action: DescribeMcpPolicyData, Request ID: %s)\n", *policyResp.Body.GetRequestId())
+	} else {
+		fmt.Printf(" Done. (Action: DescribeMcpPolicyData)\n")
+	}
+
+	// Step 2: SaveMcpPolicyData - Save updated policy data with DEFAULT network settings
+	fmt.Printf("[STEP 3/5] Saving policy configuration...")
+	saveReq := &client.SaveMcpPolicyDataRequest{}
+
+	// Copy existing data
+	if policyResp.Body != nil && policyResp.Body.Data != nil {
+		data := policyResp.Body.Data
+
+		// Set ImageId and PolicyId
+		saveReq.ImageId = dara.String(imageId)
+		if data.PolicyId != nil {
+			saveReq.PolicyId = data.PolicyId
+		}
+
+		// Copy GroupSpec and update with new values
+		if data.GroupSpec != nil {
+			saveReq.GroupSpec = &client.GroupSpec{
+				AppInstanceType: dara.String(appInstanceType),
+				RegionName:      data.GroupSpec.RegionName,
+				Memory:          dara.Int32(int32(memory)),
+				Cpu:             dara.Int32(int32(cpu)),
+				RegionId:        data.GroupSpec.RegionId,
+			}
+		}
+
+		// Copy other sections
+		saveReq.SandboxLifeCycle = data.SandboxLifeCycle
+		saveReq.ScreenSettings = data.ScreenSettings
+		saveReq.NetworkConfig = data.NetworkConfig
+		saveReq.DisplayConfig = data.DisplayConfig
+		if data.GroupSpec != nil && data.GroupSpec.RegionId != nil {
+			saveReq.RegionId = data.GroupSpec.RegionId
+		}
+
+		// Update NetworkData with DEFAULT network settings
+		// For DEFAULT network, set VpcId, DnsAddress, VpcName to empty strings
+		saveReq.NetworkData = &client.NetworkData{
+			OfficeSiteType: dara.String("DEFAULT"),
+			VpcId:          dara.String(""),
+			DnsAddress:     dara.String(""),
+			VpcName:        dara.String(""),
+		}
+	} else {
+		fmt.Printf(" Failed.\n")
+		return fmt.Errorf("invalid policy data response")
+	}
+
+	saveResp, err := apiClient.SaveMcpPolicyData(ctx, saveReq)
+	if err != nil {
+		fmt.Printf(" Failed.\n")
+		return fmt.Errorf("failed to save policy data: %w", err)
+	}
+	// Log Request ID for debugging
+	if saveResp.Body != nil && saveResp.Body.GetRequestId() != nil {
+		fmt.Printf(" Done. (Action: SaveMcpPolicyData, Request ID: %s)\n", *saveResp.Body.GetRequestId())
+	} else {
+		fmt.Printf(" Done. (Action: SaveMcpPolicyData)\n")
+	}
+
+	return nil
 }

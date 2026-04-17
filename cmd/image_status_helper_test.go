@@ -72,6 +72,22 @@ func (m *mockGetMcpImageInfoClient) ModifyMcpApiKeyConfig(ctx context.Context, r
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockGetMcpImageInfoClient) DescribeInstanceTypes(ctx context.Context, request *client.DescribeInstanceTypesRequest) (*client.DescribeInstanceTypesResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockGetMcpImageInfoClient) DescribeMcpPolicyData(ctx context.Context, request *client.DescribeMcpPolicyDataRequest) (*client.DescribeMcpPolicyDataResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockGetMcpImageInfoClient) SaveMcpPolicyData(ctx context.Context, request *client.SaveMcpPolicyDataRequest) (*client.SaveMcpPolicyDataResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockGetMcpImageInfoClient) DescribeOfficeSites(ctx context.Context, request *client.DescribeOfficeSitesRequest) (*client.DescribeOfficeSitesResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 var _ agentbay.Client = (*mockGetMcpImageInfoClient)(nil)
 
 func TestInferImageTypeFromImageID(t *testing.T) {

@@ -108,6 +108,22 @@ func (m *mockImageListClient) ModifyMcpApiKeyConfig(ctx context.Context, request
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockImageListClient) DescribeInstanceTypes(ctx context.Context, request *client.DescribeInstanceTypesRequest) (*client.DescribeInstanceTypesResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockImageListClient) DescribeMcpPolicyData(ctx context.Context, request *client.DescribeMcpPolicyDataRequest) (*client.DescribeMcpPolicyDataResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockImageListClient) SaveMcpPolicyData(ctx context.Context, request *client.SaveMcpPolicyDataRequest) (*client.SaveMcpPolicyDataResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockImageListClient) DescribeOfficeSites(ctx context.Context, request *client.DescribeOfficeSitesRequest) (*client.DescribeOfficeSitesResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 // Helper functions for testing
 func boolPtr(b bool) *bool {
 	return &b
