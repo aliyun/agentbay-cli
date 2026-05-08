@@ -782,6 +782,12 @@ func (client *Client) ListMcpImagesWithOptions(request *ListMcpImagesRequest, ru
 		query["PageStart"] = request.PageStart
 	}
 
+	// Handle ImageIds with special format: ImageIds.1, ImageIds.2, ...
+	for i, id := range request.ImageIds {
+		key := fmt.Sprintf("ImageIds.%d", i+1)
+		query[key] = id
+	}
+
 	req := &openapiutil.OpenApiRequest{
 		Query:   openapiutil.Query(query),
 		Headers: map[string]*string{"Accept": dara.String("application/json")},

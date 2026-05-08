@@ -1429,6 +1429,9 @@ func runImageDeactivate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to get image info: %w", err)
 	}
 	fmt.Printf(" Done.\n")
+	if imageInfo.RequestId != "" {
+		fmt.Printf("[INFO] GetMcpImageInfo Request ID: %s\n", imageInfo.RequestId)
+	}
 	fmt.Printf("[INFO] Image Type: %s\n", imageInfo.ImageType)
 	fmt.Printf("[INFO] Current Status: %s\n", TranslateImageResourceStatus(imageInfo.ResourceStatus))
 
@@ -1474,13 +1477,19 @@ func runImageDeactivate(cmd *cobra.Command, args []string) error {
 	// Delete resource group if needed
 	if shouldDeleteResourceGroup {
 		fmt.Printf("Fetching resource group info...")
-		resourceGroupId, err := GetResourceGroupIdForImage(statusCtx, apiClient, imageId)
+		resourceGroupId, listRequestId, err := GetResourceGroupIdForImage(statusCtx, apiClient, imageId)
 		if err != nil {
 			fmt.Printf(" Failed.\n")
 			log.Debugf("[DEBUG] GetResourceGroupIdForImage failed: %v", err)
+			if listRequestId != "" {
+				fmt.Printf("[INFO] ListMcpImages Request ID: %s\n", listRequestId)
+			}
 			return fmt.Errorf("failed to get resource group info: %w", err)
 		}
 		fmt.Printf(" Done.\n")
+		if listRequestId != "" {
+			fmt.Printf("[INFO] ListMcpImages Request ID: %s\n", listRequestId)
+		}
 
 		if resourceGroupId == "" {
 			fmt.Printf("[WARN] Could not find ResourceGroupId for this image.\n")
@@ -1518,9 +1527,9 @@ func runImageDeactivate(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("invalid response from server")
 		}
 
-		// Log Request ID for debugging
-		if deleteResp.Body.GetRequestId() != nil {
-			log.Debugf("[DEBUG] DeleteResourceGroup Request ID: %s", *deleteResp.Body.GetRequestId())
+		// Print Request ID so users can trace backend calls
+		if deleteResp.Body.GetRequestId() != nil && *deleteResp.Body.GetRequestId() != "" {
+			fmt.Printf("[INFO] DeleteResourceGroup Request ID: %s\n", *deleteResp.Body.GetRequestId())
 		}
 
 		success := deleteResp.Body.GetSuccess()
@@ -1529,12 +1538,12 @@ func runImageDeactivate(cmd *cobra.Command, args []string) error {
 			code := deleteResp.Body.GetCode()
 			message := deleteResp.Body.GetMessage()
 			if code != nil && message != nil {
-				if log.GetLevel() >= log.DebugLevel && deleteResp.Body.GetRequestId() != nil {
+				if deleteResp.Body.GetRequestId() != nil {
 					return fmt.Errorf("failed to delete resource group: %s - %s (Request ID: %s)", *code, *message, *deleteResp.Body.GetRequestId())
 				}
 				return fmt.Errorf("failed to delete resource group: %s - %s", *code, *message)
 			}
-			if log.GetLevel() >= log.DebugLevel && deleteResp.Body.GetRequestId() != nil {
+			if deleteResp.Body.GetRequestId() != nil {
 				return fmt.Errorf("failed to delete resource group (Request ID: %s)", *deleteResp.Body.GetRequestId())
 			}
 			return fmt.Errorf("failed to delete resource group")

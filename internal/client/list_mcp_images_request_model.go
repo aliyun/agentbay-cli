@@ -23,6 +23,8 @@ type iListMcpImagesRequest interface {
 	GetPageSize() *int32
 	SetPageStart(v int32) *ListMcpImagesRequest
 	GetPageStart() *int32
+	SetImageIds(v []string) *ListMcpImagesRequest
+	GetImageIds() []string
 }
 
 type ListMcpImagesRequest struct {
@@ -33,6 +35,7 @@ type ListMcpImagesRequest struct {
 	OsType      *string   `json:"OsType,omitempty" xml:"OsType,omitempty"`
 	PageSize    *int32    `json:"PageSize,omitempty" xml:"PageSize,omitempty"`
 	PageStart   *int32    `json:"PageStart,omitempty" xml:"PageStart,omitempty"`
+	ImageIds    []string  `json:"ImageIds,omitempty" xml:"ImageIds,omitempty"`
 }
 
 func (s ListMcpImagesRequest) String() string {
@@ -103,6 +106,15 @@ func (s *ListMcpImagesRequest) SetPageSize(v int32) *ListMcpImagesRequest {
 
 func (s *ListMcpImagesRequest) SetPageStart(v int32) *ListMcpImagesRequest {
 	s.PageStart = &v
+	return s
+}
+
+func (s *ListMcpImagesRequest) GetImageIds() []string {
+	return s.ImageIds
+}
+
+func (s *ListMcpImagesRequest) SetImageIds(v []string) *ListMcpImagesRequest {
+	s.ImageIds = v
 	return s
 }
 
