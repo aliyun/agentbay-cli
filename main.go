@@ -38,6 +38,7 @@ func init() {
 	rootCmd.AddCommand(cmd.SkillsCmd)
 	rootCmd.AddCommand(cmd.ApiKeyCmd)
 	rootCmd.AddCommand(cmd.NetworkCmd)
+	rootCmd.AddCommand(cmd.DockerCmd)
 
 	// Global flags
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
