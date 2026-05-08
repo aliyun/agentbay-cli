@@ -15,8 +15,10 @@ This document provides a quick start guide for using the aone.ci CI/CD pipeline 
 ### 1. Pipeline Configuration
 
 The pipeline is already configured in `.aoneci/cicd.yml`. It will automatically trigger when:
+
 - Code is pushed to the `master` branch
 - Code is pushed to the `main` branch
+- Code is pushed to any `feat/**`, `fix/**`, or `release/**` branch (for pre-merge build verification)
 
 ### 2. Local Testing Before Push
 
@@ -34,6 +36,7 @@ ls -lh bin/
 ```
 
 Expected output:
+
 ```
 bin/
 ├── agentbay-darwin-amd64
@@ -74,6 +77,7 @@ The CI/CD pipeline will automatically start.
 The pipeline first runs all unit tests to ensure code quality.
 
 **What it does:**
+
 - Checks out code
 - Sets up Go 1.23.0 environment
 - Downloads dependencies
@@ -81,6 +85,7 @@ The pipeline first runs all unit tests to ensure code quality.
 - Generates coverage report
 
 **Success criteria:**
+
 - All unit tests pass
 - No compilation errors
 
@@ -89,6 +94,7 @@ The pipeline first runs all unit tests to ensure code quality.
 After tests pass, the pipeline builds binaries for all platforms and uploads to OSS.
 
 **What it does:**
+
 - Sets up build variables (version, timestamp, git commit)
 - Builds binaries for 6 platforms
 - Creates distribution packages (tar.gz, zip)
@@ -97,6 +103,7 @@ After tests pass, the pipeline builds binaries for all platforms and uploads to 
 - Prints build summary with download URLs
 
 **Success criteria:**
+
 - All 6 binaries built successfully
 - All packages created with checksums
 - All artifacts uploaded to OSS
@@ -107,6 +114,7 @@ After tests pass, the pipeline builds binaries for all platforms and uploads to 
 After successful build, the following artifacts are available:
 
 ### Binary Archives
+
 - `agentbay-{VERSION}-darwin-amd64.tar.gz`
 - `agentbay-{VERSION}-darwin-arm64.tar.gz`
 - `agentbay-{VERSION}-linux-amd64.tar.gz`
@@ -115,19 +123,24 @@ After successful build, the following artifacts are available:
 - `agentbay-{VERSION}-windows-arm64.zip`
 
 ### Direct Executables (Windows)
+
 - `agentbay-{VERSION}-windows-amd64.exe`
 - `agentbay-{VERSION}-windows-arm64.exe`
 
 ### Checksums
+
 - All packages include `.sha256` checksum files
 
 ### Download URLs
+
 After successful upload, artifacts can be downloaded from:
+
 ```
 https://{OSS_BUCKET}.{OSS_ENDPOINT}/agentbay/releases/{VERSION}/{filename}
 ```
 
 Example:
+
 ```
 https://your-bucket.oss-cn-hangzhou.aliyuncs.com/agentbay/releases/dev-20251010-1030/agentbay-dev-20251010-1030-darwin-arm64.tar.gz
 ```
@@ -139,6 +152,7 @@ https://your-bucket.oss-cn-hangzhou.aliyuncs.com/agentbay/releases/dev-20251010-
 **Symptom:** Red ❌ on the "Unit Tests" stage
 
 **Solution:**
+
 1. Check the test output in the pipeline logs
 2. Run `make test-unit` locally to reproduce the issue
 3. Fix the failing tests
@@ -149,6 +163,7 @@ https://your-bucket.oss-cn-hangzhou.aliyuncs.com/agentbay/releases/dev-20251010-
 **Symptom:** Red ❌ on the "Build and Package" stage
 
 **Solution:**
+
 1. Check the build output in the pipeline logs
 2. Run `make build-all` locally to reproduce the issue
 3. Common issues:
@@ -160,11 +175,13 @@ https://your-bucket.oss-cn-hangzhou.aliyuncs.com/agentbay/releases/dev-20251010-
 ### Build is Slow
 
 **Expected times:**
+
 - Unit Tests: 2-3 minutes
 - Build and Package: 5-8 minutes
 - Total: 7-11 minutes
 
 If significantly slower:
+
 - Check aone.ci system status
 - Check if resources are properly allocated (2-8Gi for tests, 4-16Gi for builds)
 - Review pipeline logs for any hanging processes
@@ -174,6 +191,7 @@ If significantly slower:
 **Symptom:** Red ❌ on the "Upload to OSS" step
 
 **Solution:**
+
 1. Check OSS credentials are configured in aone.ci:
    - `secrets.OSS_ACCESS_KEY_ID`
    - `secrets.OSS_ACCESS_KEY_SECRET`
@@ -187,6 +205,7 @@ If significantly slower:
 ### Artifacts Not Found
 
 **Solution:**
+
 1. Ensure the pipeline completed successfully (including OSS upload)
 2. Check the "Build and Package" stage logs
 3. Look for "✅ All packages uploaded successfully" message
@@ -198,16 +217,19 @@ If significantly slower:
 The pipeline uses the following variables:
 
 ### Global Variables (configured in aone.ci)
+
 - `vars.BINARY_NAME`: `agentbay`
 - `vars.VERSION_PREFIX`: `dev` (or your preferred prefix)
 - `vars.OSS_BUCKET`: Your OSS bucket name
 - `vars.OSS_ENDPOINT`: OSS endpoint (e.g., `oss-cn-hangzhou.aliyuncs.com`)
 
 ### Secrets (configured in aone.ci)
+
 - `secrets.OSS_ACCESS_KEY_ID`: OSS access key ID
 - `secrets.OSS_ACCESS_KEY_SECRET`: OSS access key secret
 
 ### Auto-generated Variables
+
 - `VERSION`: `{VERSION_PREFIX}-{TIMESTAMP}`
 - `TIMESTAMP`: Build timestamp (YYYYMMDD-HHMM)
 - `GIT_COMMIT`: Short git commit hash
@@ -216,10 +238,13 @@ The pipeline uses the following variables:
 ## Best Practices
 
 ### 1. Test Before Push
+
 Always run `make test-unit` and `make build-all` locally before pushing.
 
 ### 2. Meaningful Commit Messages
+
 Use clear commit messages that describe what changed:
+
 ```bash
 git commit -m "feat: add new command for image management"
 git commit -m "fix: correct error handling in login flow"
@@ -227,10 +252,13 @@ git commit -m "docs: update README with installation instructions"
 ```
 
 ### 3. Monitor Pipeline
+
 Check the pipeline status after pushing to catch issues early.
 
 ### 4. Keep Dependencies Updated
+
 Regularly update Go dependencies:
+
 ```bash
 make deps
 git add go.mod go.sum
@@ -238,6 +266,7 @@ git commit -m "chore: update dependencies"
 ```
 
 ### 5. Review Logs
+
 If something fails, carefully review the pipeline logs to understand the root cause.
 
 ## Advanced Configuration
@@ -252,7 +281,10 @@ triggers:
     branches:
       - master
       - main
-      - develop  # Add more branches here
+      - "feat/**"
+      - "fix/**"
+      - "release/**"
+      - develop # Add more branches here
 ```
 
 ### Adjusting Resource Allocation
@@ -262,10 +294,10 @@ If builds are slow or failing due to resource constraints, adjust in `.aoneci/ci
 ```yaml
 jobs:
   unit-tests:
-    runs-on: 4-16Gi  # Increase from 2-8Gi if needed
+    runs-on: 4-16Gi # Increase from 2-8Gi if needed
 
   build-and-package:
-    runs-on: 8-32Gi  # Increase from 4-16Gi if needed
+    runs-on: 8-32Gi # Increase from 4-16Gi if needed
 ```
 
 ### Configuring OSS Upload
@@ -287,11 +319,13 @@ After configuration, the pipeline will automatically upload all build artifacts 
 ## Getting Help
 
 ### Documentation
+
 - CI/CD Pipeline Details: See [README.md](README.md)
 - aone.ci Documentation: https://aone.ci/docs
 - AgentBay CLI Documentation: See [../README.md](../README.md)
 
 ### Support
+
 - Check pipeline logs first
 - Review this quickstart and README.md
 - Contact DevOps team for aone.ci platform issues
@@ -307,4 +341,3 @@ The CI/CD pipeline is designed to be simple and reliable:
 4. **View results** → Monitor in aone.ci console
 
 That's it! The pipeline handles the rest automatically.
-
