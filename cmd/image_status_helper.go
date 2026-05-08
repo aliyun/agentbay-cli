@@ -159,6 +159,7 @@ type ImageInfo struct {
 	ResourceStatus string // IMAGE_AVAILABLE, RESOURCE_PUBLISHED, etc.
 	ImageType      string // User or System
 	OsName         string // Linux, Android, Windows, etc.
+	RequestId      string // Backend request id for debugging
 }
 
 // GetImageInfo retrieves the current status and type for the given image ID
@@ -186,6 +187,11 @@ func GetImageInfo(ctx context.Context, apiClient agentbay.Client, imageId string
 	}
 
 	info := &ImageInfo{}
+
+	// Capture RequestId for caller-side logging
+	if resp.Body.RequestId != nil {
+		info.RequestId = dara.StringValue(resp.Body.RequestId)
+	}
 
 	// Try to get ImageResourceStatus from response headers (stored during XML parsing or wrapper)
 	if resp.Headers != nil {
@@ -249,53 +255,56 @@ func GetImageResourceStatus(ctx context.Context, apiClient agentbay.Client, imag
 }
 
 // GetResourceGroupIdForImage fetches ResourceGroupId for the given image from ListMcpImages (user images).
-// Returns empty string if not found or if the image has no ResourceGroupId.
-func GetResourceGroupIdForImage(ctx context.Context, apiClient agentbay.Client, imageId string) (string, error) {
+// Returns (resourceGroupId, requestId, error). resourceGroupId is empty if not found or the image has no ResourceGroupId.
+// Uses ImageIds filter with PageStart=1 & PageSize=1 to minimize server-side pagination.
+func GetResourceGroupIdForImage(ctx context.Context, apiClient agentbay.Client, imageId string) (string, string, error) {
 	req := &client.ListMcpImagesRequest{}
 	userImageType := "User"
 	req.ImageType = &userImageType
 
-	// Use a larger page size to reduce pagination; we only need to find one image
-	pageSize := int32(100)
+	// Use ImageIds to filter server-side; only need a single exact match
+	pageSize := int32(1)
 	req.PageSize = &pageSize
-	pageStart := int32(0)
+	pageStart := int32(1)
 	req.PageStart = &pageStart
+	req.ImageIds = []string{imageId}
 
-	for {
-		resp, err := apiClient.ListMcpImages(ctx, req)
-		if err != nil {
-			return "", fmt.Errorf("failed to list images: %w", err)
-		}
-		if resp == nil || resp.Body == nil || resp.Body.Data == nil {
-			return "", nil
-		}
-
-		for _, img := range resp.Body.Data {
-			if img == nil {
-				continue
-			}
-			imgId := ""
-			if img.ImageId != nil {
-				imgId = *img.ImageId
-			}
-			if imgId != imageId {
-				continue
-			}
-			rgInfo := img.GetImageResourceGroupInfo()
-			if rgInfo != nil && rgInfo.ResourceGroupId != nil && *rgInfo.ResourceGroupId != "" {
-				return *rgInfo.ResourceGroupId, nil
-			}
-			return "", nil // found image but no ResourceGroupId
-		}
-
-		// Check for more pages
-		if resp.Body.NextToken == nil || *resp.Body.NextToken == "" {
-			break
-		}
-		req.NextToken = resp.Body.NextToken
+	resp, err := apiClient.ListMcpImages(ctx, req)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to list images: %w", err)
+	}
+	if resp == nil || resp.Body == nil {
+		return "", "", nil
 	}
 
-	return "", nil // image not found
+	requestId := ""
+	if resp.Body.RequestId != nil {
+		requestId = dara.StringValue(resp.Body.RequestId)
+	}
+
+	if resp.Body.Data == nil {
+		return "", requestId, nil
+	}
+
+	for _, img := range resp.Body.Data {
+		if img == nil {
+			continue
+		}
+		imgId := ""
+		if img.ImageId != nil {
+			imgId = *img.ImageId
+		}
+		if imgId != imageId {
+			continue
+		}
+		rgInfo := img.GetImageResourceGroupInfo()
+		if rgInfo != nil && rgInfo.ResourceGroupId != nil && *rgInfo.ResourceGroupId != "" {
+			return *rgInfo.ResourceGroupId, requestId, nil
+		}
+		return "", requestId, nil // found image but no ResourceGroupId
+	}
+
+	return "", requestId, nil // image not found
 }
 
 // IsUserImage checks if the image is a User type image
@@ -351,12 +360,18 @@ func pollForStatus(
 		}
 
 		// Get current status
-		status, err := GetImageResourceStatus(timeoutCtx, apiClient, imageId)
+		info, err := GetImageInfo(timeoutCtx, apiClient, imageId)
 		if err != nil {
 			// Don't fail immediately on API errors, continue polling
 		} else {
+			status := info.ResourceStatus
 			currentStatus := ImageResourceStatus(status)
 			translatedStatus := TranslateImageResourceStatus(status)
+
+			// Print RequestId for every poll iteration so users can trace backend calls
+			if info.RequestId != "" {
+				fmt.Printf("[INFO] GetMcpImageInfo Request ID: %s\n", info.RequestId)
+			}
 
 			// Check if we've reached a target status
 			for _, expectedStatus := range expectedStatuses {

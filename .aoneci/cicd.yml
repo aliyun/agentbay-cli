@@ -1,12 +1,16 @@
 # AgentBay CLI Build Pipeline
 name: AgentBay CLI Build and Deploy
 
-# Auto trigger on code merge to master/main branches
+# Auto trigger on code merge to master/main branches,
+# and on feature/fix/release branches for pre-merge build verification.
 triggers:
   push:
     branches:
       - master
       - main
+      - "feat/**"
+      - "fix/**"
+      - "release/**"
 
 # Global variables
 variables:

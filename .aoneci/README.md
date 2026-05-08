@@ -14,6 +14,7 @@ The CI/CD pipeline automatically triggers when code is merged to the `master` or
 ### Jobs
 
 #### 1. Unit Tests (`unit-tests`)
+
 - **Purpose**: Validate code quality and functionality
 - **Resources**: 2 CPU cores, 8GB RAM
 - **Timeout**: 20 minutes
@@ -25,6 +26,7 @@ The CI/CD pipeline automatically triggers when code is merged to the `master` or
   - Generate coverage report
 
 #### 2. Build and Package (`build-and-package`)
+
 - **Purpose**: Build multi-platform binaries and create distribution packages
 - **Resources**: 4 CPU cores, 16GB RAM
 - **Timeout**: 45 minutes
@@ -60,16 +62,19 @@ The pipeline builds binaries for the following platforms:
 The pipeline uses the following variables that must be configured in aone.ci:
 
 ### Global Variables (vars)
+
 - `BINARY_NAME`: The name of the binary (must be set to: `agentbay`)
 - `VERSION_PREFIX`: Version prefix for builds (default: `dev`)
 - `OSS_BUCKET`: OSS bucket name for storing build artifacts
 - `OSS_ENDPOINT`: OSS endpoint URL (e.g., `oss-cn-hangzhou.aliyuncs.com`)
 
 ### Secrets (secrets)
+
 - `OSS_ACCESS_KEY_ID`: OSS access key ID for authentication
 - `OSS_ACCESS_KEY_SECRET`: OSS access key secret for authentication
 
 ### Runtime Variables
+
 - `VERSION`: Auto-generated as `{VERSION_PREFIX}-{TIMESTAMP}`
 - `TIMESTAMP`: Build timestamp in format `YYYYMMDD-HHMM` (Asia/Shanghai timezone)
 - `GIT_COMMIT`: Short git commit hash
@@ -78,14 +83,19 @@ The pipeline uses the following variables that must be configured in aone.ci:
 ## Trigger Conditions
 
 The pipeline automatically triggers on:
+
 - Push to `master` branch
 - Push to `main` branch
+- Push to any `feat/**` branch (for pre-merge build verification)
+- Push to any `fix/**` branch
+- Push to any `release/**` branch
 
 ## Build Artifacts
 
 After successful build, the following artifacts are created in the `packages/` directory:
 
 ### Binary Archives
+
 ```
 agentbay-{VERSION}-darwin-amd64.tar.gz
 agentbay-{VERSION}-darwin-arm64.tar.gz
@@ -96,12 +106,14 @@ agentbay-{VERSION}-windows-arm64.zip
 ```
 
 ### Standalone Executables (Windows)
+
 ```
 agentbay-{VERSION}-windows-amd64.exe
 agentbay-{VERSION}-windows-arm64.exe
 ```
 
 ### Checksum Files
+
 Each package includes a corresponding `.sha256` file for integrity verification.
 
 ## OSS Upload
@@ -109,6 +121,7 @@ Each package includes a corresponding `.sha256` file for integrity verification.
 After successful build, all packages are automatically uploaded to Alibaba Cloud OSS.
 
 ### Upload Structure
+
 ```
 oss://{OSS_BUCKET}/agentbay/releases/{VERSION}/
 ├── agentbay-{VERSION}-darwin-amd64.tar.gz
@@ -130,7 +143,9 @@ oss://{OSS_BUCKET}/agentbay/releases/{VERSION}/
 ```
 
 ### Public Access
+
 All uploaded files are set with `public-read` ACL, allowing public downloads via:
+
 ```
 https://{OSS_BUCKET}.{OSS_ENDPOINT}/agentbay/releases/{VERSION}/{filename}
 ```
@@ -162,7 +177,10 @@ triggers:
     branches:
       - master
       - main
-      - develop  # Add more branches
+      - "feat/**" # All feature branches
+      - "fix/**" # All fix branches
+      - "release/**" # All release branches
+      - develop # Add more branches
 ```
 
 ## Testing Locally
@@ -212,4 +230,3 @@ If version numbers are incorrect:
 - [aone.ci Documentation](https://aone.ci/docs)
 - [AgentBay CLI Documentation](../README.md)
 - [Makefile Reference](../Makefile)
-

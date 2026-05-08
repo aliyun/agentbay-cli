@@ -87,6 +87,56 @@ agentbay skills show <skill-id>              # Show skill details
 
 For detailed usage instructions and examples, see the [User Guide](docs/USER_GUIDE.md) .
 
+## Development Workflow
+
+This project is synchronized across three repositories:
+
+| Remote                          | URL                                                    | Role                                                               |
+| ------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------ |
+| `aliyun`                        | https://github.com/aliyun/agentbay-cli                 | Public-facing repository, single source of truth                   |
+| `origin`                        | https://code.alibaba-inc.com/InnoArchClub/agentbay-cli | Internal mirror, triggers aone.ci build for pre-merge verification |
+| `upstream` _(legacy, optional)_ | https://github.com/LXY02/agentbay-cli                  | Personal fork, historical PR proxy (no longer required)            |
+
+### Branches
+
+- **`aliyun/master`** is the baseline for all new development.
+- **`origin/master`** is frozen for historical audit purposes. **No new feature should be based on it.**
+- Feature branches use the `feat/**`, `fix/**`, or `release/**` naming convention.
+
+### Standard Flow (new features / bug fixes)
+
+```bash
+# 0. One-time setup — add the aliyun remote if missing
+git remote add aliyun git@github.com:aliyun/agentbay-cli.git
+git fetch aliyun
+
+# 1. Create a feature branch from aliyun/master
+git fetch aliyun
+git checkout -b feat/<topic> aliyun/master
+
+# 2. Develop and commit
+git commit -am "feat: <description>"
+
+# 3. Push to internal GitLab → triggers .aoneci/cicd.yml for build verification
+git push origin feat/<topic>
+
+#    (Optional) adjust .aoneci/cicd.yml on this branch if the feature needs
+#    special build behavior, then push again to rerun the pipeline.
+
+# 4. After internal verification passes, push to aliyun and open a PR
+git push aliyun feat/<topic>
+#    Open PR on https://github.com/aliyun/agentbay-cli : feat/<topic> → master
+```
+
+### Why this workflow
+
+- `.aoneci/cicd.yml` now triggers on `feat/**`, `fix/**`, and `release/**` branches,
+  so every feature branch gets an internal multi-platform build + OSS upload automatically.
+- Because feature branches are cut from `aliyun/master`, no cherry-pick is required
+  when promoting a change to the public repository.
+- `.github/workflows/` on the public repo only runs on tag pushes (`v*`) or manual
+  dispatch, so pushing feature branches to `aliyun` is safe and does not trigger releases.
+
 ## License
 
 This project is licensed under the Apache License 2.0 - see the LICENSE file for details.
