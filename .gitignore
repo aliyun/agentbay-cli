@@ -42,6 +42,10 @@ build/
 bin/
 packages/
 
+# OSS tool (auto-downloaded by release script)
+.ossutil_bin/
+.ossutil_config_tmp
+
 # Environment files
 .env
 .env.local
