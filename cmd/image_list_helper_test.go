@@ -136,6 +136,10 @@ func (m *mockImageListClient) ModifyMcpPolicyData(ctx context.Context, request *
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockImageListClient) DeleteMcpImage(ctx context.Context, request *client.DeleteMcpImageRequest) (*client.DeleteMcpImageResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 // Helper functions for testing
 func boolPtr(b bool) *bool {
 	return &b

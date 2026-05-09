@@ -11,7 +11,7 @@ AgentBay CLI provides image management, API key management, network management, 
 - **Authentication**: OAuth login with Aliyun, or AccessKey via environment variables (`AGENTBAY_ACCESS_KEY_ID` / `AGENTBAY_ACCESS_KEY_SECRET`) for automation and CI
 - **Dockerfile Template**: Download Dockerfile templates from the cloud
 - **Image Creation**: Build custom images from Dockerfiles with base image support; automatically parses and uploads COPY/ADD referenced files
-- **Image Management**: Activate, deactivate, and monitor image instances with configurable resource specifications (CPU/memory) and network types
+- **Image Management**: Activate, deactivate, delete, and monitor image instances with configurable resource specifications (CPU/memory) and network types
 - **Image Listing**: Browse user and system images with separated display, pagination and filtering support
 - **Image Status**: Query resource lifecycle status for an image by ID (`agentbay image status`)
 - **API Key Management**: Create API keys and configure session concurrency limits for authentication and access control
@@ -53,6 +53,10 @@ agentbay image activate imgc-xxxxx...xxx --lifecycle-mode auto --lifecycle-max-r
 
 # 6. Deactivate when done
 agentbay image deactivate imgc-xxxxx...xxx
+
+# 7. Delete an image permanently (irreversible, only for deactivated User images)
+agentbay image delete imgc-xxxxx...xxx
+agentbay image delete imgc-xxxxx...xxx --yes  # Skip confirmation (for scripts/CI)
 
 # Optional: check resource status (activate/deactivate lifecycle, not Docker build task)
 agentbay image status imgc-xxxxx...xxx

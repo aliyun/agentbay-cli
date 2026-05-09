@@ -100,6 +100,10 @@ func (m *mockGetMcpImageInfoClient) ModifyMcpPolicyData(ctx context.Context, req
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockGetMcpImageInfoClient) DeleteMcpImage(ctx context.Context, request *client.DeleteMcpImageRequest) (*client.DeleteMcpImageResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 var _ agentbay.Client = (*mockGetMcpImageInfoClient)(nil)
 
 func TestInferImageTypeFromImageID(t *testing.T) {

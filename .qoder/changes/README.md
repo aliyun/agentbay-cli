@@ -1,6 +1,6 @@
 # Change Records (CR) — 变更档案索引
 
-本目录用于**手动变更管理(路径 B)**,与 Qoder Quest Mode 的 `.qoder/quest/`(路径 A)互补,共同承担需求追溯链责任。
+本目录用于**手动变更管理(路径 B)**,与 Qoder Quest Mode 的 `.qoder/specs/`(路径 A,Qoder 客户端 Download 自动落盘)互补,共同承担需求追溯链责任。
 
 > 完整流程规则见: [.qoder/skills/feature-development-workflow/SKILL.md](../skills/feature-development-workflow/SKILL.md)
 > 代码规范见: [.qoder/rules/development.md](../rules/development.md)
@@ -11,7 +11,7 @@
 - 有外部设计稿 / 需求文档需要落地到代码仓追溯
 - 紧急修复、单点调整等不适合启动 Quest 任务的场景
 
-否则**优先使用 Quest Mode**,让 Qoder 自动生成 Spec 归档到 `.qoder/quest/`。
+否则**优先使用 Quest Mode**,让 Qoder 在 Design 阶段生成 Spec,Review 后点 `Download` 自动落盘到 `.qoder/specs/<feature>.md`。
 
 ## 🗂️ 目录命名规范
 

@@ -49,13 +49,13 @@ git remote remove <name>
 
 | 路径                    | 触发场景                                                 | 产物位置                                                 | 备注                                                                                          |
 | ----------------------- | -------------------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| **A. Qoder Quest Mode** | 通过 `⌘ E` 进入 Quest 模式,在 Design 阶段让 AI 生成 Spec | `.qoder/quest/`(由 Qoder 自动生成,需提交到 Git 纳入追溯) | 推荐用于复杂需求;Spec 可与 AI 协同编辑                                                        |
+| **A. Qoder Quest Mode** | 通过 `⌘ E` 进入 Quest 模式,在 Design 阶段让 AI 生成 Spec,Review 后点 `Download` | `.qoder/specs/<feature>.md`(Qoder 客户端 Download 默认写盘位置,零配置) | 推荐用于复杂需求;Spec 可与 AI 协同编辑;文件默认 untracked,需 `git add` 入库                                                 |
 | **B. 手动 CR 目录**     | 未启用 Quest Mode / 轻量需求 / 已有外部设计稿需沉淀      | `.qoder/changes/CR-<YYYY-MM-DD>-<feature-name>/`         | 包含 spec.md / design.md / tasks.md / decisions.md / test-plan.md / rollback.md / trace.md 等 |
 
 **核心规则**:
 
 - 需求启动时二选一,**不允许两条都不走**
-- Quest Mode 下 `.qoder/quest/` 产物必须纳入 Git(`git add`),和代码一起提交,避免档案与代码脱节
+- Quest Mode 下 `.qoder/specs/<feature>.md` 由 Qoder 在点 Download 后自动落盘,**必须 `git add` 纳入版本库**,避免档案与代码脱节
 - 非 Quest 场景必须手动在 `.qoder/changes/` 下建 CR 目录,命名严格遵守 `CR-<YYYY-MM-DD>-<feature-name>` 格式,与 feat 分支名强关联
 - 两种路径产物都应最终在 `trace.md` / 对应 Spec 中登记:feat 分支名、关键 commit SHA、推送目标 remote、PR 链接、合并 commit、release tag
 
@@ -70,10 +70,11 @@ git remote remove <name>
 **路径 A · Quest Mode(推荐)**
 
 1. `⌘ E` 打开 Quest 面板
-2. `New Task` → 勾选相关文件作为 Context → 粘贴需求描述 → 回车
-3. 等 Qoder 生成 Spec(自动保存到 `.qoder/quest/`)
-4. 与 AI 协同 review / 完善 Spec → 点 `Start Now` 进入执行
-5. Spec 文件需在后续 commit 中一并 `git add` 纳入版本库
+2. `New Task` → 勾选相关文件作为 Context → 粘贴需求描述 → 回车(**不要勾 Execute Directly**,否则跳过 Design 阶段不会生成 Spec)
+3. 等 Qoder 在 Design 阶段生成 Spec(右侧 Spec Tab 流式显示)
+4. 与 AI 协同在对话区迭代 Spec,满意后点 `Run Spec` 进入执行
+5. **关键**:Spec Tab 右上角点 `Download` → Qoder 客户端会自动写入 `.qoder/specs/<feature>.md`(文件名基于 Spec 标题 slug 生成,零配置)
+6. Spec 文件默认 untracked,后续 commit 中必须一并 `git add` 纳入版本库
 
 **路径 B · 手动 CR 目录**
 
@@ -168,7 +169,7 @@ go test ./... -count=1
    ```
 
 4. **更新变更档案**:
-   - 路径 A:检查 `.qoder/quest/` 下 Spec 是否已加入本次 commit
+   - 路径 A:检查 `.qoder/specs/<feature>.md` 是否已加入本次 commit
    - 路径 B:将本次 commit SHA 与动机摘要追加到 `.qoder/changes/CR-xxx/trace.md`
 
 ### Phase 5: 推送到远程(按用户指令)
@@ -236,7 +237,7 @@ git push aliyun --delete feat-<feature-name>      # aliyun 删除(可选,或由 
 3. **双远程原则**:推送仅限 `origin` 和 `aliyun`,不引入额外 fork
 4. **可回滚原则**:每次提交必须是本地验证通过的稳定状态
 5. **分支隔离原则**:每个需求独立 feat 分支,禁止混合多个需求
-6. **可追溯原则**:每个需求必须在 `.qoder/quest/`(Quest Mode)或 `.qoder/changes/`(手动 CR)下建立档案,档案随代码一并入库
+6. **可追溯原则**:每个需求必须在 `.qoder/specs/`(Quest Mode Download 自动落盘)或 `.qoder/changes/`(手动 CR)下建立档案,档案随代码一并入库
 
 ## ✅ 流程检查清单
 
@@ -245,7 +246,7 @@ git push aliyun --delete feat-<feature-name>      # aliyun 删除(可选,或由 
 - [ ] `git remote -v` 只有 origin 和 aliyun
 - [ ] 已执行 `git fetch aliyun`
 - [ ] 当前 HEAD 在新创建的 feat 分支
-- [ ] 变更档案已建立(`.qoder/quest/` Spec 或 `.qoder/changes/CR-xxx/` 目录)
+- [ ] 变更档案已建立(`.qoder/specs/<feature>.md` Quest Spec 或 `.qoder/changes/CR-xxx/` 目录)
 
 提交前:
 
@@ -278,4 +279,5 @@ git push aliyun --delete feat-<feature-name>      # aliyun 删除(可选,或由 
 | mock 漏改 CI 报错     | `*mockClient does not implement agentbay.Client` | 接口变更后立即 `grep -r "type mock.*Client struct"` 全量补齐 |
 | 残留 upstream         | `git remote -v` 仍有个人 fork                    | 执行 `git remote remove upstream`                            |
 | 缺失变更档案          | 需求完成但仓库无 Spec / CR 目录,后续无法追溯     | 启动需求时按 Phase 0 强制二选一建立档案                      |
+| Quest 跳过 Design     | 勾了 Execute Directly 导致 Spec 根本没生成       | New Task 时确认未勾 Execute Directly,点 Download 写盘到 `.qoder/specs/` |
 | 档案与代码脱节        | Spec 建好但没 `git add`,合并后档案丢失           | 提交前检查 `git status` 确保 Spec/CR 文件已进入暂存区        |

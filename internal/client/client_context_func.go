@@ -187,6 +187,11 @@ func (client *Client) DeleteResourceGroupWithContext(ctx context.Context, reques
 	return client.DeleteResourceGroupWithOptions(request, runtime)
 }
 
+// DeleteMcpImageWithContext 删除镜像（响应体 XML/JSON 双解析在 WithOptions 中）
+func (client *Client) DeleteMcpImageWithContext(ctx context.Context, request *DeleteMcpImageRequest, runtime *dara.RuntimeOptions) (_result *DeleteMcpImageResponse, _err error) {
+	return client.DeleteMcpImageWithOptions(request, runtime)
+}
+
 // GetDockerfileTemplateWithContext 下载 dockerfile 模版（响应体 XML/JSON 双解析在 WithOptions 中）
 func (client *Client) GetDockerfileTemplateWithContext(ctx context.Context, request *GetDockerfileTemplateRequest, runtime *dara.RuntimeOptions) (_result *GetDockerfileTemplateResponse, _err error) {
 	return client.GetDockerfileTemplateWithOptions(request, runtime)
