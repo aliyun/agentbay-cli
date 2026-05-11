@@ -25,7 +25,7 @@ GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 
 # Build targets
-.PHONY: all build clean test test-unit test-integration test-all coverage test-coverage deps help dist hash
+.PHONY: all build clean test test-unit test-integration test-all coverage test-coverage deps help dist hash release release-dry-run
 
 all: test-unit build
 
@@ -253,3 +253,22 @@ help:
 	@echo "  build-windows-upx  - Build UPX-compressed binaries for Windows"
 	@echo "  build-darwin-upx   - Build UPX-compressed binaries for macOS"
 	@echo "  build-all-upx      - Build UPX-compressed binaries for all platforms"
+	@echo "  release            - Build and upload release to production OSS"
+	@echo "  release-dry-run    - Preview release without uploading"
+
+# Release to production OSS
+release:
+	@if [ -z "$(VERSION)" ] || [ "$(VERSION)" = "dev" ]; then echo "VERSION is required. Usage: make release VERSION=0.2.4 [DESC=\"description\"]"; exit 1; fi
+	@if [ -z "$(DESC)" ]; then \
+		bash scripts/release-to-oss.sh --version "$(VERSION)"; \
+	else \
+		bash scripts/release-to-oss.sh --version "$(VERSION)" --description "$(DESC)"; \
+	fi
+
+release-dry-run:
+	@if [ -z "$(VERSION)" ] || [ "$(VERSION)" = "dev" ]; then echo "VERSION is required. Usage: make release-dry-run VERSION=0.2.4 [DESC=\"description\"]"; exit 1; fi
+	@if [ -z "$(DESC)" ]; then \
+		bash scripts/release-to-oss.sh --version "$(VERSION)" --dry-run; \
+	else \
+		bash scripts/release-to-oss.sh --version "$(VERSION)" --description "$(DESC)" --dry-run; \
+	fi

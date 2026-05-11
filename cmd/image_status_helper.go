@@ -18,14 +18,15 @@ import (
 type ImageResourceStatus string
 
 const (
-	StatusImageCreating     ImageResourceStatus = "IMAGE_CREATING"
-	StatusImageCreateFailed ImageResourceStatus = "IMAGE_CREATE_FAILED"
-	StatusImageAvailable    ImageResourceStatus = "IMAGE_AVAILABLE"
-	StatusResourceDeploying ImageResourceStatus = "RESOURCE_DEPLOYING"
-	StatusResourcePublished ImageResourceStatus = "RESOURCE_PUBLISHED"
-	StatusResourceDeleting  ImageResourceStatus = "RESOURCE_DELETING"
-	StatusResourceFailed    ImageResourceStatus = "RESOURCE_FAILED"
-	StatusResourceCeased    ImageResourceStatus = "RESOURCE_CEASED"
+	StatusImageCreating       ImageResourceStatus = "IMAGE_CREATING"
+	StatusImageCreateFailed   ImageResourceStatus = "IMAGE_CREATE_FAILED"
+	StatusImageAvailable      ImageResourceStatus = "IMAGE_AVAILABLE"
+	StatusResourceDeploying   ImageResourceStatus = "RESOURCE_DEPLOYING"
+	StatusResourcePublished   ImageResourceStatus = "RESOURCE_PUBLISHED"
+	StatusResourceDeleting    ImageResourceStatus = "RESOURCE_DELETING"
+	StatusResourceFailed      ImageResourceStatus = "RESOURCE_FAILED"
+	StatusResourceCeased      ImageResourceStatus = "RESOURCE_CEASED"
+	StatusResourceMaintaining ImageResourceStatus = "RESOURCE_MAINTAINING"
 )
 
 // TranslateImageResourceStatus translates the raw status to a human-readable format
@@ -47,6 +48,8 @@ func TranslateImageResourceStatus(status string) string {
 		return "Activation Failed"
 	case StatusResourceCeased:
 		return "Ceased"
+	case StatusResourceMaintaining:
+		return "Maintaining"
 	default:
 		if status == "" {
 			return "Unknown"
@@ -89,6 +92,23 @@ func IsTerminalState(status string) bool {
 		s == StatusImageCreateFailed ||
 		s == StatusResourceFailed ||
 		s == StatusResourceCeased
+}
+
+// IsDeletable checks if the image can be physically deleted.
+// Returns false for statuses that are in-progress or active states where deletion is not allowed.
+func IsDeletable(status string) bool {
+	s := ImageResourceStatus(status)
+	switch s {
+	case StatusImageCreating,
+		StatusResourceDeploying,
+		StatusResourceDeleting,
+		StatusResourcePublished,
+		StatusResourceFailed,
+		StatusResourceMaintaining:
+		return false
+	default:
+		return true
+	}
 }
 
 // IsAuthenticationError checks if the error is an authentication error

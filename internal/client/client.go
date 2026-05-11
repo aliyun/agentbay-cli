@@ -1082,6 +1082,54 @@ func (client *Client) DeleteResourceGroup(request *DeleteResourceGroupRequest) (
 	return _result, _err
 }
 
+func (client *Client) DeleteMcpImageWithOptions(request *DeleteMcpImageRequest, runtime *dara.RuntimeOptions) (_result *DeleteMcpImageResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.ImageId) {
+		query["ImageId"] = request.ImageId
+	}
+	req := &openapiutil.OpenApiRequest{
+		Query:   openapiutil.Query(query),
+		Headers: map[string]*string{"Accept": dara.String("application/json")},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("DeleteMcpImage"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &DeleteMcpImageResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseDeleteMcpImageResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) DeleteMcpImage(request *DeleteMcpImageRequest) (_result *DeleteMcpImageResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &DeleteMcpImageResponse{}
+	_body, _err := client.DeleteMcpImageWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
 // Summary:
 //
 // 下载dockerfile模版

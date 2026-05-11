@@ -42,6 +42,10 @@ build/
 bin/
 packages/
 
+# OSS tool (auto-downloaded by release script)
+.ossutil_bin/
+.ossutil_config_tmp
+
 # Environment files
 .env
 .env.local
@@ -56,3 +60,12 @@ temp/
 
 # llm coding settings
 CLAUDE.md
+
+# --- Qoder 目录管理 ---
+# 以下 .qoder/ 子目录需要进入 git,作为工程追溯资产:
+#   .qoder/specs/    Quest Mode 自动落盘的 Spec 文档(点 Download 后生成)
+#   .qoder/rules/    项目开发规则(development.md 等)
+#   .qoder/skills/   项目自定义 skill
+#   .qoder/changes/  手动 CR 档案(Quest 不适用场景的兜底)
+#   .qoder/agents/   项目级 subagent 配置
+# ⚠️ 不要添加 .qoder/ 全局忽略规则,否则会丢失工程追溯链!

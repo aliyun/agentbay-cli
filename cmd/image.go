@@ -130,6 +130,32 @@ Examples:
 	RunE: runImageDeactivate,
 }
 
+var imageDeleteCmd = &cobra.Command{
+	Use:   "delete <image-id>",
+	Short: "Delete a User image permanently",
+	Long: `Delete a User image permanently from AgentBay.
+
+This command physically removes the specified User image. This action is irreversible.
+Only User type images in deletable states can be deleted. System images cannot be deleted.
+
+Images in the following states cannot be deleted:
+  - IMAGE_CREATING (image is being created)
+  - RESOURCE_DEPLOYING (image is being activated)
+  - RESOURCE_DELETING (image is being deactivated)
+  - RESOURCE_PUBLISHED (image is activated, deactivate first)
+  - RESOURCE_FAILED (image activation failed)
+  - RESOURCE_MAINTAINING (image is under maintenance)
+
+Examples:
+  # Delete a user image (with confirmation prompt)
+  agentbay image delete imgc-xxxxxxxxxxxxxx
+
+  # Delete without confirmation (for scripts/CI)
+  agentbay image delete imgc-xxxxxxxxxxxxxx --yes`,
+	Args: cobra.ExactArgs(1),
+	RunE: runImageDelete,
+}
+
 var imageInitCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Download a Dockerfile template from the cloud",
@@ -205,11 +231,15 @@ func init() {
 	// Mark required flag
 	imageInitCmd.MarkFlagRequired("sourceImageId")
 
+	// Add flags to image delete command
+	imageDeleteCmd.Flags().BoolP("yes", "y", false, "Skip confirmation prompt (required in non-interactive mode)")
+
 	// Add subcommands to image command
 	ImageCmd.AddCommand(imageCreateCmd)
 	ImageCmd.AddCommand(imageListCmd)
 	ImageCmd.AddCommand(imageActivateCmd)
 	ImageCmd.AddCommand(imageDeactivateCmd)
+	ImageCmd.AddCommand(imageDeleteCmd)
 	ImageCmd.AddCommand(imageInitCmd)
 	ImageCmd.AddCommand(imageStatusCmd)
 }
@@ -2250,5 +2280,120 @@ func handleDefaultNetworkActivation(ctx context.Context, apiClient agentbay.Clie
 		fmt.Printf(" Done. (Action: SaveMcpPolicyData)\n")
 	}
 
+	return nil
+}
+
+func runImageDelete(cmd *cobra.Command, args []string) error {
+	imageId := args[0]
+	autoYes, _ := cmd.Flags().GetBool("yes")
+
+	fmt.Printf("[DELETE] Deleting image '%s'...\n", imageId)
+
+	// Load configuration and check authentication
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return fmt.Errorf("[ERROR] Failed to load configuration: %w", err)
+	}
+
+	if !cfg.IsAuthenticated() {
+		return config.ErrNotAuthenticated()
+	}
+
+	// Create API client
+	apiClient := agentbay.NewClientFromConfig(cfg)
+
+	// Check current image status and type using GetMcpImageInfo
+	statusCtx, statusCancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer statusCancel()
+
+	fmt.Printf("Checking current image status...")
+	imageInfo, err := GetImageInfo(statusCtx, apiClient, imageId)
+	if err != nil {
+		fmt.Printf(" Failed.\n")
+		return fmt.Errorf("failed to get image info: %w", err)
+	}
+	fmt.Printf(" Done.\n")
+	if imageInfo.RequestId != "" {
+		fmt.Printf("[INFO] GetMcpImageInfo Request ID: %s\n", imageInfo.RequestId)
+	}
+	fmt.Printf("[INFO] Image Type: %s\n", imageInfo.ImageType)
+	fmt.Printf("[INFO] Current Status: %s\n", TranslateImageResourceStatus(imageInfo.ResourceStatus))
+
+	// Check if this is a System image
+	if IsSystemImage(imageInfo.ImageType) {
+		fmt.Printf("[ERROR] This is a System image.\n")
+		fmt.Printf("[ERROR] System images cannot be deleted.\n")
+		return fmt.Errorf("system images cannot be deleted")
+	}
+
+	// Check if this is a User image
+	if !IsUserImage(imageInfo.ImageType) {
+		return fmt.Errorf("unknown image type: %s (expected 'User' or 'System')", imageInfo.ImageType)
+	}
+
+	// Check if image is in a deletable state
+	if !IsDeletable(imageInfo.ResourceStatus) {
+		status := imageInfo.ResourceStatus
+		translated := TranslateImageResourceStatus(status)
+		fmt.Printf("[ERROR] Image cannot be deleted in current state: %s (%s)\n", translated, status)
+		switch ImageResourceStatus(status) {
+		case StatusResourcePublished:
+			fmt.Printf("[TIP] The image is currently activated. Please deactivate it first:\n")
+			fmt.Printf("      agentbay image deactivate %s\n", imageId)
+		case StatusResourceDeploying:
+			fmt.Printf("[TIP] The image is currently being activated. Please wait for activation to complete, then deactivate it.\n")
+		case StatusResourceDeleting:
+			fmt.Printf("[TIP] The image is currently being deactivated. Please wait for deactivation to complete.\n")
+		case StatusImageCreating:
+			fmt.Printf("[TIP] The image is currently being created. Please wait for creation to complete.\n")
+		case StatusResourceFailed:
+			fmt.Printf("[TIP] The image is in a failed state and cannot be deleted.\n")
+		case StatusResourceMaintaining:
+			fmt.Printf("[TIP] The image is under maintenance and cannot be deleted.\n")
+		}
+		return fmt.Errorf("image cannot be deleted in state: %s", status)
+	}
+
+	// Confirmation prompt
+	prompt := fmt.Sprintf("Are you sure you want to permanently delete image '%s'? This action is irreversible. [y/N]: ", imageId)
+	confirmed, err := ConfirmPrompt(prompt, autoYes)
+	if err != nil {
+		return fmt.Errorf("%w", err)
+	}
+	if !confirmed {
+		fmt.Printf("[INFO] Operation cancelled.\n")
+		return nil
+	}
+
+	// Call DeleteMcpImage API
+	fmt.Printf("Deleting image...")
+	deleteCtx, deleteCancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer deleteCancel()
+
+	deleteReq := &client.DeleteMcpImageRequest{}
+	deleteReq.SetImageId(imageId)
+
+	deleteResp, err := apiClient.DeleteMcpImage(deleteCtx, deleteReq)
+	if err != nil {
+		fmt.Printf(" Failed.\n")
+		return fmt.Errorf("failed to delete image: %w", err)
+	}
+	fmt.Printf(" Done.\n")
+
+	// Print RequestId
+	if deleteResp.Body != nil && deleteResp.Body.GetRequestId() != nil {
+		fmt.Printf("[INFO] DeleteMcpImage Request ID: %s\n", *deleteResp.Body.GetRequestId())
+	}
+
+	// Validate response
+	if deleteResp.Body != nil && deleteResp.Body.GetSuccess() != nil && !*deleteResp.Body.GetSuccess() {
+		msg := ""
+		if deleteResp.Body.GetMessage() != nil {
+			msg = *deleteResp.Body.GetMessage()
+		}
+		return fmt.Errorf("delete failed: %s", msg)
+	}
+
+	fmt.Printf("[SUCCESS] Image '%s' has been permanently deleted.\n", imageId)
 	return nil
 }

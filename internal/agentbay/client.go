@@ -25,6 +25,7 @@ type Client interface {
 	GetMcpImageInfo(ctx context.Context, request *client.GetMcpImageInfoRequest) (*client.GetMcpImageInfoResponse, error)
 	CreateResourceGroup(ctx context.Context, request *client.CreateResourceGroupRequest) (*client.CreateResourceGroupResponse, error)
 	DeleteResourceGroup(ctx context.Context, request *client.DeleteResourceGroupRequest) (*client.DeleteResourceGroupResponse, error)
+	DeleteMcpImage(ctx context.Context, request *client.DeleteMcpImageRequest) (*client.DeleteMcpImageResponse, error)
 	GetDockerfileTemplate(ctx context.Context, request *client.GetDockerfileTemplateRequest) (*client.GetDockerfileTemplateResponse, error)
 	// Market Skill
 	GetMarketSkillCredential(ctx context.Context, request *client.GetMarketSkillCredentialRequest) (*client.GetMarketSkillCredentialResponse, error)
@@ -198,6 +199,15 @@ func (cw *clientWrapper) DeleteResourceGroup(ctx context.Context, request *clien
 		return nil, err
 	}
 	return sdkClient.DeleteResourceGroupWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// DeleteMcpImage wraps the SDK client method
+func (cw *clientWrapper) DeleteMcpImage(ctx context.Context, request *client.DeleteMcpImageRequest) (*client.DeleteMcpImageResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.DeleteMcpImageWithContext(ctx, request, cw.getRuntimeOptions())
 }
 
 // GetMcpImageInfo wraps the SDK client method

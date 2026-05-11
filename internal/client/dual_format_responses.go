@@ -591,6 +591,50 @@ func parseDeleteResourceGroupResponse(res map[string]interface{}) (*DeleteResour
 	return out, nil
 }
 
+// --- DeleteMcpImage ---
+
+type xmlDeleteMcpImageResponse struct {
+	XMLName        xml.Name `xml:"DeleteMcpImageResponse"`
+	RequestId      string   `xml:"RequestId"`
+	HttpStatusCode int      `xml:"HttpStatusCode"`
+	Code           string   `xml:"Code"`
+	Success        bool     `xml:"Success"`
+	Message        string   `xml:"Message"`
+}
+
+func parseDeleteMcpImageResponse(res map[string]interface{}) (*DeleteMcpImageResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &DeleteMcpImageResponse{Headers: make(map[string]*string)}
+	trimmed := strings.TrimSpace(bodyStr)
+	if len(trimmed) > 0 && trimmed[0] == '<' {
+		var xr xmlDeleteMcpImageResponse
+		if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+			return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+		}
+		out.StatusCode = dara.Int32(int32(xr.HttpStatusCode))
+		out.Body = &DeleteMcpImageResponseBody{
+			RequestId:      dara.String(xr.RequestId),
+			HttpStatusCode: dara.Int32(int32(xr.HttpStatusCode)),
+			Code:           dara.String(xr.Code),
+			Success:        dara.Bool(xr.Success),
+			Message:        dara.String(xr.Message),
+		}
+	} else {
+		parsed := &DeleteMcpImageResponseBody{}
+		if bodyStr != "" {
+			if err := json.Unmarshal([]byte(bodyStr), parsed); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+		}
+		out.Body = parsed
+	}
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
+
 // int32FromFlexibleJSON parses a JSON value that may be a number or a decimal string (some gateways stringify ints).
 func int32FromFlexibleJSON(raw json.RawMessage) (*int32, error) {
 	if len(raw) == 0 {
@@ -624,8 +668,8 @@ func int32FromFlexibleJSON(raw json.RawMessage) (*int32, error) {
 // --- GetDockerfileTemplate ---
 
 type getDockerfileTemplateJSONWire struct {
-	Code           *string `json:"Code"`
-	Data           *struct {
+	Code *string `json:"Code"`
+	Data *struct {
 		OssDownloadUrl    *string         `json:"OssDownloadUrl"`
 		NonEditLineNum    json.RawMessage `json:"NonEditLineNum"`
 		DockerfileContent *string         `json:"DockerfileContent"`

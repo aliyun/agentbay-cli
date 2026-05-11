@@ -19,6 +19,7 @@ agentbay login
 The CLI will open your browser for Aliyun authentication. Complete the login and return to the terminal.
 
 **Output:**
+
 ```
 Starting AgentBay authentication...
 Opening browser for authentication...
@@ -68,6 +69,7 @@ agentbay skills show <skill-id>
 ```
 
 **Example output (aligned with image CLI style):**
+
 ```
 # After skills push
 [SUCCESS] ✅ Skill created successfully!
@@ -90,6 +92,7 @@ agentbay image list --os-type Android --size 5
 ```
 
 **Options:**
+
 - `--os-type, -o`: Filter by OS (Linux, Windows, Android)
 - `--include-system`: Include system images in addition to user images
 - `--system-only`: Show only system images
@@ -97,6 +100,7 @@ agentbay image list --os-type Android --size 5
 - `--size, -s`: Items per page (default: 10)
 
 **Example output:**
+
 ```
 === USER IMAGES (17) ===
 IMAGE ID              IMAGE NAME       TYPE                 STATUS        OS                 APPLY SCENE
@@ -114,15 +118,16 @@ computer-use-ubuntu-2204  Computer Use Linux Ubuntu 2... DedicatedDesktop     Av
 ```
 
 **Status meanings:**
+
 - **Creating**: Building
 - **Available**: Ready to activate
 - **Activated**: Running
 - **Create Failed**: Build failed
 
 **Type meanings:**
+
 - **DockerBuilder**: User-created images built from Dockerfile
 - **DedicatedDesktop**: System images or dedicated desktop images
-
 
 **Note**: System images are always available and don't require activation. Only user-created images need to be activated before use.
 
@@ -135,22 +140,23 @@ agentbay image status <image-id>
 ```
 
 **Example:**
+
 ```bash
 agentbay image status imgc-0aae4rgjmea28aj00
 ```
 
 **Common status values (API):**
 
-| Status | Meaning |
-|--------|---------|
-| `IMAGE_CREATING` | Image is being created |
-| `IMAGE_CREATE_FAILED` | Image creation failed |
-| `IMAGE_AVAILABLE` | Available, not activated (typical after deactivate) |
-| `RESOURCE_DEPLOYING` | Activation in progress |
-| `RESOURCE_PUBLISHED` | Activated and in use |
-| `RESOURCE_DELETING` | Deactivation in progress |
-| `RESOURCE_FAILED` | Activation or resource operation failed |
-| `RESOURCE_CEASED` | Resource ceased |
+| Status                | Meaning                                             |
+| --------------------- | --------------------------------------------------- |
+| `IMAGE_CREATING`      | Image is being created                              |
+| `IMAGE_CREATE_FAILED` | Image creation failed                               |
+| `IMAGE_AVAILABLE`     | Available, not activated (typical after deactivate) |
+| `RESOURCE_DEPLOYING`  | Activation in progress                              |
+| `RESOURCE_PUBLISHED`  | Activated and in use                                |
+| `RESOURCE_DELETING`   | Deactivation in progress                            |
+| `RESOURCE_FAILED`     | Activation or resource operation failed             |
+| `RESOURCE_CEASED`     | Resource ceased                                     |
 
 Use `-v` for more log detail.
 
@@ -166,6 +172,7 @@ agentbay image init -i code-space-debian-12
 Downloads a Dockerfile template from the cloud and saves it as `Dockerfile` in the current directory. You must specify a source image ID (use `agentbay image list --system-only` to see available system image IDs).
 
 **Output:**
+
 ```
 [INIT] Downloading Dockerfile template...
 Requesting Dockerfile template... Done.
@@ -180,7 +187,8 @@ Writing Dockerfile to /path/to/current/directory/Dockerfile...
 [IMPORTANT] Please only modify content after line 5.
 ```
 
-**Note**: 
+**Note**:
+
 - You must provide `--sourceImageId` or `-i` with a valid system image ID when running `agentbay image init`.
 - If a `Dockerfile` already exists in the current directory, it will be overwritten. The command will warn you before overwriting.
 - **Important**: The first N lines (N is returned by the system) of the Dockerfile template are system-defined and cannot be modified. Only modify content after line N+1, otherwise the image build may fail.
@@ -192,11 +200,13 @@ agentbay image create my-app --dockerfile ./Dockerfile --imageId code-space-debi
 ```
 
 **Required:**
+
 - `<image-name>`: Your custom image name
 - `--dockerfile, -f`: Path to Dockerfile
 - `--imageId, -i`: Base image ID
 
 **Output:**
+
 ```
 [BUILD] Creating image 'my-app'...
 [STEP 1/4] Getting upload credentials... Done.
@@ -231,15 +241,18 @@ agentbay image activate imgc-xxxxx...xxx
 Starts the image instance.
 
 **Options:**
+
 - `--cpu, -c`: CPU cores (2, 4, or 8) - must be paired with memory; default: 2 when not specified
 - `--memory, -m`: Memory in GB (4, 8, or 16) - must be paired with CPU; default: 4 when not specified
 
 **Supported Resource Combinations:**
+
 - `2c4g` - 2 CPU cores with 4 GB memory **(default when --cpu/--memory not specified)**
 - `4c8g` - 4 CPU cores with 8 GB memory
 - `8c16g` - 8 CPU cores with 16 GB memory
 
 **Examples:**
+
 ```bash
 # Activate with default resources (2c4g)
 agentbay image activate imgc-xxxxx...xxx
@@ -251,6 +264,7 @@ agentbay image activate imgc-xxxxx...xxx --cpu 8 --memory 16
 ```
 
 **Output:**
+
 ```
 [ACTIVATE] Activating image...
 Checking current image status... Done.
@@ -274,6 +288,7 @@ agentbay image deactivate imgc-xxxxx...xxx
 Stops the running image instance.
 
 **Output:**
+
 ```
 [DEACTIVATE] Deactivating image...
 Deleting resource group... Done.
@@ -284,32 +299,81 @@ Waiting for deactivation to complete...
 
 Usually completes in seconds.
 
+## 10. Delete Image
+
+Permanently delete a User image. This action is irreversible.
+
+```bash
+# Interactive (prompts for confirmation)
+agentbay image delete imgc-xxxxx...xxx
+
+# Non-interactive (for scripts/CI)
+agentbay image delete imgc-xxxxx...xxx --yes
+```
+
+**Flags:**
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--yes` | `-y` | Skip confirmation prompt (required in non-interactive mode) |
+
+**Restrictions:**
+
+- Only User images can be deleted (System images cannot be deleted)
+- Images in the following states cannot be deleted:
+  - `IMAGE_CREATING` — image is being created
+  - `RESOURCE_DEPLOYING` — image is being activated
+  - `RESOURCE_DELETING` — image is being deactivated
+  - `RESOURCE_PUBLISHED` — image is activated (deactivate first)
+  - `RESOURCE_FAILED` — image activation failed
+  - `RESOURCE_MAINTAINING` — image is under maintenance
+
+**Output:**
+
+```
+[DELETE] Deleting image 'imgc-xxxxx'...
+Checking current image status... Done.
+[INFO] GetMcpImageInfo Request ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+[INFO] Image Type: User
+[INFO] Current Status: Available (Deactivated)
+Are you sure you want to permanently delete image 'imgc-xxxxx'? This action is irreversible. [y/N]: y
+Deleting image... Done.
+[INFO] DeleteMcpImage Request ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+[SUCCESS] Image 'imgc-xxxxx' has been permanently deleted.
+```
+
+**Note:** In non-interactive environments (CI/CD pipelines), if `--yes` is not specified, the command will exit with code 1 and display an error message.
+
 ## FAQ
 
 **Q: How to view help?**
+
 ```bash
 agentbay --help
 agentbay image --help
 ```
 
 **Q: Check CLI version?**
+
 ```bash
 agentbay version
 ```
 
 **Q: Enable detailed logs?**
+
 ```bash
 agentbay -v image list
 agentbay -v skills push ./my-skill
 ```
 
 **Q: Login issues?**
+
 - Check network connection
 - Ensure browser can access signin.aliyun.com (or the international sign-in host if using `AGENTBAY_ENV=international`)
 - Check firewall settings
 - For non-interactive use, set `AGENTBAY_ACCESS_KEY_ID` and `AGENTBAY_ACCESS_KEY_SECRET` instead of `agentbay login`
 
 **Q: Image build fails?**
+
 - Verify Dockerfile syntax
 - Check base image ID is valid (use `agentbay image list --include-system` to find valid system image IDs)
 - Check if you modified the first N lines of the Dockerfile (N is shown when downloading the template)
@@ -317,6 +381,7 @@ agentbay -v skills push ./my-skill
 - Use `-v` option to view detailed error information
 
 **Q: Which parts of the Dockerfile cannot be modified?**
+
 - The first N lines (N is returned by the system) of the Dockerfile template downloaded by `agentbay image init -i <image-id>` are system-defined and cannot be modified
 - These lines typically contain base image definitions and system-required configurations
 - Only modify content after line N+1, otherwise the image build may fail
@@ -368,6 +433,7 @@ agentbay version
 ```
 
 **Output:**
+
 ```
 AgentBay CLI version x.x.x
 Git commit: xxxxxxx
@@ -407,5 +473,3 @@ To override defaults (e.g. use a different international OAuth app or endpoint):
 ---
 
 For technical support, provide Request ID from error messages.
-
-
