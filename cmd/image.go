@@ -1631,9 +1631,11 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 	defer cancel()
 
 	// Prepare request - Source and SourceImageId are required
+	usePublicNetwork := true
 	req := &client.GetDockerfileTemplateRequest{
-		Source:        &source,
-		SourceImageId: &sourceImageId,
+		Source:           &source,
+		SourceImageId:    &sourceImageId,
+		UsePublicNetwork: &usePublicNetwork,
 	}
 
 	// Debug: Print request details
@@ -1656,6 +1658,23 @@ func runImageInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("[ERROR] Failed to get Dockerfile template: %w", err)
 	}
 	fmt.Printf(" Done.\n")
+
+	// Print RequestId for troubleshooting
+	requestId := ""
+	if resp.Body != nil && resp.Body.RequestId != nil && *resp.Body.RequestId != "" {
+		requestId = *resp.Body.RequestId
+	}
+	if requestId == "" && resp.Headers != nil {
+		for k, v := range resp.Headers {
+			if strings.EqualFold(k, "x-acs-request-id") && v != nil && *v != "" {
+				requestId = *v
+				break
+			}
+		}
+	}
+	if requestId != "" {
+		fmt.Printf("[INFO] RequestId: %s\n", requestId)
+	}
 
 	// Validate response
 	if resp.Body == nil || resp.Body.Data == nil {
