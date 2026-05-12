@@ -9,6 +9,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -63,8 +64,29 @@ func runImageCreateFromTemplate(cmd *cobra.Command, args []string) error {
 	imageName, _ := cmd.Flags().GetString("name")
 	templateImageId, _ := cmd.Flags().GetString("imageId")
 
+	// Load cached ACR credential to validate source-image prefix
+	cache, err := loadACRCredential()
+	if err != nil {
+		return fmt.Errorf("[ERROR] %w\nPlease run 'agentbay docker login' first to obtain registry credentials", err)
+	}
+
+	// Validate: source-image must start with the cached registry path prefix
+	// Expected prefix: $RegistryUrl/$Namespace/$RepoName
+	expectedPrefix := fmt.Sprintf("%s/%s/%s", cache.RegistryURL, cache.Namespace, cache.RepoName)
+	if !strings.HasPrefix(sourceImage, expectedPrefix) {
+		return fmt.Errorf("[ERROR] source-image '%s' does not match the authorized registry path.\n"+
+			"  Expected prefix: %s\n"+
+			"  Please use the image tagged via 'agentbay docker tag' command", sourceImage, expectedPrefix)
+	}
+
+	// Truncate: strip the registry URL, only send /$Namespace/$RepoName:<tag> to backend
+	// e.g. "ai-container-pre-9543-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/1160165251879674:v1"
+	//    → "/customer_cli/1160165251879674:v1"
+	physicalImageId := sourceImage[len(cache.RegistryURL):]
+
 	fmt.Println("[IMAGE] Creating custom image from template...")
 	fmt.Printf("  SourceImage:      %s\n", sourceImage)
+	fmt.Printf("  PhysicalImageId:  %s\n", physicalImageId)
 	fmt.Printf("  Name:             %s\n", imageName)
 	fmt.Printf("  ImageId:          %s\n", templateImageId)
 
@@ -82,7 +104,7 @@ func runImageCreateFromTemplate(cmd *cobra.Command, args []string) error {
 	}
 
 	params := map[string]string{
-		"PhysicalImageId": sourceImage,
+		"PhysicalImageId": physicalImageId,
 		"ImageName":       imageName,
 		"TemplateImageId": templateImageId,
 	}
