@@ -87,6 +87,15 @@ internal/client/
 - `{Action}WithContext()` - 支持 context 的方法
 - `parse{Action}Response()` - 响应解析函数
 
+**⚠️ parser 必须放入 `internal/client/dual_format_responses.go`**（而非 `client.go`），且必须遵守下述容错规范：
+
+- 所有 `*int32` / `*int64` 字段用 `json.RawMessage` + `int32FromFlexibleJSON` 解析，兼容数字与字符串两种序列化形式（服务端常会以字符串返回 `HttpStatusCode` 等数字字段）。
+- body 以 `<` 开头走 XML 分支、否则走 JSON 分支，两条路径都要调用 `applyMapHeadersAndStatus` 归一 headers / statusCode。
+- 解析失败统一用 `&ErrWithRequestID{Err: ..., RequestID: extractRequestIDFromResponse(res)}` 包装。
+- 必须在 `internal/client/` 下配套一个 `xxx_parse_test.go`，至少覆盖「JSON 数字字段为字符串 / 数字 / XML」三种场景。
+
+反面案例：`BatchCreateHideResourceGroupsWithMaxSession` 早期直接用 `json.Unmarshal` 打到 `*int32`，遇到 `"HttpStatusCode":"200"` 直接报 `cannot unmarshal string into Go struct field ... of type int32`。详见 [references/api-format.md](references/api-format.md#响应解析容错模板必须使用) 与规则 [development.md 响应解析必须使用容错模板](../../rules/development.md)。
+
 **API 配置模板**:
 
 ```go
@@ -374,7 +383,7 @@ git commit -m "feat: add <功能描述> CLI command
 ## ⚠️ 注意事项
 
 1. **Product ID**: CLI 使用 `xiaoying`，不是前端的 `xiaoying-double-centre`
-2. **响应格式**: 后端返回的字段类型可能与预期不同，需要实际测试确认
+2. **响应格式**: 后端返回的字段类型可能与预期不同，需要实际测试确认。数字字段可能被返回为字符串（如 `"HttpStatusCode":"200"`），parser 必须用 `dual_format_responses.go` 中的 `int32FromFlexibleJSON` 容错，绝不直接 `json.Unmarshal` 打到 `*int32`。详见 [references/api-format.md 响应解析容错模板](references/api-format.md#响应解析容错模板必须使用)。
 3. **参数设计**: 始终使用命名参数（`--name`），不使用位置参数
 4. **命令层级**: 相关功能组织为子命令，不要创建顶级命令
 5. **测试覆盖**: 必须有单元测试，且所有测试通过

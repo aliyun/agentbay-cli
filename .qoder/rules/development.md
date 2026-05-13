@@ -172,6 +172,49 @@ grep -r "var _ agentbay.Client" cmd/ test/
 
 ---
 
+### ⚠️ 响应解析必须使用容错模板（重要！）
+
+**规则**: 新增 / 修改任意 OpenAPI 接口的响应 parser 时，**必须**按 `internal/client/dual_format_responses.go` 的 dual-format 模板实现，杜绝直接用 `json.Unmarshal` 打到带 `*int32`/`*bool` 的强类型结构体。
+
+**背景案例**（已发生，禁止复现）:
+
+`BatchCreateHideResourceGroupsWithMaxSession` 早期 parser 直接把响应体 `json.Unmarshal` 到 `BatchCreateHideResourceGroupsWithMaxSessionResponseBody{HttpStatusCode *int32}`，但服务端实际返回 `"HttpStatusCode": "200"`（字符串），导致：
+
+```text
+Error: failed to set max session: json: cannot unmarshal string into Go struct field
+  BatchCreateHideResourceGroupsWithMaxSessionResponseBody.HttpStatusCode of type int32
+```
+
+整个命令直接失败，用户无法使用。同类问题也在 `GetDockerfileTemplate.NonEditLineNum` 上出现过。
+
+**✅ 强制要求**：
+
+1. **parser 位置**：`parseXxxResponse` 统一放在 `internal/client/dual_format_responses.go`，**不**再写在 `client.go` 里（`client.go` 只保留「This file is auto-generated」的 action 调用骨架）。
+2. **数字字段**：所有 `*int32` / `*int64` 字段在 JSON 路径一律用 `json.RawMessage` 中转 + 复用 `int32FromFlexibleJSON` 辅助解析，兼容数字与字符串两种序列化形式。
+3. **XML/JSON 双格式**：body 以 `<` 开头走 XML 分支、否则走 JSON 分支，两条路径都要通过 `applyMapHeadersAndStatus` 归一 headers / statusCode。
+4. **错误包装**：任何解析失败都必须用 `&ErrWithRequestID{Err: ..., RequestID: extractRequestIDFromResponse(res)}` 包装，保证 RequestId 能透出到 CLI。
+5. **最小单测**：每个 parser **必须**在 `internal/client/` 下配套一个 `xxx_parse_test.go`，至少覆盖：
+   - JSON 数字字段返回为字符串（`"HttpStatusCode":"200"`）
+   - JSON 数字字段返回为数字（`"HttpStatusCode":200`）
+   - XML 分支
+6. **回归验证**：`go test ./internal/client/... -count=1` 与 `go test ./... -count=1` 均通过，再进入命令层。
+
+**参考实现**:
+
+- [parseBatchCreateHideResourceGroupsWithMaxSessionResponse](file:///Users/lxy/work/project/ai/agentbay/agentbay-cli/internal/client/dual_format_responses.go)
+- [parseGetDockerfileTemplateResponse](file:///Users/lxy/work/project/ai/agentbay/agentbay-cli/internal/client/dual_format_responses.go)
+- [batch_create_hide_resource_groups_with_max_session_parse_test.go](file:///Users/lxy/work/project/ai/agentbay/agentbay-cli/internal/client/batch_create_hide_resource_groups_with_max_session_parse_test.go)
+
+**检查清单**:
+
+- [ ] parser 写在 `dual_format_responses.go`，没有放回 `client.go`
+- [ ] 数字字段走 `int32FromFlexibleJSON`，不直接 Unmarshal 到 `*int32`
+- [ ] JSON / XML 两条分支齐备
+- [ ] `xxx_parse_test.go` 覆盖「数字字段为字符串 / 数字 / XML」三种场景
+- [ ] 解析失败全部走 `ErrWithRequestID` 包装
+
+---
+
 ### 单元测试
 
 - 所有新增的 CLI 命令都必须有对应的单元测试
