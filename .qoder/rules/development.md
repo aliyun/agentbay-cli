@@ -1,7 +1,29 @@
 ---
 trigger: always_on
 ---
+
 # AgentBay CLI 开发规则
+
+## 🔗 Skill 自动装配规则（Quest / 对话 / 任意入口通用）
+
+**凡符合下列任一特征的任务，AI 必须主动加载并遵循对应的 `.qoder/skills/` 指南**（包括但不限于 Quest Design/Execute 阶段、直接对话、Execute Directly 模式）：
+
+| 任务特征                                                    | 必须加载的 Skill                                                                                 | Skill 路径                                            |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
+| 新增 / 修改 CLI 命令、参数、子命令，或将前端 API 封装为命令 | **create-cli-command**                                                                           | `.qoder/skills/create-cli-command/SKILL.md`           |
+| 涉及分支管理、commit、push、PR、变更档案（Quest/CR 目录）   | **feature-development-workflow**                                                                 | `.qoder/skills/feature-development-workflow/SKILL.md` |
+| 新增 CLI 命令类需求（同时触发上述两条）                     | **两者组合使用**：先 workflow 拉分支/建档 → 再 create-cli-command 实现 → 回到 workflow 提交/推送 | 同上                                                  |
+
+**执行铁律**:
+
+1. **不得跳过**：即便用户未显式打 `/skill-name`，只要任务特征命中上表，AI 就必须主动阅读 skill 文件并按其 Phase 执行。
+2. **前置检查**：进入实现阶段前，必须确认 `feature-development-workflow` 的 Phase 0（变更档案）和分支创建已完成，否则先引导用户补齐。
+3. **Quest 场景**：Quest 生成 spec 后的 Execute 阶段，等同于"对话入口"，本规则照常生效，无需 spec 里额外声明。
+4. **Execute Directly 场景**：即便跳过 Design 阶段，AI 也必须在动手前主动加载匹配的 skill。
+
+**目的**：让 Skill 指南在所有入口（slash command / Quest spec / 直接对话 / Execute Directly）下统一自动生效，避免重复约定。
+
+---
 
 ## 🚫 Git 提交规则
 
@@ -14,11 +36,13 @@ trigger: always_on
 - ❌ 不要执行 `git add`（除非是测试命令的一部分）
 
 **正确做法**:
+
 - ✅ 完成代码修改后，询问用户："需要我帮你提交代码吗？"
 - ✅ 展示 `git status` 和 `git diff` 让用户确认
 - ✅ 等待用户明确指示后再执行提交操作
 
 **原因**:
+
 - 用户可能需要先审查代码改动
 - 用户可能需要手动调整 commit message
 - 用户可能需要先测试代码
@@ -41,6 +65,7 @@ trigger: always_on
 ```
 
 **Type 类型**:
+
 - `feat`: 新功能
 - `fix`: 修复 bug
 - `test`: 添加或修改测试
@@ -50,6 +75,7 @@ trigger: always_on
 - `chore`: 构建过程或辅助工具的变动
 
 **示例**:
+
 ```bash
 feat: add API key concurrency management CLI command
 
@@ -61,12 +87,14 @@ feat: add API key concurrency management CLI command
 ### 提交流程
 
 1. **展示变更**
+
    ```bash
    git status
    git diff --stat
    ```
 
 2. **执行提交**
+
    ```bash
    git add -A
    git commit -m "清晰的 commit message"
@@ -86,6 +114,7 @@ feat: add API key concurrency management CLI command
 **规则**: 当给接口（interface）添加新方法时，**必须立即更新所有实现该接口的 mock 类**！
 
 **问题案例**:
+
 ```go
 // 在 internal/agentbay/client.go 中添加新方法
 type Client interface {
@@ -95,10 +124,12 @@ type Client interface {
 ```
 
 **❌ 错误做法**: 只更新接口，不更新 mock 类
+
 - 导致 CI 编译失败
 - 错误信息：`*mockClient does not implement agentbay.Client (missing method CreateApiKey)`
 
-**✅ 正确做法**: 
+**✅ 正确做法**:
+
 1. 找到所有实现该接口的 mock 类
 2. 为每个 mock 类添加新方法（返回 "not implemented" 错误）
 
@@ -123,6 +154,7 @@ func (m *mockImageListClient) ModifyMcpApiKeyConfig(ctx context.Context, request
 ```
 
 **查找所有 mock 类的方法**:
+
 ```bash
 # 搜索所有 mock 类定义
 grep -r "type mock.*Client struct" cmd/ test/
@@ -132,6 +164,7 @@ grep -r "var _ agentbay.Client" cmd/ test/
 ```
 
 **检查清单**:
+
 - [ ] 接口添加新方法后，立即搜索所有 mock 类
 - [ ] 为每个 mock 类添加对应的方法实现
 - [ ] 运行 `go test ./...` 确保编译通过
@@ -175,6 +208,7 @@ grep -r "var _ agentbay.Client" cmd/ test/
    - 运行 `go test ./... -count=1` 确保全部通过
 
 **检查清单**:
+
 - [ ] 命令代码已完成（新增或修改）
 - [ ] README.md 已更新，反映最新的命令用法
 - [ ] 对外文档已同步（钉钉文档 / cli 使用手册）
@@ -216,6 +250,7 @@ agentbay-cli/
 CLI 支持两种认证方式：
 
 1. **OAuth 登录**（推荐本地开发）
+
    ```bash
    agentbay login
    ```

@@ -5,9 +5,30 @@ description: 将前端 API 能力封装成 agentbay-cli 命令的标准化流程
 
 # Create CLI Command
 
+## 🔗 前置约束（必读）
+
+**本 skill 必须与 `feature-development-workflow` 配套使用**，两者分工如下：
+
+| Skill                            | 负责                                                                                          | 触发时机       |
+| -------------------------------- | --------------------------------------------------------------------------------------------- | -------------- |
+| **feature-development-workflow** | 分支管理（从 `aliyun/master` 拉 feat 分支）、双远程推送（origin → aliyun）、PR 流程、变更档案 | 开发前、提交后 |
+| **create-cli-command**（本文件） | SDK 模型 → Client 接口 → Cobra 命令 → mock 同步 → 单测 → 对客文档                             | 开发中         |
+
+**执行铁律**：
+
+1. **开发前**：必须先执行 `feature-development-workflow` 的 Phase 0（变更档案初始化）和分支创建，确认当前在 `feat-<name>` 分支且基于 `aliyun/master`，否则不得进入本 skill 的 Phase 1。
+2. **开发中**：按本 skill 的 Phase 1-5 实现代码和测试。
+3. **提交/推送**：切回 `feature-development-workflow` 的 Phase 4-6 完成 commit、双远程 push（origin 先、aliyun 后）、PR、trace.md 更新。
+4. **禁止跳过**：不得在未拉 feat 分支时直接在 master 上开发，不得单远程推送，不得跳过变更档案。
+
+> 若用户未提前走 `feature-development-workflow`，本 skill 执行第一步必须主动提醒并引导用户先建档、拉分支。
+
+---
+
 ## 📋 职责
 
 将 agent-bay 前端控制台中的 API 能力封装成 agentbay-cli 命令行工具，包括：
+
 - 创建 CLI 命令（使用 Cobra 框架）
 - 实现 SDK 客户端方法
 - 编写单元测试
@@ -16,6 +37,7 @@ description: 将前端 API 能力封装成 agentbay-cli 命令的标准化流程
 ## 🎯 触发场景
 
 当用户提出以下需求时触发：
+
 - "帮我把 XX 接口封装成 CLI"
 - "新增 XX 功能的命令行工具"
 - "把前端的 XX 能力做成 CLI 命令"
@@ -51,6 +73,7 @@ internal/client/
 ```
 
 **要求**:
+
 - 请求模型必须有 `Validate()` 方法
 - 响应模型提供 `GetXxx()` 辅助方法
 - 注意后端实际返回的字段类型（可能是字符串而非对象）
@@ -58,12 +81,14 @@ internal/client/
 #### 2.2 添加 SDK 客户端方法
 
 在 `internal/client/client.go` 中添加：
+
 - `{Action}WithOptions()` - 完整调用方法
 - `{Action}()` - 简化调用方法
 - `{Action}WithContext()` - 支持 context 的方法
 - `parse{Action}Response()` - 响应解析函数
 
 **API 配置模板**:
+
 ```go
 params := &openapiutil.Params{
     Action:      dara.String("ActionName"),
@@ -81,6 +106,7 @@ params := &openapiutil.Params{
 #### 2.3 添加客户端接口
 
 在 `internal/agentbay/client.go` 中：
+
 - 在 `Client` interface 中添加方法定义
 - 在 `clientWrapper` 中实现方法
 
@@ -102,6 +128,7 @@ func (m *mockClient) NewMethod(ctx context.Context, request *client.NewRequest) 
 ```
 
 **检查清单**:
+
 - [ ] 找到所有 mock 类（通常 2-3 个）
 - [ ] 为每个 mock 类添加新方法
 - [ ] 运行 `go test ./cmd/...` 确保编译通过
@@ -109,12 +136,14 @@ func (m *mockClient) NewMethod(ctx context.Context, request *client.NewRequest) 
 #### 2.4 创建 CLI 命令
 
 在 `cmd/` 目录下创建命令文件：
+
 - 使用命名参数（`--name`, `--api-key-id`）
 - 标记必填参数：`MarkFlagRequired()`
 - 提供清晰的帮助信息和示例
 - 实现错误处理和友好提示
 
 **命令层级**:
+
 ```
 agentbay
 └── apikey                          # 命令组
@@ -126,6 +155,7 @@ agentbay
 #### 2.5 注册命令
 
 在 `main.go` 的 `init()` 中注册命令：
+
 ```go
 rootCmd.AddCommand(cmd.XxxCmd)
 ```
@@ -135,12 +165,14 @@ rootCmd.AddCommand(cmd.XxxCmd)
 在 `test/unit/cmd/` 目录创建测试文件：
 
 **测试覆盖要求**:
+
 1. 命令元数据测试（Use, Short, Long, GroupID）
 2. 子命令结构测试
 3. 必填参数验证测试
 4. 参数默认值测试
 
 **测试命名规范**:
+
 ```go
 Test<命令组>Cmd           // 测试命令组
 Test<子命令>Cmd           // 测试子命令
@@ -149,11 +181,13 @@ Test<子命令>Cmd           // 测试子命令
 ### Phase 4: 测试验证
 
 1. **编译测试**
+
    ```bash
    go build -o agentbay .
    ```
 
 2. **帮助信息测试**
+
    ```bash
    ./agentbay <command> --help
    ./agentbay <command> <subcommand> --help
@@ -173,6 +207,7 @@ Test<子命令>Cmd           // 测试子命令
 创建对客功能文档（放在 `cli-analysis/` 目录）：
 
 **文档要求**:
+
 - 面向客户，不包含代码实现细节
 - 包含完整的使用示例
 - 参数说明表格
@@ -184,6 +219,7 @@ Test<子命令>Cmd           // 测试子命令
 **⚠️ 重要**: 必须询问用户是否提交，不要自动提交！
 
 提交前展示：
+
 ```bash
 git status
 git diff --stat
@@ -192,6 +228,7 @@ git diff --stat
 询问用户："需要我帮你提交代码吗？"
 
 用户确认后，使用规范的 commit message：
+
 ```bash
 git add -A
 git commit -m "feat: add <功能描述> CLI command
@@ -206,6 +243,7 @@ git commit -m "feat: add <功能描述> CLI command
 ### 代码输出
 
 ✅ **必须包含**:
+
 - [ ] 请求/响应模型文件
 - [ ] SDK 客户端方法（3 个变体 + 解析函数）
 - [ ] 客户端接口定义和实现
@@ -214,6 +252,7 @@ git commit -m "feat: add <功能描述> CLI command
 - [ ] 单元测试文件
 
 ✅ **代码质量**:
+
 - [ ] 编译无错误
 - [ ] 所有测试通过
 - [ ] 参数校验完整
@@ -222,6 +261,7 @@ git commit -m "feat: add <功能描述> CLI command
 ### 文档输出
 
 ✅ **对客文档**（cli-analysis/）:
+
 - [ ] 功能概述
 - [ ] 使用方法（含示例）
 - [ ] 参数说明表格
@@ -233,6 +273,7 @@ git commit -m "feat: add <功能描述> CLI command
 ### Git 提交
 
 ✅ **提交规范**:
+
 - [ ] 询问用户是否提交
 - [ ] 使用 Conventional Commits 格式
 - [ ] 包含详细的 commit body
