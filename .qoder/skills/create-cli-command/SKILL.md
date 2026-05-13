@@ -141,6 +141,53 @@ func (m *mockClient) NewMethod(ctx context.Context, request *client.NewRequest) 
 - 标记必填参数：`MarkFlagRequired()`
 - 提供清晰的帮助信息和示例
 - 实现错误处理和友好提示
+- **每个对外 API 请求必须默认打印 RequestId**（详见下方铁律）
+
+##### 🔑 RequestId 打印铁律（强制）
+
+**规则**: 每个 CLI 命令调用的**每一个对外接口请求**，无论成功还是失败、无论是否带 `-v / --verbose`，都**必须**在终端打印对应的 RequestId，便于客户在出现问题时直接复制日志给运维定位。
+
+**❌ 禁止做法**（之前的旧规范）：
+
+```go
+// ❌ 不要再用 verbose 守卫保护 RequestId 打印
+verbose, _ := cmd.Flags().GetBool("verbose")
+if verbose && resp.Body.RequestId != nil && *resp.Body.RequestId != "" {
+    printRequestIDIfVerbose(cmd, *resp.Body.RequestId)
+}
+```
+
+**✅ 正确做法**：
+
+```go
+// 1. 成功路径：直接打印（不依赖 verbose）
+if resp != nil && resp.Body != nil {
+    if reqId := resp.Body.GetRequestId(); reqId != nil && *reqId != "" {
+        fmt.Printf("[INFO] {Action} Request ID: %s\n", *reqId)
+    }
+}
+
+// 2. 错误路径：err 中携带的 RequestId 也必须打印
+resp, err := apiClient.{Action}(ctx, req)
+if err != nil {
+    // 不再使用 printRequestIDFromErrIfVerbose（带 verbose 守卫的版本）
+    if reqId := extractRequestIDFromErr(err); reqId != "" {
+        fmt.Printf("[INFO] {Action} Request ID: %s\n", reqId)
+    }
+    return fmt.Errorf("[ERROR] Failed to {action}: %w", err)
+}
+```
+
+**多接口命令**: 命令体内若调用多个接口（如先 GetMcpImageInfo 再 BatchCreateXxx），**每一个**接口的 RequestId 都要分别打印，并在前缀里标注接口名以便区分：
+
+```
+[INFO] GetMcpImageInfo Request ID: 1A2B3C4D-...
+[INFO] BatchCreateHideResourceGroupsWithMaxSession Request ID: 5E6F7G8H-...
+```
+
+**参考实现**: [cmd/image_set_max_session.go](file:///Users/lxy/work/project/ai/agentbay/agentbay-cli/cmd/image_set_max_session.go#L85-L121)
+
+**verbose / `-v` 的真正用途**: 仅控制额外的调试信息（请求体、响应体 JSON、堆栈等），**不再**控制 RequestId 是否打印。
 
 **命令层级**:
 
@@ -197,10 +244,33 @@ Test<子命令>Cmd           // 测试子命令
    - 缺少必填参数
    - 参数值验证
 
-4. **运行单元测试**
+4. **运行新命令的单元测试**
+
    ```bash
    go test -v ./test/unit/cmd/ -run TestXxx -count=1
    ```
+
+5. **🔁 全量回归测试（强制）**
+
+   新增 / 修改 CLI 命令后，**必须**运行全量测试，确保没有任何**已有命令**的单测因接口变更、mock 缺失或公共代码改动而被破坏：
+
+   ```bash
+   # 全量测试（包括 cmd / internal / test/unit/...）
+   go test ./... -count=1
+
+   # 或更严格：跑 race 检测
+   go test ./... -count=1 -race
+   ```
+
+   **通过标准**：
+   - [ ] `go build -o agentbay .` 无错误且**产出的二进制保留在项目根目录**供用户直接使用
+   - [ ] `go test ./... -count=1` **全部 PASS**
+   - [ ] 旧命令的单测**一个都没有**因为本次改动而失败
+   - [ ] 若有 mock 类，全部已同步新方法（参见 [mock-sync-guide.md](references/mock-sync-guide.md)）
+
+   > **重要**：每次新增或修改命令后，必须执行 `go build -o agentbay .` 重新构建二进制到项目根目录。不要仅用 `go build ./...`（只验证编译不输出文件），否则用户运行 `./agentbay` 时仍是旧版本。
+
+   ⚠️ **隔离原则**：新增命令不得修改其它命令的公共行为。如果必须改公共代码（如 `internal/agentbay/client.go`、`config`、`auth`），必须在 PR/变更档案里明确列出影响范围，并跑完所有相关命令的回归用例。
 
 ### Phase 5: 文档生成
 

@@ -242,6 +242,7 @@ func init() {
 	ImageCmd.AddCommand(imageDeleteCmd)
 	ImageCmd.AddCommand(imageInitCmd)
 	ImageCmd.AddCommand(imageStatusCmd)
+	ImageCmd.AddCommand(imageSetMaxSessionCmd)
 }
 
 func runImageCreate(cmd *cobra.Command, args []string) error {

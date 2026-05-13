@@ -130,16 +130,18 @@ func runApikeyCreate(cmd *cobra.Command, args []string) error {
 ```go
 resp, err := apiClient.CreateApiKey(ctx, req)
 if err != nil {
-    // 打印 RequestId（verbose 模式）
-    printRequestIDFromErrIfVerbose(cmd, err)
-    
+    // ⚠️ 错误路径中的 RequestId 必须默认打印（不依赖 verbose）
+    if reqId := extractRequestIDFromErr(err); reqId != "" {
+        fmt.Printf("[INFO] CreateApiKey Request ID: %s\n", reqId)
+    }
+
     // 特殊错误处理
     if resp != nil && resp.Body != nil {
         if code := resp.Body.GetCode(); code == "ApiKey.CreateError.NeedCertified" {
             return fmt.Errorf("[ERROR] Failed to create API key: account requires real-name verification")
         }
     }
-    
+
     return fmt.Errorf("[ERROR] Failed to create API key: %w", err)
 }
 ```
@@ -170,10 +172,35 @@ fmt.Printf("[STEP 1/1] Creating API key...\n")
 
 ### Verbose 模式
 
+**⚠️ 重要变更：RequestId 默认打印，不再受 verbose 控制**
+
+成功路径上的 RequestId 输出示例：
+
 ```go
+// ✅ 默认打印，无论是否带 -v
+if resp != nil && resp.Body != nil {
+    if reqId := resp.Body.GetRequestId(); reqId != nil && *reqId != "" {
+        fmt.Printf("[INFO] CreateApiKey Request ID: %s\n", *reqId)
+    }
+}
+```
+
+❌ **废弃写法**（旧规范）：
+
+```go
+// ❌ 不要再用 verbose 守卫 RequestId；客户默认不会加 -v，这样出问题无法定位
 verbose, _ := cmd.Flags().GetBool("verbose")
 if verbose && resp.Body.RequestId != nil && *resp.Body.RequestId != "" {
     printRequestIDIfVerbose(cmd, *resp.Body.RequestId)
+}
+```
+
+**verbose / `-v` 仅用于**：额外的调试信息（完整请求体、响应体 JSON、堆栈、中间状态等）。
+
+```go
+verbose, _ := cmd.Flags().GetBool("verbose")
+if verbose {
+    fmt.Printf("[DEBUG] Response Body: %+v\n", resp.Body)
 }
 ```
 

@@ -71,17 +71,26 @@ func run{SubCommand}(cmd *cobra.Command, args []string) error {
 	
 	resp, err := apiClient.{Action}(ctx, req)
 	if err != nil {
-		printRequestIDFromErrIfVerbose(cmd, err)
+		// ⚠️ 错误路径中的 RequestId 必须默认打印（不依赖 verbose）
+		if reqId := extractRequestIDFromErr(err); reqId != "" {
+			fmt.Printf("[INFO] {Action} Request ID: %s\n", reqId)
+		}
 		return fmt.Errorf("[ERROR] Failed to <action>: %w", err)
 	}
-	
+
 	if resp.Body == nil {
 		return fmt.Errorf("[ERROR] Invalid response: missing body")
 	}
-	
+
+	// ✅ 成功路径上的 RequestId 同样默认打印
+	if reqId := resp.Body.GetRequestId(); reqId != nil && *reqId != "" {
+		fmt.Printf("[INFO] {Action} Request ID: %s\n", *reqId)
+	}
+
+	// verbose 仅用于额外调试信息（不再控制 RequestId）
 	verbose, _ := cmd.Flags().GetBool("verbose")
-	if verbose && resp.Body.RequestId != nil && *resp.Body.RequestId != "" {
-		printRequestIDIfVerbose(cmd, *resp.Body.RequestId)
+	if verbose {
+		fmt.Printf("[DEBUG] Response Body: %+v\n", resp.Body)
 	}
 	
 	if !resp.Body.GetSuccess() {
