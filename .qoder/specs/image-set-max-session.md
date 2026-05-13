@@ -6,7 +6,24 @@
 
 ### 业务约束说明
 
-`agentbay image set-max-session` 实际只支持 **自定义镜像(User) + 已启用(RESOURCE_PUBLISHED) + 高级网络** 的场景。但 CLI 端仅校验前两个条件（User 镜像 + 已激活状态），**不检测是否为高级网络**。如果用户对非高级网络的镜像执行此命令，由服务端接口 `BatchCreateHideResourceGroupsWithMaxSession` 直接返回错误，CLI 将该错误透传给用户。
+`agentbay image set-max-session` 实际只支持 **自定义镜像(User) + 已启用(RESOURCE_PUBLISHED) + 高级网络** 的场景。
+
+**镜像类型支持情况**：
+
+| 镜像类型                  | 是否支持  | 原因                               |
+| ------------------------- | --------- | ---------------------------------- |
+| codespace（代码空间镜像） | ✅ 支持   | 具备高级网络选项                   |
+| vm（虚拟机镜像）          | ❌ 不支持 | 服务端不支持该镜像类型设置最大并发 |
+| aio（一体化镜像）         | ❌ 不支持 | 没有高级网络选项                   |
+
+**CLI 校验策略**：
+
+CLI 端仅校验前两个条件（User 镜像 + 已激活状态），**不检测镜像子类型（codespace/vm/aio）、也不检测是否为高级网络**。所有镜像类型和网络相关的限制校验均由服务端接口 `BatchCreateHideResourceGroupsWithMaxSession` 负责：如果用户对 vm、aio 或任何非高级网络的镜像执行此命令，服务端会直接返回错误，**CLI 将该错误（含 RequestId）原样透传给用户**，不做额外包装或解释。
+
+这样做的好处：
+
+- CLI 与服务端的校验规则解耦，避免服务端规则变动时 CLI 也要跟改
+- 错误提示以服务端为准，保证信息权威性和准确性
 
 ## 实施方案
 
@@ -69,6 +86,7 @@ type BatchCreateHideResourceGroupsWithMaxSessionResponse struct {
 **文件**: `internal/client/get_mcp_image_info_response_body_model.go`
 
 在 `GetMcpImageInfoResponseBodyData` 结构体中添加:
+
 ```go
 ResourceGroupReady *bool `json:"ResourceGroupReady,omitempty" xml:"ResourceGroupReady,omitempty"`
 ```
@@ -80,11 +98,13 @@ ResourceGroupReady *bool `json:"ResourceGroupReady,omitempty" xml:"ResourceGroup
 **文件**: `internal/client/client.go`
 
 添加 3 个方法变体:
+
 - `BatchCreateHideResourceGroupsWithMaxSession(request)` - 便捷方法
 - `BatchCreateHideResourceGroupsWithMaxSessionWithOptions(request, runtime)` - 核心实现
 - `parseBatchCreateHideResourceGroupsWithMaxSessionResponse(res)` - 响应解析
 
 API 参数:
+
 - Action: `"BatchCreateHideResourceGroupsWithMaxSession"`
 - Version: `"2025-05-01"`
 - Method: `"POST"`
@@ -100,6 +120,7 @@ API 参数:
 **文件**: `internal/agentbay/client.go`
 
 接口新增:
+
 ```go
 BatchCreateHideResourceGroupsWithMaxSession(ctx context.Context, request *client.BatchCreateHideResourceGroupsWithMaxSessionRequest) (*client.BatchCreateHideResourceGroupsWithMaxSessionResponse, error)
 ```
@@ -142,6 +163,7 @@ var imageSetMaxSessionCmd = &cobra.Command{
 ```
 
 Flags:
+
 - `--image-id` (string, required)
 - `--max-session-num` (int, required)
 
@@ -164,6 +186,7 @@ Flags:
 **文件**: `cmd/image_status_helper_test.go` 和 `cmd/image_list_helper_test.go`
 
 两个 mock 类都添加:
+
 ```go
 func (m *mockXxxClient) BatchCreateHideResourceGroupsWithMaxSession(ctx context.Context, request *client.BatchCreateHideResourceGroupsWithMaxSessionRequest) (*client.BatchCreateHideResourceGroupsWithMaxSessionResponse, error) {
     return nil, fmt.Errorf("not implemented")
