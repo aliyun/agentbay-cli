@@ -16,9 +16,13 @@
 | vm（虚拟机镜像）          | ❌ 不支持 | 服务端不支持该镜像类型设置最大并发 |
 | aio（一体化镜像）         | ❌ 不支持 | 没有高级网络选项                   |
 
+**白名单要求**：
+
+此功能为受限能力，**用户账号必须先被服务端加白（开通最大并发设置权限）才能使用**。未加白的账号调用 `BatchCreateHideResourceGroupsWithMaxSession` 接口会直接报错。CLI 不对白名单状态做预检查，统一由服务端报错并由 CLI 透传。
+
 **CLI 校验策略**：
 
-CLI 端仅校验前两个条件（User 镜像 + 已激活状态），**不检测镜像子类型（codespace/vm/aio）、也不检测是否为高级网络**。所有镜像类型和网络相关的限制校验均由服务端接口 `BatchCreateHideResourceGroupsWithMaxSession` 负责：如果用户对 vm、aio 或任何非高级网络的镜像执行此命令，服务端会直接返回错误，**CLI 将该错误（含 RequestId）原样透传给用户**，不做额外包装或解释。
+CLI 端仅校验前两个条件（User 镜像 + 已激活状态），**不检测镜像子类型（codespace/vm/aio）、不检测是否为高级网络、也不检测账号白名单状态**。所有镜像类型、网络和白名单相关的限制校验均由服务端接口 `BatchCreateHideResourceGroupsWithMaxSession` 负责：如果用户对 vm、aio、非高级网络或账号未加白的场景执行此命令，服务端会直接返回错误，**CLI 将该错误（含 RequestId）原样透传给用户**，不做额外包装或解释。
 
 这样做的好处：
 
