@@ -1157,6 +1157,9 @@ func (client *Client) GetDockerfileTemplateWithOptions(request *GetDockerfileTem
 		query["Template"] = request.Template
 	}
 
+	if !dara.IsNil(request.UsePublicNetwork) {
+		query["UsePublicNetwork"] = request.UsePublicNetwork
+	}
 	req := &openapiutil.OpenApiRequest{
 		Query:   openapiutil.Query(query),
 		Headers: map[string]*string{"Accept": dara.String("application/json")},

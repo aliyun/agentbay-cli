@@ -18,9 +18,10 @@ type iGetDockerfileTemplateRequest interface {
 }
 
 type GetDockerfileTemplateRequest struct {
-	Source        *string `json:"Source,omitempty" xml:"Source,omitempty"`
-	SourceImageId *string `json:"SourceImageId,omitempty" xml:"SourceImageId,omitempty"`
-	Template      *string `json:"Template,omitempty" xml:"Template,omitempty"`
+	Source           *string `json:"Source,omitempty" xml:"Source,omitempty"`
+	SourceImageId    *string `json:"SourceImageId,omitempty" xml:"SourceImageId,omitempty"`
+	Template         *string `json:"Template,omitempty" xml:"Template,omitempty"`
+	UsePublicNetwork *bool   `json:"UsePublicNetwork,omitempty" xml:"UsePublicNetwork,omitempty"`
 }
 
 func (s GetDockerfileTemplateRequest) String() string {
@@ -55,6 +56,15 @@ func (s *GetDockerfileTemplateRequest) GetTemplate() *string {
 
 func (s *GetDockerfileTemplateRequest) SetTemplate(v string) *GetDockerfileTemplateRequest {
 	s.Template = &v
+	return s
+}
+
+func (s *GetDockerfileTemplateRequest) GetUsePublicNetwork() *bool {
+	return s.UsePublicNetwork
+}
+
+func (s *GetDockerfileTemplateRequest) SetUsePublicNetwork(v bool) *GetDockerfileTemplateRequest {
+	s.UsePublicNetwork = &v
 	return s
 }
 
