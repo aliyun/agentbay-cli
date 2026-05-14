@@ -51,6 +51,9 @@ agentbay image activate imgc-xxxxx...xxx --network-type ADVANCED --session-bandw
 # Activate with sandbox lifecycle parameters
 agentbay image activate imgc-xxxxx...xxx --lifecycle-mode auto --lifecycle-max-runtime 3600 --lifecycle-hibernate 1800 --lifecycle-idle-timeout 600
 
+# Activate with a specific region
+agentbay image activate imgc-xxxxx...xxx --region-id cn-shanghai
+
 # 6. Deactivate when done
 agentbay image deactivate imgc-xxxxx...xxx
 

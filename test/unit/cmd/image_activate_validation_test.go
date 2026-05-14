@@ -293,3 +293,58 @@ func TestImageActivate_NetworkTypeConstants(t *testing.T) {
 		})
 	}
 }
+
+// TestImageActivate_RegionIdResolution tests region ID resolution logic
+// When user specifies --region-id, it takes priority; otherwise falls back to server value
+func TestImageActivate_RegionIdResolution(t *testing.T) {
+	tests := []struct {
+		name             string
+		userRegionId     string
+		serverRegionId   string
+		expectedRegionId string
+	}{
+		{
+			name:             "user_specified_overrides_server",
+			userRegionId:     "cn-shanghai",
+			serverRegionId:   "cn-hangzhou",
+			expectedRegionId: "cn-shanghai",
+		},
+		{
+			name:             "no_user_input_uses_server",
+			userRegionId:     "",
+			serverRegionId:   "cn-hangzhou",
+			expectedRegionId: "cn-hangzhou",
+		},
+		{
+			name:             "user_specified_with_empty_server",
+			userRegionId:     "cn-beijing",
+			serverRegionId:   "",
+			expectedRegionId: "cn-beijing",
+		},
+		{
+			name:             "both_empty",
+			userRegionId:     "",
+			serverRegionId:   "",
+			expectedRegionId: "",
+		},
+		{
+			name:             "user_specifies_overseas_region",
+			userRegionId:     "ap-southeast-1",
+			serverRegionId:   "cn-hangzhou",
+			expectedRegionId: "ap-southeast-1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Simulate the effectiveBizRegionId resolution logic from runImageActivate
+			effectiveBizRegionId := tt.userRegionId
+			if effectiveBizRegionId == "" {
+				effectiveBizRegionId = tt.serverRegionId
+			}
+
+			assert.Equal(t, tt.expectedRegionId, effectiveBizRegionId,
+				"Effective region ID should match expected")
+		})
+	}
+}

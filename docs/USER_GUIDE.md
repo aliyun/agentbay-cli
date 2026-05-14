@@ -244,6 +244,7 @@ Starts the image instance.
 
 - `--cpu, -c`: CPU cores (2, 4, or 8) - must be paired with memory; default: 2 when not specified
 - `--memory, -m`: Memory in GB (4, 8, or 16) - must be paired with CPU; default: 4 when not specified
+- `--region-id`: Region ID for resource deployment (optional, overrides server default)
 
 **Supported Resource Combinations:**
 
@@ -261,6 +262,9 @@ agentbay image activate imgc-xxxxx...xxx
 agentbay image activate imgc-xxxxx...xxx --cpu 2 --memory 4
 agentbay image activate imgc-xxxxx...xxx --cpu 4 --memory 8
 agentbay image activate imgc-xxxxx...xxx --cpu 8 --memory 16
+
+# Activate with a specific region
+agentbay image activate imgc-xxxxx...xxx --region-id cn-shanghai
 ```
 
 **Output:**

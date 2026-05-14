@@ -106,6 +106,9 @@ Examples:
   # Activate with specific CPU and memory
   agentbay image activate imgc-xxxxxxxxxxxxxx --cpu 2 --memory 4
 
+  # Activate with a specific region
+  agentbay image activate imgc-xxxxxxxxxxxxxx --region-id cn-shanghai
+
   # Activate with verbose output
   agentbay image activate imgc-xxxxxxxxxxxxxx --cpu 4 --memory 8 --verbose`,
 	Args: cobra.ExactArgs(1),
@@ -217,6 +220,7 @@ func init() {
 	imageActivateCmd.Flags().Float64("lifecycle-max-runtime", 0, "Maximum runtime in hours for the sandbox (optional, maps to DesktopMaxRuntime)")
 	imageActivateCmd.Flags().Float64("lifecycle-hibernate", 0, "Hibernate timeout in hours (optional, maps to HibernateTimeout)")
 	imageActivateCmd.Flags().Float64("lifecycle-idle-timeout", 0, "User idle timeout in hours (optional, maps to UserIdleTimeout)")
+	imageActivateCmd.Flags().String("region-id", "", "Region ID for resource deployment (optional, overrides server default)")
 
 	// Add flags to image list command
 	imageListCmd.Flags().StringP("os-type", "o", "", "Filter by OS type: Linux, Android, or Windows (optional)")
@@ -1146,6 +1150,9 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 	lifecycleHibernate, _ := cmd.Flags().GetFloat64("lifecycle-hibernate")
 	lifecycleIdleTimeout, _ := cmd.Flags().GetFloat64("lifecycle-idle-timeout")
 
+	// Parse region parameter
+	regionId, _ := cmd.Flags().GetString("region-id")
+
 	// Detect which lifecycle flags were explicitly set by the user
 	lifecycleModeSet := cmd.Flags().Changed("lifecycle-mode")
 	lifecycleMaxRuntimeSet := cmd.Flags().Changed("lifecycle-max-runtime")
@@ -1193,6 +1200,9 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 		if len(dnsAddresses) > 0 {
 			fmt.Printf("[NETWORK] DNS Addresses: %s\n", strings.Join(dnsAddresses, ", "))
 		}
+	}
+	if regionId != "" {
+		fmt.Printf("[REGION] Region ID: %s\n", regionId)
 	}
 
 	// Load configuration and check authentication
@@ -1270,6 +1280,7 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 	}
 
 	var appInstanceType string
+	var serverRegionId string
 
 	// Handle network-specific flow - must be done BEFORE CreateResourceGroup
 	// Because CreateResourceGroup will start the image, and SaveMcpPolicyData will fail if image is running
@@ -1282,7 +1293,7 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 		}
 
 		// DescribeMcpPolicyData + Create/ModifyMcpPolicyData + DescribeOfficeSites + SaveMcpPolicyData BEFORE CreateResourceGroup
-		_, effectiveDnsAddresses, err = handleAdvancedNetworkActivation(statusCtx, apiClient, imageId, appInstanceType, cpu, memory, sessionBandwidth, dnsAddresses, lifecycleParams, imageInfo.OsName)
+		_, effectiveDnsAddresses, serverRegionId, err = handleAdvancedNetworkActivation(statusCtx, apiClient, imageId, appInstanceType, cpu, memory, sessionBandwidth, dnsAddresses, lifecycleParams, imageInfo.OsName, regionId)
 		if err != nil {
 			return err
 		}
@@ -1297,7 +1308,7 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 		}
 
 		// DescribeMcpPolicyData + Create/ModifyMcpPolicyData + SaveMcpPolicyData BEFORE CreateResourceGroup
-		err = handleDefaultNetworkActivation(statusCtx, apiClient, imageId, appInstanceType, cpu, memory, lifecycleParams, imageInfo.OsName)
+		serverRegionId, err = handleDefaultNetworkActivation(statusCtx, apiClient, imageId, appInstanceType, cpu, memory, lifecycleParams, imageInfo.OsName, regionId)
 		if err != nil {
 			return err
 		}
@@ -1345,6 +1356,15 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 			if appInstanceType != "" {
 				createReq.SetAppInstanceType(appInstanceType)
 			}
+		}
+
+		// Set BizRegionId: user-specified regionId takes priority, otherwise use server default
+		effectiveBizRegionId := regionId
+		if effectiveBizRegionId == "" {
+			effectiveBizRegionId = serverRegionId
+		}
+		if effectiveBizRegionId != "" {
+			createReq.SetBizRegionId(effectiveBizRegionId)
 		}
 
 		// Debug: Print request details
@@ -1914,6 +1934,7 @@ func handlePolicyDataCreateOrModify(
 	policyData *client.DescribeMcpPolicyDataResponseBodyData,
 	mergedSandboxLifeCycle *client.SandboxLifeCycle,
 	osName string,
+	regionId string,
 	stepNum, totalSteps int,
 ) error {
 	isDefaultData := policyData.IsDefaultData != nil && *policyData.IsDefaultData
@@ -1943,8 +1964,10 @@ func handlePolicyDataCreateOrModify(
 		req.ClientControlMenu = policyData.ScreenSettings.ClientControlMenu
 	}
 
-	// RegionName from GroupSpec.RegionId
-	if policyData.GroupSpec != nil {
+	// RegionName from user-specified regionId or GroupSpec.RegionId
+	if regionId != "" {
+		req.RegionName = dara.String(regionId)
+	} else if policyData.GroupSpec != nil {
 		req.RegionName = policyData.GroupSpec.RegionId
 	}
 
@@ -2039,8 +2062,8 @@ func getAppInstanceType(ctx context.Context, apiClient agentbay.Client, imageId 
 
 // handleAdvancedNetworkActivation handles the advanced network activation flow
 // Flow: DescribeMcpPolicyData -> Create/ModifyMcpPolicyData -> DescribeOfficeSites -> SaveMcpPolicyData
-// Returns: policyId, effectiveDnsAddresses (default from DescribeOfficeSites if user not specified), error
-func handleAdvancedNetworkActivation(ctx context.Context, apiClient agentbay.Client, imageId, appInstanceType string, cpu, memory, sessionBandwidth int, dnsAddresses []string, lf *lifecycleFlags, osName string) (string, []string, error) {
+// Returns: policyId, effectiveDnsAddresses (default from DescribeOfficeSites if user not specified), serverRegionId, error
+func handleAdvancedNetworkActivation(ctx context.Context, apiClient agentbay.Client, imageId, appInstanceType string, cpu, memory, sessionBandwidth int, dnsAddresses []string, lf *lifecycleFlags, osName string, regionId string) (string, []string, string, error) {
 	// Step 1: DescribeMcpPolicyData - Get policy data
 	fmt.Printf("[STEP 2/7] Fetching policy data...")
 	policyReq := &client.DescribeMcpPolicyDataRequest{
@@ -2049,7 +2072,7 @@ func handleAdvancedNetworkActivation(ctx context.Context, apiClient agentbay.Cli
 	policyResp, err := apiClient.DescribeMcpPolicyData(ctx, policyReq)
 	if err != nil {
 		fmt.Printf(" Failed.\n")
-		return "", nil, fmt.Errorf("failed to fetch policy data: %w", err)
+		return "", nil, "", fmt.Errorf("failed to fetch policy data: %w", err)
 	}
 	// Log Request ID for debugging
 	if policyResp.Body != nil && policyResp.Body.GetRequestId() != nil {
@@ -2063,10 +2086,16 @@ func handleAdvancedNetworkActivation(ctx context.Context, apiClient agentbay.Cli
 		policyId = *policyResp.Body.Data.PolicyId
 	}
 
-	// Get RegionName from GroupSpec.RegionId for DescribeOfficeSites
+	// Get RegionName from user-specified regionId or GroupSpec.RegionId for DescribeOfficeSites
+	var serverRegionId string
 	var regionName string
 	if policyResp.Body != nil && policyResp.Body.Data != nil && policyResp.Body.Data.GroupSpec != nil && policyResp.Body.Data.GroupSpec.RegionId != nil {
-		regionName = *policyResp.Body.Data.GroupSpec.RegionId
+		serverRegionId = *policyResp.Body.Data.GroupSpec.RegionId
+	}
+	if regionId != "" {
+		regionName = regionId
+	} else {
+		regionName = serverRegionId
 	}
 
 	// Merge SandboxLifeCycle
@@ -2078,8 +2107,8 @@ func handleAdvancedNetworkActivation(ctx context.Context, apiClient agentbay.Cli
 
 	// Step 2: Create/ModifyMcpPolicyData
 	if policyResp.Body != nil && policyResp.Body.Data != nil {
-		if err := handlePolicyDataCreateOrModify(ctx, apiClient, imageId, policyResp.Body.Data, mergedSandboxLifeCycle, osName, 3, 7); err != nil {
-			return "", nil, err
+		if err := handlePolicyDataCreateOrModify(ctx, apiClient, imageId, policyResp.Body.Data, mergedSandboxLifeCycle, osName, regionId, 3, 7); err != nil {
+			return "", nil, "", err
 		}
 	}
 
@@ -2094,7 +2123,7 @@ func handleAdvancedNetworkActivation(ctx context.Context, apiClient agentbay.Cli
 		officeSiteResp, err := apiClient.DescribeOfficeSites(ctx, officeSiteReq)
 		if err != nil {
 			fmt.Printf(" Failed.\n")
-			return "", nil, fmt.Errorf("failed to query office network: %w", err)
+			return "", nil, "", fmt.Errorf("failed to query office network: %w", err)
 		}
 		if officeSiteResp.Body != nil && officeSiteResp.Body.GetRequestId() != nil {
 			fmt.Printf(" Done. (Action: DescribeOfficeSites, Request ID: %s)\n", *officeSiteResp.Body.GetRequestId())
@@ -2141,6 +2170,10 @@ func handleAdvancedNetworkActivation(ctx context.Context, apiClient agentbay.Cli
 				Cpu:             dara.Int32(int32(cpu)),
 				RegionId:        data.GroupSpec.RegionId,
 			}
+			if regionId != "" {
+				saveReq.GroupSpec.RegionName = dara.String(regionId)
+				saveReq.GroupSpec.RegionId = dara.String(regionId)
+			}
 		}
 
 		// Copy other sections - use merged SandboxLifeCycle
@@ -2148,7 +2181,9 @@ func handleAdvancedNetworkActivation(ctx context.Context, apiClient agentbay.Cli
 		saveReq.ScreenSettings = data.ScreenSettings
 		saveReq.NetworkConfig = data.NetworkConfig
 		saveReq.DisplayConfig = data.DisplayConfig
-		if data.GroupSpec != nil && data.GroupSpec.RegionId != nil {
+		if regionId != "" {
+			saveReq.RegionId = dara.String(regionId)
+		} else if data.GroupSpec != nil && data.GroupSpec.RegionId != nil {
 			saveReq.RegionId = data.GroupSpec.RegionId
 		}
 
@@ -2169,13 +2204,13 @@ func handleAdvancedNetworkActivation(ctx context.Context, apiClient agentbay.Cli
 		}
 	} else {
 		fmt.Printf(" Failed.\n")
-		return "", nil, fmt.Errorf("invalid policy data response")
+		return "", nil, "", fmt.Errorf("invalid policy data response")
 	}
 
 	saveResp, err := apiClient.SaveMcpPolicyData(ctx, saveReq)
 	if err != nil {
 		fmt.Printf(" Failed.\n")
-		return "", nil, fmt.Errorf("failed to save policy data: %w", err)
+		return "", nil, "", fmt.Errorf("failed to save policy data: %w", err)
 	}
 	// Log Request ID for debugging
 	if saveResp.Body != nil && saveResp.Body.GetRequestId() != nil {
@@ -2184,13 +2219,13 @@ func handleAdvancedNetworkActivation(ctx context.Context, apiClient agentbay.Cli
 		fmt.Printf(" Done. (Action: SaveMcpPolicyData)\n")
 	}
 
-	return policyId, effectiveDnsAddresses, nil
+	return policyId, effectiveDnsAddresses, serverRegionId, nil
 }
 
 // handleDefaultNetworkActivation handles the DEFAULT network activation flow
 // Flow: DescribeMcpPolicyData -> Create/ModifyMcpPolicyData -> SaveMcpPolicyData
-// Returns: error
-func handleDefaultNetworkActivation(ctx context.Context, apiClient agentbay.Client, imageId, appInstanceType string, cpu, memory int, lf *lifecycleFlags, osName string) error {
+// Returns: serverRegionId, error
+func handleDefaultNetworkActivation(ctx context.Context, apiClient agentbay.Client, imageId, appInstanceType string, cpu, memory int, lf *lifecycleFlags, osName string, regionId string) (string, error) {
 	// Step 1: DescribeMcpPolicyData - Get policy data
 	fmt.Printf("[STEP 2/6] Fetching policy data...")
 	policyReq := &client.DescribeMcpPolicyDataRequest{
@@ -2199,13 +2234,19 @@ func handleDefaultNetworkActivation(ctx context.Context, apiClient agentbay.Clie
 	policyResp, err := apiClient.DescribeMcpPolicyData(ctx, policyReq)
 	if err != nil {
 		fmt.Printf(" Failed.\n")
-		return fmt.Errorf("failed to fetch policy data: %w", err)
+		return "", fmt.Errorf("failed to fetch policy data: %w", err)
 	}
 	// Log Request ID for debugging
 	if policyResp.Body != nil && policyResp.Body.GetRequestId() != nil {
 		fmt.Printf(" Done. (Action: DescribeMcpPolicyData, Request ID: %s)\n", *policyResp.Body.GetRequestId())
 	} else {
 		fmt.Printf(" Done. (Action: DescribeMcpPolicyData)\n")
+	}
+
+	// Extract serverRegionId from GroupSpec
+	var serverRegionId string
+	if policyResp.Body != nil && policyResp.Body.Data != nil && policyResp.Body.Data.GroupSpec != nil && policyResp.Body.Data.GroupSpec.RegionId != nil {
+		serverRegionId = *policyResp.Body.Data.GroupSpec.RegionId
 	}
 
 	// Merge SandboxLifeCycle
@@ -2217,8 +2258,8 @@ func handleDefaultNetworkActivation(ctx context.Context, apiClient agentbay.Clie
 
 	// Step 2: Create/ModifyMcpPolicyData
 	if policyResp.Body != nil && policyResp.Body.Data != nil {
-		if err := handlePolicyDataCreateOrModify(ctx, apiClient, imageId, policyResp.Body.Data, mergedSandboxLifeCycle, osName, 3, 6); err != nil {
-			return err
+		if err := handlePolicyDataCreateOrModify(ctx, apiClient, imageId, policyResp.Body.Data, mergedSandboxLifeCycle, osName, regionId, 3, 6); err != nil {
+			return "", err
 		}
 	}
 
@@ -2245,6 +2286,10 @@ func handleDefaultNetworkActivation(ctx context.Context, apiClient agentbay.Clie
 				Cpu:             dara.Int32(int32(cpu)),
 				RegionId:        data.GroupSpec.RegionId,
 			}
+			if regionId != "" {
+				saveReq.GroupSpec.RegionName = dara.String(regionId)
+				saveReq.GroupSpec.RegionId = dara.String(regionId)
+			}
 		}
 
 		// Copy other sections - use merged SandboxLifeCycle
@@ -2252,7 +2297,9 @@ func handleDefaultNetworkActivation(ctx context.Context, apiClient agentbay.Clie
 		saveReq.ScreenSettings = data.ScreenSettings
 		saveReq.NetworkConfig = data.NetworkConfig
 		saveReq.DisplayConfig = data.DisplayConfig
-		if data.GroupSpec != nil && data.GroupSpec.RegionId != nil {
+		if regionId != "" {
+			saveReq.RegionId = dara.String(regionId)
+		} else if data.GroupSpec != nil && data.GroupSpec.RegionId != nil {
 			saveReq.RegionId = data.GroupSpec.RegionId
 		}
 
@@ -2266,13 +2313,13 @@ func handleDefaultNetworkActivation(ctx context.Context, apiClient agentbay.Clie
 		}
 	} else {
 		fmt.Printf(" Failed.\n")
-		return fmt.Errorf("invalid policy data response")
+		return "", fmt.Errorf("invalid policy data response")
 	}
 
 	saveResp, err := apiClient.SaveMcpPolicyData(ctx, saveReq)
 	if err != nil {
 		fmt.Printf(" Failed.\n")
-		return fmt.Errorf("failed to save policy data: %w", err)
+		return "", fmt.Errorf("failed to save policy data: %w", err)
 	}
 	// Log Request ID for debugging
 	if saveResp.Body != nil && saveResp.Body.GetRequestId() != nil {
@@ -2281,7 +2328,7 @@ func handleDefaultNetworkActivation(ctx context.Context, apiClient agentbay.Clie
 		fmt.Printf(" Done. (Action: SaveMcpPolicyData)\n")
 	}
 
-	return nil
+	return serverRegionId, nil
 }
 
 func runImageDelete(cmd *cobra.Command, args []string) error {
