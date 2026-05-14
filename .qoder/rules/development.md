@@ -257,7 +257,45 @@ Error: failed to set max session: json: cannot unmarshal string into Go struct f
 - [ ] 对外文档已同步（钉钉文档 / cli 使用手册）
 - [ ] 单元测试已编写或更新并通过
 - [ ] mock 类已同步更新（如有接口变更）
-- [ ] `go build` 和 `go test ./...` 均通过
+- [ ] `go build -o agentbay .` 构建出可执行二进制并通过
+- [ ] `go test ./... -count=1` 全部通过
+
+---
+
+## 🔨 构建验证规则
+
+### 重要：需求开发完成后必须构建二进制
+
+**规则**: 每次完成需求开发（新增功能、修复 bug、修改命令等）后，**必须**执行以下构建命令生成可执行二进制：
+
+```bash
+go build -o agentbay .
+```
+
+**执行时机**:
+
+- ✅ 代码修改完成、单元测试通过之后
+- ✅ 在询问用户是否提交代码**之前**
+- ✅ 确保构建成功后再告知用户开发完成
+
+**注意事项**:
+
+- 不要只用 `go build ./...` 做编译检查，必须用 `go build -o agentbay .` 生成实际的可执行文件
+- 构建产物 `agentbay` 已在 `.gitignore` 中，不会被提交
+- 如果构建失败，必须先修复问题再继续
+
+**完整的开发完成验证流程**:
+
+```bash
+# 1. 单元测试
+go test ./... -count=1
+
+# 2. 构建二进制
+go build -o agentbay .
+
+# 3. 确认构建产物
+ls -lh agentbay
+```
 
 ---
 
