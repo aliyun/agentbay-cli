@@ -47,10 +47,10 @@ git remote remove <name>
 
 为让每个需求都有"需求 → 设计 → 代码 → 提交 → PR → 发布"的完整追溯链,启动任何新需求前必须**二选一**建立变更档案,两条路径都是强制的,目的一致 — 在 Git 仓库内留下可审阅的档案:
 
-| 路径                    | 触发场景                                                 | 产物位置                                                 | 备注                                                                                          |
-| ----------------------- | -------------------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| **A. Qoder Quest Mode** | 通过 `⌘ E` 进入 Quest 模式,在 Design 阶段让 AI 生成 Spec,Review 后点 `Download` | `.qoder/specs/<feature>.md`(Qoder 客户端 Download 默认写盘位置,零配置) | 推荐用于复杂需求;Spec 可与 AI 协同编辑;文件默认 untracked,需 `git add` 入库                                                 |
-| **B. 手动 CR 目录**     | 未启用 Quest Mode / 轻量需求 / 已有外部设计稿需沉淀      | `.qoder/changes/CR-<YYYY-MM-DD>-<feature-name>/`         | 包含 spec.md / design.md / tasks.md / decisions.md / test-plan.md / rollback.md / trace.md 等 |
+| 路径                    | 触发场景                                                                        | 产物位置                                                               | 备注                                                                                          |
+| ----------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **A. Qoder Quest Mode** | 通过 `⌘ E` 进入 Quest 模式,在 Design 阶段让 AI 生成 Spec,Review 后点 `Download` | `.qoder/specs/<feature>.md`(Qoder 客户端 Download 默认写盘位置,零配置) | 推荐用于复杂需求;Spec 可与 AI 协同编辑;文件默认 untracked,需 `git add` 入库                   |
+| **B. 手动 CR 目录**     | 未启用 Quest Mode / 轻量需求 / 已有外部设计稿需沉淀                             | `.qoder/changes/CR-<YYYY-MM-DD>-<feature-name>/`                       | 包含 spec.md / design.md / tasks.md / decisions.md / test-plan.md / rollback.md / trace.md 等 |
 
 **核心规则**:
 
@@ -91,7 +91,7 @@ git remote remove <name>
 
 ### Phase 1: 需求启动(分支准备)
 
-> ⚠️ **重要**:任何写代码动作前必须先建好 feat 分支,禁止在 master 直接改动。
+> ⚠️ **重要**:任何写代码动作前必须确定一条干净、起点正确的 feat 分支,禁止在 master 直接改动。
 
 1. **同步两个远程最新状态**
 
@@ -100,7 +100,31 @@ git remote remove <name>
    git fetch aliyun
    ```
 
-2. **基于 `aliyun/master` 创建 feat 分支**(以 aliyun 主线为真源):
+2. **判断是否可复用当前 feat 分支**(避免每次都新切)
+
+   先读取当前仓库状态:
+
+   ```bash
+   git branch --show-current           # 当前分支名
+   git status --short                  # 工作区是否干净
+   git log --oneline aliyun/master..HEAD -1   # 是否领先 aliyun/master
+   git log --oneline HEAD..aliyun/master -1   # 是否落后 aliyun/master
+   ```
+
+   **可复用的充要条件**(必须全部满足):
+   - [ ] 当前分支以 `feat-` 或 `feat/` 开头,且**不是** master / main
+   - [ ] 工作区干净(`git status --short` 输出为空,允许未入库的变更档案除外,但需在后续一起提交)
+   - [ ] 当前分支**不落后** `aliyun/master`(即 `HEAD..aliyun/master` 为空;若落后,需先 rebase 或用户确认处理策略)
+   - [ ] 当前分支主题与新需求相关,用户明确同意复用
+
+   **决策分发**:
+   - ✅ 全部满足 → **主动询问用户**:
+     > "检测到当前在 `feat/xxx` 分支,已与 `aliyun/master` 同步且工作区干净。是 **直接复用当前分支** 继续开发,还是 **从 `aliyun/master` 新切一条 feat 分支**?"
+   - ❌ 任一不满足 → **必须新切**,不再询问,按第 3 步执行。
+
+3. **新切 feat 分支(默认路径)**
+
+   基于 `aliyun/master` 创建(以 aliyun 主线为真源):
 
    ```bash
    git checkout -b feat-<feature-name> aliyun/master
@@ -108,11 +132,14 @@ git remote remove <name>
 
    分支命名规范: `feat-<短横线分隔的需求关键词>`,如 `feat-image-delete`、`feat-apikey-concurrency`。
 
-3. **确认分支起点**:
+4. **确认最终分支状态**:
+
    ```bash
    git log --oneline -1
    git status
    ```
+
+   无论复用还是新切,后续 Phase 2-6 的所有动作都在这条 feat 分支上进行。
 
 ### Phase 2: 本地开发
 
@@ -245,7 +272,8 @@ git push aliyun --delete feat-<feature-name>      # aliyun 删除(可选,或由 
 
 - [ ] `git remote -v` 只有 origin 和 aliyun
 - [ ] 已执行 `git fetch aliyun`
-- [ ] 当前 HEAD 在新创建的 feat 分支
+- [ ] 当前 HEAD 位于 feat 分支(新切 或 经用户确认复用的已有 feat 分支)
+- [ ] 若复用:已满足"不落后 aliyun/master + 工作区干净 + 用户同意"三条件
 - [ ] 变更档案已建立(`.qoder/specs/<feature>.md` Quest Spec 或 `.qoder/changes/CR-xxx/` 目录)
 
 提交前:
@@ -271,13 +299,14 @@ git push aliyun --delete feat-<feature-name>      # aliyun 删除(可选,或由 
 
 ## ⚠️ 常见陷阱
 
-| 陷阱                  | 表现                                             | 规避                                                         |
-| --------------------- | ------------------------------------------------ | ------------------------------------------------------------ |
-| 在 master 直接改      | `git status` 显示 HEAD 是 master 且有 diff       | 开发前先 `git checkout -b feat-xxx aliyun/master`            |
-| 从 origin/master 起点 | feat 分支基点滞后于 aliyun 主线,PR 有冲突        | 明确从 `aliyun/master` 拉分支                                |
-| 未授权自动 push       | 用户还没审查就已推送                             | 推送动作必须等用户说"推送"/"push"                            |
-| mock 漏改 CI 报错     | `*mockClient does not implement agentbay.Client` | 接口变更后立即 `grep -r "type mock.*Client struct"` 全量补齐 |
-| 残留 upstream         | `git remote -v` 仍有个人 fork                    | 执行 `git remote remove upstream`                            |
-| 缺失变更档案          | 需求完成但仓库无 Spec / CR 目录,后续无法追溯     | 启动需求时按 Phase 0 强制二选一建立档案                      |
-| Quest 跳过 Design     | 勾了 Execute Directly 导致 Spec 根本没生成       | New Task 时确认未勾 Execute Directly,点 Download 写盘到 `.qoder/specs/` |
-| 档案与代码脱节        | Spec 建好但没 `git add`,合并后档案丢失           | 提交前检查 `git status` 确保 Spec/CR 文件已进入暂存区        |
+| 陷阱                  | 表现                                                       | 规避                                                                    |
+| --------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------- |
+| 在 master 直接改      | `git status` 显示 HEAD 是 master 且有 diff                 | 开发前先 `git checkout -b feat-xxx aliyun/master`                       |
+| 从 origin/master 起点 | feat 分支基点滞后于 aliyun 主线,PR 有冲突                  | 明确从 `aliyun/master` 拉分支                                           |
+| 盲目复用旧 feat 分支  | 复用了落后于 aliyun/master 或工作区有残留的分支,污染新需求 | Phase 1 步骤 2 按充要条件严格校验,任一不满足必须新切                    |
+| 未授权自动 push       | 用户还没审查就已推送                                       | 推送动作必须等用户说"推送"/"push"                                       |
+| mock 漏改 CI 报错     | `*mockClient does not implement agentbay.Client`           | 接口变更后立即 `grep -r "type mock.*Client struct"` 全量补齐            |
+| 残留 upstream         | `git remote -v` 仍有个人 fork                              | 执行 `git remote remove upstream`                                       |
+| 缺失变更档案          | 需求完成但仓库无 Spec / CR 目录,后续无法追溯               | 启动需求时按 Phase 0 强制二选一建立档案                                 |
+| Quest 跳过 Design     | 勾了 Execute Directly 导致 Spec 根本没生成                 | New Task 时确认未勾 Execute Directly,点 Download 写盘到 `.qoder/specs/` |
+| 档案与代码脱节        | Spec 建好但没 `git add`,合并后档案丢失                     | 提交前检查 `git status` 确保 Spec/CR 文件已进入暂存区                   |

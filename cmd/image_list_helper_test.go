@@ -140,6 +140,10 @@ func (m *mockImageListClient) DeleteMcpImage(ctx context.Context, request *clien
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockImageListClient) BatchCreateHideResourceGroupsWithMaxSession(ctx context.Context, request *client.BatchCreateHideResourceGroupsWithMaxSessionRequest) (*client.BatchCreateHideResourceGroupsWithMaxSessionResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 // Helper functions for testing
 func boolPtr(b bool) *bool {
 	return &b

@@ -5,9 +5,30 @@ description: 将前端 API 能力封装成 agentbay-cli 命令的标准化流程
 
 # Create CLI Command
 
+## 🔗 前置约束（必读）
+
+**本 skill 必须与 `feature-development-workflow` 配套使用**，两者分工如下：
+
+| Skill                            | 负责                                                                                          | 触发时机       |
+| -------------------------------- | --------------------------------------------------------------------------------------------- | -------------- |
+| **feature-development-workflow** | 分支管理（从 `aliyun/master` 拉 feat 分支）、双远程推送（origin → aliyun）、PR 流程、变更档案 | 开发前、提交后 |
+| **create-cli-command**（本文件） | SDK 模型 → Client 接口 → Cobra 命令 → mock 同步 → 单测 → 对客文档                             | 开发中         |
+
+**执行铁律**：
+
+1. **开发前**：必须先执行 `feature-development-workflow` 的 Phase 0（变更档案初始化）和分支创建，确认当前在 `feat-<name>` 分支且基于 `aliyun/master`，否则不得进入本 skill 的 Phase 1。
+2. **开发中**：按本 skill 的 Phase 1-5 实现代码和测试。
+3. **提交/推送**：切回 `feature-development-workflow` 的 Phase 4-6 完成 commit、双远程 push（origin 先、aliyun 后）、PR、trace.md 更新。
+4. **禁止跳过**：不得在未拉 feat 分支时直接在 master 上开发，不得单远程推送，不得跳过变更档案。
+
+> 若用户未提前走 `feature-development-workflow`，本 skill 执行第一步必须主动提醒并引导用户先建档、拉分支。
+
+---
+
 ## 📋 职责
 
 将 agent-bay 前端控制台中的 API 能力封装成 agentbay-cli 命令行工具，包括：
+
 - 创建 CLI 命令（使用 Cobra 框架）
 - 实现 SDK 客户端方法
 - 编写单元测试
@@ -16,6 +37,7 @@ description: 将前端 API 能力封装成 agentbay-cli 命令的标准化流程
 ## 🎯 触发场景
 
 当用户提出以下需求时触发：
+
 - "帮我把 XX 接口封装成 CLI"
 - "新增 XX 功能的命令行工具"
 - "把前端的 XX 能力做成 CLI 命令"
@@ -51,6 +73,7 @@ internal/client/
 ```
 
 **要求**:
+
 - 请求模型必须有 `Validate()` 方法
 - 响应模型提供 `GetXxx()` 辅助方法
 - 注意后端实际返回的字段类型（可能是字符串而非对象）
@@ -58,12 +81,23 @@ internal/client/
 #### 2.2 添加 SDK 客户端方法
 
 在 `internal/client/client.go` 中添加：
+
 - `{Action}WithOptions()` - 完整调用方法
 - `{Action}()` - 简化调用方法
 - `{Action}WithContext()` - 支持 context 的方法
 - `parse{Action}Response()` - 响应解析函数
 
+**⚠️ parser 必须放入 `internal/client/dual_format_responses.go`**（而非 `client.go`），且必须遵守下述容错规范：
+
+- 所有 `*int32` / `*int64` 字段用 `json.RawMessage` + `int32FromFlexibleJSON` 解析，兼容数字与字符串两种序列化形式（服务端常会以字符串返回 `HttpStatusCode` 等数字字段）。
+- body 以 `<` 开头走 XML 分支、否则走 JSON 分支，两条路径都要调用 `applyMapHeadersAndStatus` 归一 headers / statusCode。
+- 解析失败统一用 `&ErrWithRequestID{Err: ..., RequestID: extractRequestIDFromResponse(res)}` 包装。
+- 必须在 `internal/client/` 下配套一个 `xxx_parse_test.go`，至少覆盖「JSON 数字字段为字符串 / 数字 / XML」三种场景。
+
+反面案例：`BatchCreateHideResourceGroupsWithMaxSession` 早期直接用 `json.Unmarshal` 打到 `*int32`，遇到 `"HttpStatusCode":"200"` 直接报 `cannot unmarshal string into Go struct field ... of type int32`。详见 [references/api-format.md](references/api-format.md#响应解析容错模板必须使用) 与规则 [development.md 响应解析必须使用容错模板](../../rules/development.md)。
+
 **API 配置模板**:
+
 ```go
 params := &openapiutil.Params{
     Action:      dara.String("ActionName"),
@@ -81,6 +115,7 @@ params := &openapiutil.Params{
 #### 2.3 添加客户端接口
 
 在 `internal/agentbay/client.go` 中：
+
 - 在 `Client` interface 中添加方法定义
 - 在 `clientWrapper` 中实现方法
 
@@ -102,6 +137,7 @@ func (m *mockClient) NewMethod(ctx context.Context, request *client.NewRequest) 
 ```
 
 **检查清单**:
+
 - [ ] 找到所有 mock 类（通常 2-3 个）
 - [ ] 为每个 mock 类添加新方法
 - [ ] 运行 `go test ./cmd/...` 确保编译通过
@@ -109,12 +145,61 @@ func (m *mockClient) NewMethod(ctx context.Context, request *client.NewRequest) 
 #### 2.4 创建 CLI 命令
 
 在 `cmd/` 目录下创建命令文件：
+
 - 使用命名参数（`--name`, `--api-key-id`）
 - 标记必填参数：`MarkFlagRequired()`
 - 提供清晰的帮助信息和示例
 - 实现错误处理和友好提示
+- **每个对外 API 请求必须默认打印 RequestId**（详见下方铁律）
+
+##### 🔑 RequestId 打印铁律（强制）
+
+**规则**: 每个 CLI 命令调用的**每一个对外接口请求**，无论成功还是失败、无论是否带 `-v / --verbose`，都**必须**在终端打印对应的 RequestId，便于客户在出现问题时直接复制日志给运维定位。
+
+**❌ 禁止做法**（之前的旧规范）：
+
+```go
+// ❌ 不要再用 verbose 守卫保护 RequestId 打印
+verbose, _ := cmd.Flags().GetBool("verbose")
+if verbose && resp.Body.RequestId != nil && *resp.Body.RequestId != "" {
+    printRequestIDIfVerbose(cmd, *resp.Body.RequestId)
+}
+```
+
+**✅ 正确做法**：
+
+```go
+// 1. 成功路径：直接打印（不依赖 verbose）
+if resp != nil && resp.Body != nil {
+    if reqId := resp.Body.GetRequestId(); reqId != nil && *reqId != "" {
+        fmt.Printf("[INFO] {Action} Request ID: %s\n", *reqId)
+    }
+}
+
+// 2. 错误路径：err 中携带的 RequestId 也必须打印
+resp, err := apiClient.{Action}(ctx, req)
+if err != nil {
+    // 不再使用 printRequestIDFromErrIfVerbose（带 verbose 守卫的版本）
+    if reqId := extractRequestIDFromErr(err); reqId != "" {
+        fmt.Printf("[INFO] {Action} Request ID: %s\n", reqId)
+    }
+    return fmt.Errorf("[ERROR] Failed to {action}: %w", err)
+}
+```
+
+**多接口命令**: 命令体内若调用多个接口（如先 GetMcpImageInfo 再 BatchCreateXxx），**每一个**接口的 RequestId 都要分别打印，并在前缀里标注接口名以便区分：
+
+```
+[INFO] GetMcpImageInfo Request ID: 1A2B3C4D-...
+[INFO] BatchCreateHideResourceGroupsWithMaxSession Request ID: 5E6F7G8H-...
+```
+
+**参考实现**: [cmd/image_set_max_session.go](file:///Users/lxy/work/project/ai/agentbay/agentbay-cli/cmd/image_set_max_session.go#L85-L121)
+
+**verbose / `-v` 的真正用途**: 仅控制额外的调试信息（请求体、响应体 JSON、堆栈等），**不再**控制 RequestId 是否打印。
 
 **命令层级**:
+
 ```
 agentbay
 └── apikey                          # 命令组
@@ -126,6 +211,7 @@ agentbay
 #### 2.5 注册命令
 
 在 `main.go` 的 `init()` 中注册命令：
+
 ```go
 rootCmd.AddCommand(cmd.XxxCmd)
 ```
@@ -135,12 +221,14 @@ rootCmd.AddCommand(cmd.XxxCmd)
 在 `test/unit/cmd/` 目录创建测试文件：
 
 **测试覆盖要求**:
+
 1. 命令元数据测试（Use, Short, Long, GroupID）
 2. 子命令结构测试
 3. 必填参数验证测试
 4. 参数默认值测试
 
 **测试命名规范**:
+
 ```go
 Test<命令组>Cmd           // 测试命令组
 Test<子命令>Cmd           // 测试子命令
@@ -149,11 +237,13 @@ Test<子命令>Cmd           // 测试子命令
 ### Phase 4: 测试验证
 
 1. **编译测试**
+
    ```bash
    go build -o agentbay .
    ```
 
 2. **帮助信息测试**
+
    ```bash
    ./agentbay <command> --help
    ./agentbay <command> <subcommand> --help
@@ -163,16 +253,40 @@ Test<子命令>Cmd           // 测试子命令
    - 缺少必填参数
    - 参数值验证
 
-4. **运行单元测试**
+4. **运行新命令的单元测试**
+
    ```bash
    go test -v ./test/unit/cmd/ -run TestXxx -count=1
    ```
+
+5. **🔁 全量回归测试（强制）**
+
+   新增 / 修改 CLI 命令后，**必须**运行全量测试，确保没有任何**已有命令**的单测因接口变更、mock 缺失或公共代码改动而被破坏：
+
+   ```bash
+   # 全量测试（包括 cmd / internal / test/unit/...）
+   go test ./... -count=1
+
+   # 或更严格：跑 race 检测
+   go test ./... -count=1 -race
+   ```
+
+   **通过标准**：
+   - [ ] `go build -o agentbay .` 无错误且**产出的二进制保留在项目根目录**供用户直接使用
+   - [ ] `go test ./... -count=1` **全部 PASS**
+   - [ ] 旧命令的单测**一个都没有**因为本次改动而失败
+   - [ ] 若有 mock 类，全部已同步新方法（参见 [mock-sync-guide.md](references/mock-sync-guide.md)）
+
+   > **重要**：每次新增或修改命令后，必须执行 `go build -o agentbay .` 重新构建二进制到项目根目录。不要仅用 `go build ./...`（只验证编译不输出文件），否则用户运行 `./agentbay` 时仍是旧版本。
+
+   ⚠️ **隔离原则**：新增命令不得修改其它命令的公共行为。如果必须改公共代码（如 `internal/agentbay/client.go`、`config`、`auth`），必须在 PR/变更档案里明确列出影响范围，并跑完所有相关命令的回归用例。
 
 ### Phase 5: 文档生成
 
 创建对客功能文档（放在 `cli-analysis/` 目录）：
 
 **文档要求**:
+
 - 面向客户，不包含代码实现细节
 - 包含完整的使用示例
 - 参数说明表格
@@ -184,6 +298,7 @@ Test<子命令>Cmd           // 测试子命令
 **⚠️ 重要**: 必须询问用户是否提交，不要自动提交！
 
 提交前展示：
+
 ```bash
 git status
 git diff --stat
@@ -192,6 +307,7 @@ git diff --stat
 询问用户："需要我帮你提交代码吗？"
 
 用户确认后，使用规范的 commit message：
+
 ```bash
 git add -A
 git commit -m "feat: add <功能描述> CLI command
@@ -206,6 +322,7 @@ git commit -m "feat: add <功能描述> CLI command
 ### 代码输出
 
 ✅ **必须包含**:
+
 - [ ] 请求/响应模型文件
 - [ ] SDK 客户端方法（3 个变体 + 解析函数）
 - [ ] 客户端接口定义和实现
@@ -214,6 +331,7 @@ git commit -m "feat: add <功能描述> CLI command
 - [ ] 单元测试文件
 
 ✅ **代码质量**:
+
 - [ ] 编译无错误
 - [ ] 所有测试通过
 - [ ] 参数校验完整
@@ -222,6 +340,7 @@ git commit -m "feat: add <功能描述> CLI command
 ### 文档输出
 
 ✅ **对客文档**（cli-analysis/）:
+
 - [ ] 功能概述
 - [ ] 使用方法（含示例）
 - [ ] 参数说明表格
@@ -233,6 +352,7 @@ git commit -m "feat: add <功能描述> CLI command
 ### Git 提交
 
 ✅ **提交规范**:
+
 - [ ] 询问用户是否提交
 - [ ] 使用 Conventional Commits 格式
 - [ ] 包含详细的 commit body
@@ -263,7 +383,7 @@ git commit -m "feat: add <功能描述> CLI command
 ## ⚠️ 注意事项
 
 1. **Product ID**: CLI 使用 `xiaoying`，不是前端的 `xiaoying-double-centre`
-2. **响应格式**: 后端返回的字段类型可能与预期不同，需要实际测试确认
+2. **响应格式**: 后端返回的字段类型可能与预期不同，需要实际测试确认。数字字段可能被返回为字符串（如 `"HttpStatusCode":"200"`），parser 必须用 `dual_format_responses.go` 中的 `int32FromFlexibleJSON` 容错，绝不直接 `json.Unmarshal` 打到 `*int32`。详见 [references/api-format.md 响应解析容错模板](references/api-format.md#响应解析容错模板必须使用)。
 3. **参数设计**: 始终使用命名参数（`--name`），不使用位置参数
 4. **命令层级**: 相关功能组织为子命令，不要创建顶级命令
 5. **测试覆盖**: 必须有单元测试，且所有测试通过

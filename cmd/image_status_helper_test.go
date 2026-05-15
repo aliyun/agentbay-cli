@@ -104,6 +104,10 @@ func (m *mockGetMcpImageInfoClient) DeleteMcpImage(ctx context.Context, request 
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockGetMcpImageInfoClient) BatchCreateHideResourceGroupsWithMaxSession(ctx context.Context, request *client.BatchCreateHideResourceGroupsWithMaxSessionRequest) (*client.BatchCreateHideResourceGroupsWithMaxSessionResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 var _ agentbay.Client = (*mockGetMcpImageInfoClient)(nil)
 
 func TestInferImageTypeFromImageID(t *testing.T) {

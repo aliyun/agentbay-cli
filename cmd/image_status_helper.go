@@ -176,10 +176,11 @@ func DefaultDeactivatePollingConfig() PollingConfig {
 
 // ImageInfo contains image status and type information
 type ImageInfo struct {
-	ResourceStatus string // IMAGE_AVAILABLE, RESOURCE_PUBLISHED, etc.
-	ImageType      string // User or System
-	OsName         string // Linux, Android, Windows, etc.
-	RequestId      string // Backend request id for debugging
+	ResourceStatus     string // IMAGE_AVAILABLE, RESOURCE_PUBLISHED, etc.
+	ImageType          string // User or System
+	OsName             string // Linux, Android, Windows, etc.
+	RequestId          string // Backend request id for debugging
+	ResourceGroupReady bool   // Whether the resource group is ready after set-max-session
 }
 
 // GetImageInfo retrieves the current status and type for the given image ID
@@ -242,6 +243,11 @@ func GetImageInfo(ctx context.Context, apiClient agentbay.Client, imageId string
 	// Extract OsName from ImageInfo
 	if resp.Body.Data.ImageInfo != nil && resp.Body.Data.ImageInfo.OsName != nil {
 		info.OsName = dara.StringValue(resp.Body.Data.ImageInfo.OsName)
+	}
+
+	// Extract ResourceGroupReady
+	if resp.Body.Data.ResourceGroupReady != nil {
+		info.ResourceGroupReady = dara.BoolValue(resp.Body.Data.ResourceGroupReady)
 	}
 
 	// Match `image list` bucketing when the API omits ImageType on the JSON path
@@ -416,6 +422,83 @@ func pollForStatus(
 		select {
 		case <-timeoutCtx.Done():
 			return fmt.Errorf("%s polling timed out after %v", operationName, time.Since(startTime))
+		case <-time.After(interval):
+			// Exponential backoff with max interval
+			interval = interval * 3 / 2 // 1.5x multiplier
+			if interval > config.MaxInterval {
+				interval = config.MaxInterval
+			}
+		}
+	}
+}
+
+// DefaultSetMaxSessionPollingConfig returns the default polling configuration for set-max-session
+func DefaultSetMaxSessionPollingConfig() PollingConfig {
+	return PollingConfig{
+		MaxAttempts:     60,               // 60 attempts
+		InitialInterval: 5 * time.Second,  // Start with 5 seconds
+		MaxInterval:     30 * time.Second, // Max 30 seconds between polls
+		Timeout:         30 * time.Minute, // 30 minutes total timeout
+	}
+}
+
+// PollForResourceGroupReady polls the image until ResourceGroupReady becomes true
+func PollForResourceGroupReady(ctx context.Context, apiClient agentbay.Client, imageId string, config PollingConfig) error {
+	startTime := time.Now()
+	interval := config.InitialInterval
+	attempts := 0
+
+	// Create a timeout context
+	timeoutCtx, cancel := context.WithTimeout(ctx, config.Timeout)
+	defer cancel()
+
+	for {
+		attempts++
+
+		// Check if we've exceeded max attempts
+		if attempts > config.MaxAttempts {
+			return fmt.Errorf("set-max-session polling exceeded maximum attempts (%d)", config.MaxAttempts)
+		}
+
+		// Check if context is cancelled or timed out
+		select {
+		case <-timeoutCtx.Done():
+			return fmt.Errorf("set-max-session polling timed out after %v", time.Since(startTime))
+		default:
+		}
+
+		// Get current status
+		info, err := GetImageInfo(timeoutCtx, apiClient, imageId)
+		if err != nil {
+			// Don't fail immediately on API errors, continue polling
+		} else {
+			// Print RequestId for every poll iteration so users can trace backend calls
+			if info.RequestId != "" {
+				fmt.Printf("[INFO] GetMcpImageInfo Request ID: %s\n", info.RequestId)
+			}
+
+			// Check if ResourceGroupReady is true
+			if info.ResourceGroupReady {
+				fmt.Printf("[SUCCESS] Resource group is ready! Max session configuration applied.\n")
+				return nil
+			}
+
+			// Check if we've reached a failed state
+			if IsFailed(info.ResourceStatus) {
+				translatedStatus := TranslateImageResourceStatus(info.ResourceStatus)
+				return fmt.Errorf("set-max-session failed with status: %s", translatedStatus)
+			}
+
+			// Update user with current status
+			translatedStatus := TranslateImageResourceStatus(info.ResourceStatus)
+			fmt.Printf("  Status: %s, ResourceGroupReady: %v (elapsed: %v, attempt: %d/%d)\n",
+				translatedStatus, info.ResourceGroupReady, time.Since(startTime).Round(time.Second), attempts, config.MaxAttempts)
+		}
+
+		// Wait before next attempt
+		select {
+		case <-timeoutCtx.Done():
+			return fmt.Errorf("set-max-session polling timed out after %v", time.Since(startTime))
 		case <-time.After(interval):
 			// Exponential backoff with max interval
 			interval = interval * 3 / 2 // 1.5x multiplier

@@ -106,6 +106,7 @@ type GetMcpImageInfoResponseBodyData struct {
 	ImageInfo           *GetMcpImageInfoResponseBodyDataImageInfo      `json:"ImageInfo,omitempty" xml:"ImageInfo,omitempty" type:"Struct"`
 	ImageName           *string                                        `json:"ImageName,omitempty" xml:"ImageName,omitempty"`
 	ImageResourceStatus *string                                        `json:"ImageResourceStatus,omitempty" xml:"ImageResourceStatus,omitempty"`
+	ResourceGroupReady  *bool                                          `json:"ResourceGroupReady,omitempty" xml:"ResourceGroupReady,omitempty"`
 }
 
 func (s GetMcpImageInfoResponseBodyData) String() string {
@@ -144,6 +145,10 @@ func (s *GetMcpImageInfoResponseBodyData) GetImageResourceStatus() *string {
 	return s.ImageResourceStatus
 }
 
+func (s *GetMcpImageInfoResponseBodyData) GetResourceGroupReady() *bool {
+	return s.ResourceGroupReady
+}
+
 func (s *GetMcpImageInfoResponseBodyData) SetImageApplyScene(v string) *GetMcpImageInfoResponseBodyData {
 	s.ImageApplyScene = &v
 	return s
@@ -176,6 +181,11 @@ func (s *GetMcpImageInfoResponseBodyData) SetImageName(v string) *GetMcpImageInf
 
 func (s *GetMcpImageInfoResponseBodyData) SetImageResourceStatus(v string) *GetMcpImageInfoResponseBodyData {
 	s.ImageResourceStatus = &v
+	return s
+}
+
+func (s *GetMcpImageInfoResponseBodyData) SetResourceGroupReady(v bool) *GetMcpImageInfoResponseBodyData {
+	s.ResourceGroupReady = &v
 	return s
 }
 

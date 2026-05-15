@@ -1619,3 +1619,97 @@ func parseModifyMcpApiKeyConfigResponse(res map[string]interface{}) (*ModifyMcpA
 	}
 	return out, nil
 }
+
+// BatchCreateHideResourceGroupsWithMaxSessionWithOptions 为镜像设置最大并发会话数
+func (client *Client) BatchCreateHideResourceGroupsWithMaxSessionWithOptions(request *BatchCreateHideResourceGroupsWithMaxSessionRequest, runtime *dara.RuntimeOptions) (_result *BatchCreateHideResourceGroupsWithMaxSessionResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.ImageId) {
+		query["ImageId"] = request.ImageId
+	}
+	if !dara.IsNil(request.MaxSessionNum) {
+		query["MaxSessionNum"] = request.MaxSessionNum
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("BatchCreateHideResourceGroupsWithMaxSession"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &BatchCreateHideResourceGroupsWithMaxSessionResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseBatchCreateHideResourceGroupsWithMaxSessionResponse(_body)
+	return _result, _err
+}
+
+// BatchCreateHideResourceGroupsWithMaxSession 为镜像设置最大并发会话数（简便方法）
+func (client *Client) BatchCreateHideResourceGroupsWithMaxSession(request *BatchCreateHideResourceGroupsWithMaxSessionRequest) (_result *BatchCreateHideResourceGroupsWithMaxSessionResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	return client.BatchCreateHideResourceGroupsWithMaxSessionWithOptions(request, runtime)
+}
+
+// BatchCreateHideResourceGroupsWithMaxSessionWithContext 为镜像设置最大并发会话数，支持 context
+func (client *Client) BatchCreateHideResourceGroupsWithMaxSessionWithContext(ctx context.Context, request *BatchCreateHideResourceGroupsWithMaxSessionRequest, runtime *dara.RuntimeOptions) (_result *BatchCreateHideResourceGroupsWithMaxSessionResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.ImageId) {
+		query["ImageId"] = request.ImageId
+	}
+	if !dara.IsNil(request.MaxSessionNum) {
+		query["MaxSessionNum"] = request.MaxSessionNum
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("BatchCreateHideResourceGroupsWithMaxSession"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &BatchCreateHideResourceGroupsWithMaxSessionResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseBatchCreateHideResourceGroupsWithMaxSessionResponse(_body)
+	return _result, _err
+}

@@ -44,6 +44,8 @@ type Client interface {
 	ModifyMcpPolicyData(ctx context.Context, request *client.CreateModifyMcpPolicyDataRequest) (*client.ModifyMcpPolicyDataResponse, error)
 	// Network Packages
 	DescribeNetworkPackages(ctx context.Context, request *client.DescribeNetworkPackagesRequest) (*client.DescribeNetworkPackagesResponse, error)
+	// Resource Group Max Session
+	BatchCreateHideResourceGroupsWithMaxSession(ctx context.Context, request *client.BatchCreateHideResourceGroupsWithMaxSessionRequest) (*client.BatchCreateHideResourceGroupsWithMaxSessionResponse, error)
 }
 
 // clientWrapper wraps the generated SDK client with additional functionality
@@ -307,4 +309,13 @@ func (cw *clientWrapper) DescribeNetworkPackages(ctx context.Context, request *c
 		return nil, err
 	}
 	return sdkClient.DescribeNetworkPackagesWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// BatchCreateHideResourceGroupsWithMaxSession wraps the SDK client method
+func (cw *clientWrapper) BatchCreateHideResourceGroupsWithMaxSession(ctx context.Context, request *client.BatchCreateHideResourceGroupsWithMaxSessionRequest) (*client.BatchCreateHideResourceGroupsWithMaxSessionResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.BatchCreateHideResourceGroupsWithMaxSessionWithContext(ctx, request, cw.getRuntimeOptions())
 }
