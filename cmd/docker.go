@@ -263,6 +263,7 @@ func runDockerLogin(cobraCmd *cobra.Command, args []string) error {
 	}
 
 	// 4. Execute: echo "$AuthorizationToken" | docker login $RegistryUrl -u "$TempUsername" --password-stdin
+	fmt.Println("[DOCKER LOGIN] Logging in via 'docker'...")
 	dockerCmd := exec.Command("docker", "login", registryURL, "-u", tempUsername, "--password-stdin")
 	dockerCmd.Stdin = strings.NewReader(authToken)
 	dockerCmd.Stdout = os.Stdout
@@ -270,6 +271,20 @@ func runDockerLogin(cobraCmd *cobra.Command, args []string) error {
 
 	if err := dockerCmd.Run(); err != nil {
 		return fmt.Errorf("docker login failed: %w", err)
+	}
+
+	// Also try: echo "$AuthorizationToken" | sudo -n docker login $RegistryUrl -u "$TempUsername" --password-stdin
+	// Compatible with rootful docker daemon. Failure here is non-fatal.
+	if _, lookErr := exec.LookPath("sudo"); lookErr == nil {
+		fmt.Println("[DOCKER LOGIN] Logging in via 'sudo docker'...")
+		sudoDockerCmd := exec.Command("sudo", "-n", "docker", "login", registryURL, "-u", tempUsername, "--password-stdin")
+		sudoDockerCmd.Stdin = strings.NewReader(authToken)
+		sudoDockerCmd.Stdout = os.Stdout
+		sudoDockerCmd.Stderr = os.Stderr
+
+		if err := sudoDockerCmd.Run(); err != nil {
+			fmt.Fprintf(os.Stderr, "[WARN] sudo docker login failed (skipped): %v\n", err)
+		}
 	}
 
 	fmt.Println()
