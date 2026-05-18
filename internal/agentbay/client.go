@@ -34,6 +34,8 @@ type Client interface {
 	// API Key
 	CreateApiKey(ctx context.Context, request *client.CreateApiKeyRequest) (*client.CreateApiKeyResponse, error)
 	ModifyMcpApiKeyConfig(ctx context.Context, request *client.ModifyMcpApiKeyConfigRequest) (*client.ModifyMcpApiKeyConfigResponse, error)
+	DescribeMcpApiKey(ctx context.Context, request *client.DescribeMcpApiKeyRequest) (*client.DescribeMcpApiKeyResponse, error)
+	ModifyApiKeyStatus(ctx context.Context, request *client.ModifyApiKeyStatusRequest) (*client.ModifyApiKeyStatusResponse, error)
 	// Advanced Network
 	DescribeInstanceTypes(ctx context.Context, request *client.DescribeInstanceTypesRequest) (*client.DescribeInstanceTypesResponse, error)
 	DescribeMcpPolicyData(ctx context.Context, request *client.DescribeMcpPolicyDataRequest) (*client.DescribeMcpPolicyDataResponse, error)
@@ -318,4 +320,22 @@ func (cw *clientWrapper) BatchCreateHideResourceGroupsWithMaxSession(ctx context
 		return nil, err
 	}
 	return sdkClient.BatchCreateHideResourceGroupsWithMaxSessionWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// DescribeMcpApiKey wraps the SDK client method
+func (cw *clientWrapper) DescribeMcpApiKey(ctx context.Context, request *client.DescribeMcpApiKeyRequest) (*client.DescribeMcpApiKeyResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.DescribeMcpApiKeyWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// ModifyApiKeyStatus wraps the SDK client method
+func (cw *clientWrapper) ModifyApiKeyStatus(ctx context.Context, request *client.ModifyApiKeyStatusRequest) (*client.ModifyApiKeyStatusResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.ModifyApiKeyStatusWithContext(ctx, request, cw.getRuntimeOptions())
 }

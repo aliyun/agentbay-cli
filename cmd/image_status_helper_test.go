@@ -108,6 +108,14 @@ func (m *mockGetMcpImageInfoClient) BatchCreateHideResourceGroupsWithMaxSession(
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockGetMcpImageInfoClient) DescribeMcpApiKey(ctx context.Context, request *client.DescribeMcpApiKeyRequest) (*client.DescribeMcpApiKeyResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockGetMcpImageInfoClient) ModifyApiKeyStatus(ctx context.Context, request *client.ModifyApiKeyStatusRequest) (*client.ModifyApiKeyStatusResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 var _ agentbay.Client = (*mockGetMcpImageInfoClient)(nil)
 
 func TestInferImageTypeFromImageID(t *testing.T) {

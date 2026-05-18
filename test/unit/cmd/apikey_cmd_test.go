@@ -22,7 +22,7 @@ func TestApiKeyCmd(t *testing.T) {
 		assert.True(t, strings.Contains(cmd.ApiKeyCmd.Long, "API keys"))
 	})
 
-	t.Run("apikey has subcommands create and concurrency", func(t *testing.T) {
+	t.Run("apikey has subcommands create, concurrency, enable, and disable", func(t *testing.T) {
 		children := cmd.ApiKeyCmd.Commands()
 		names := make([]string, len(children))
 		for i, c := range children {
@@ -30,6 +30,8 @@ func TestApiKeyCmd(t *testing.T) {
 		}
 		assert.Contains(t, names, "create")
 		assert.Contains(t, names, "concurrency")
+		assert.Contains(t, names, "enable")
+		assert.Contains(t, names, "disable")
 	})
 }
 
@@ -42,7 +44,7 @@ func TestApiKeyCreateCmd(t *testing.T) {
 				break
 			}
 		}
-		
+
 		assert.NotNil(t, createCmd)
 		assert.Equal(t, "create", createCmd.Use)
 		assert.Equal(t, "Create a new API key", createCmd.Short)
@@ -57,9 +59,9 @@ func TestApiKeyCreateCmd(t *testing.T) {
 				break
 			}
 		}
-		
+
 		assert.NotNil(t, createCmd)
-		
+
 		nameFlag := createCmd.Flags().Lookup("name")
 		assert.NotNil(t, nameFlag)
 		assert.Equal(t, "", nameFlag.DefValue)
@@ -74,9 +76,9 @@ func TestApiKeyCreateCmd(t *testing.T) {
 				break
 			}
 		}
-		
+
 		assert.NotNil(t, createCmd)
-		
+
 		// Test that the RunE function checks for required flag
 		createCmd.SetArgs([]string{})
 		// Don't execute, just verify the flag is marked as required
@@ -96,7 +98,7 @@ func TestApiKeyConcurrencyCmd(t *testing.T) {
 				break
 			}
 		}
-		
+
 		assert.NotNil(t, concurrencyCmd)
 		assert.Equal(t, "concurrency", concurrencyCmd.Use)
 		assert.Equal(t, "Manage API key concurrency settings", concurrencyCmd.Short)
@@ -110,15 +112,81 @@ func TestApiKeyConcurrencyCmd(t *testing.T) {
 				break
 			}
 		}
-		
+
 		assert.NotNil(t, concurrencyCmd)
-		
+
 		children := concurrencyCmd.Commands()
 		names := make([]string, len(children))
 		for i, c := range children {
 			names[i] = c.Name()
 		}
 		assert.Contains(t, names, "set")
+	})
+}
+
+func TestApiKeyEnableCmd(t *testing.T) {
+	t.Run("enable command has correct metadata", func(t *testing.T) {
+		var enableCmd *cobra.Command
+		for _, c := range cmd.ApiKeyCmd.Commands() {
+			if c.Name() == "enable" {
+				enableCmd = c
+				break
+			}
+		}
+
+		assert.NotNil(t, enableCmd)
+		assert.Equal(t, "enable <api-key>", enableCmd.Use)
+		assert.Equal(t, "Enable an API key", enableCmd.Short)
+		assert.True(t, strings.Contains(enableCmd.Long, "akm-"))
+	})
+
+	t.Run("enable command uses positional argument", func(t *testing.T) {
+		var enableCmd *cobra.Command
+		for _, c := range cmd.ApiKeyCmd.Commands() {
+			if c.Name() == "enable" {
+				enableCmd = c
+				break
+			}
+		}
+
+		assert.NotNil(t, enableCmd)
+		assert.Contains(t, enableCmd.Use, "<api-key>")
+		// No --api-key flag; the key is a positional argument
+		apiKeyFlag := enableCmd.Flags().Lookup("api-key")
+		assert.Nil(t, apiKeyFlag)
+	})
+}
+
+func TestApiKeyDisableCmd(t *testing.T) {
+	t.Run("disable command has correct metadata", func(t *testing.T) {
+		var disableCmd *cobra.Command
+		for _, c := range cmd.ApiKeyCmd.Commands() {
+			if c.Name() == "disable" {
+				disableCmd = c
+				break
+			}
+		}
+
+		assert.NotNil(t, disableCmd)
+		assert.Equal(t, "disable <api-key>", disableCmd.Use)
+		assert.Equal(t, "Disable an API key", disableCmd.Short)
+		assert.True(t, strings.Contains(disableCmd.Long, "akm-"))
+	})
+
+	t.Run("disable command uses positional argument", func(t *testing.T) {
+		var disableCmd *cobra.Command
+		for _, c := range cmd.ApiKeyCmd.Commands() {
+			if c.Name() == "disable" {
+				disableCmd = c
+				break
+			}
+		}
+
+		assert.NotNil(t, disableCmd)
+		assert.Contains(t, disableCmd.Use, "<api-key>")
+		// No --api-key flag; the key is a positional argument
+		apiKeyFlag := disableCmd.Flags().Lookup("api-key")
+		assert.Nil(t, apiKeyFlag)
 	})
 }
 
@@ -131,9 +199,9 @@ func TestApiKeyConcurrencySetCmd(t *testing.T) {
 				break
 			}
 		}
-		
+
 		assert.NotNil(t, concurrencyCmd)
-		
+
 		var setCmd *cobra.Command
 		for _, c := range concurrencyCmd.Commands() {
 			if c.Name() == "set" {
@@ -141,7 +209,7 @@ func TestApiKeyConcurrencySetCmd(t *testing.T) {
 				break
 			}
 		}
-		
+
 		assert.NotNil(t, setCmd)
 		assert.Equal(t, "set", setCmd.Use)
 		assert.Equal(t, "Set the concurrency limit for an API key", setCmd.Short)
@@ -156,9 +224,9 @@ func TestApiKeyConcurrencySetCmd(t *testing.T) {
 				break
 			}
 		}
-		
+
 		assert.NotNil(t, concurrencyCmd)
-		
+
 		var setCmd *cobra.Command
 		for _, c := range concurrencyCmd.Commands() {
 			if c.Name() == "set" {
@@ -166,14 +234,14 @@ func TestApiKeyConcurrencySetCmd(t *testing.T) {
 				break
 			}
 		}
-		
+
 		assert.NotNil(t, setCmd)
-		
+
 		apiKeyIdFlag := setCmd.Flags().Lookup("api-key-id")
 		assert.NotNil(t, apiKeyIdFlag)
 		assert.Equal(t, "", apiKeyIdFlag.DefValue)
 		assert.True(t, strings.Contains(apiKeyIdFlag.Usage, "required"))
-		
+
 		concurrencyFlag := setCmd.Flags().Lookup("concurrency")
 		assert.NotNil(t, concurrencyFlag)
 		assert.Equal(t, "0", concurrencyFlag.DefValue)
@@ -188,9 +256,9 @@ func TestApiKeyConcurrencySetCmd(t *testing.T) {
 				break
 			}
 		}
-		
+
 		assert.NotNil(t, concurrencyCmd)
-		
+
 		var setCmd *cobra.Command
 		for _, c := range concurrencyCmd.Commands() {
 			if c.Name() == "set" {
@@ -198,14 +266,14 @@ func TestApiKeyConcurrencySetCmd(t *testing.T) {
 				break
 			}
 		}
-		
+
 		assert.NotNil(t, setCmd)
-		
+
 		// Verify flags are marked as required
 		apiKeyIdFlag := setCmd.Flags().Lookup("api-key-id")
 		assert.NotNil(t, apiKeyIdFlag)
 		assert.Equal(t, "", apiKeyIdFlag.DefValue)
-		
+
 		concurrencyFlag := setCmd.Flags().Lookup("concurrency")
 		assert.NotNil(t, concurrencyFlag)
 		assert.Equal(t, "0", concurrencyFlag.DefValue)

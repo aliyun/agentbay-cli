@@ -826,3 +826,149 @@ func parseGetDockerfileTemplateResponse(res map[string]interface{}) (*GetDockerf
 	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
 	return out, nil
 }
+
+// --- DescribeMcpApiKey ---
+
+type describeMcpApiKeyJSONWire struct {
+	Code           *string         `json:"Code"`
+	Data           json.RawMessage `json:"Data"`
+	HttpStatusCode json.RawMessage `json:"HttpStatusCode"`
+	Message        *string         `json:"Message"`
+	RequestId      *string         `json:"RequestId"`
+	Success        *bool           `json:"Success"`
+}
+
+type xmlDescribeMcpApiKeyResponse struct {
+	XMLName        xml.Name `xml:"DescribeMcpApiKeyResponse"`
+	RequestId      string   `xml:"RequestId"`
+	HttpStatusCode string   `xml:"HttpStatusCode"`
+	Code           string   `xml:"Code"`
+	Success        bool     `xml:"Success"`
+	Message        string   `xml:"Message"`
+	Data           struct {
+		Status   string `xml:"Status"`
+		ApiKeyId string `xml:"ApiKeyId"`
+		Name     string `xml:"Name"`
+		AliUid   string `xml:"AliUid"`
+	} `xml:"Data"`
+}
+
+func parseDescribeMcpApiKeyResponse(res map[string]interface{}) (*DescribeMcpApiKeyResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &DescribeMcpApiKeyResponse{Headers: make(map[string]*string)}
+	parsed := &DescribeMcpApiKeyResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xr xmlDescribeMcpApiKeyResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = dara.String(xr.Code)
+			parsed.RequestId = dara.String(xr.RequestId)
+			parsed.Success = dara.Bool(xr.Success)
+			parsed.Message = dara.String(xr.Message)
+			if s := strings.TrimSpace(xr.HttpStatusCode); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					parsed.HttpStatusCode = dara.Int32(int32(n))
+				}
+			}
+			parsed.Data = &DescribeMcpApiKeyResponseBodyData{
+				Status:   dara.String(xr.Data.Status),
+				ApiKeyId: dara.String(xr.Data.ApiKeyId),
+				Name:     dara.String(xr.Data.Name),
+				AliUid:   dara.String(xr.Data.AliUid),
+			}
+		} else {
+			var wire describeMcpApiKeyJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = wire.Code
+			parsed.Message = wire.Message
+			parsed.RequestId = wire.RequestId
+			parsed.Success = wire.Success
+			n, derr := int32FromFlexibleJSON(wire.HttpStatusCode)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: fmt.Errorf("HttpStatusCode: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.HttpStatusCode = n
+			if len(wire.Data) > 0 && string(wire.Data) != "null" {
+				var data DescribeMcpApiKeyResponseBodyData
+				if err := json.Unmarshal(wire.Data, &data); err != nil {
+					return nil, &ErrWithRequestID{Err: fmt.Errorf("Data: %w", err), RequestID: extractRequestIDFromResponse(res)}
+				}
+				parsed.Data = &data
+			}
+		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
+
+// --- ModifyApiKeyStatus ---
+
+type modifyApiKeyStatusJSONWire struct {
+	Code           *string         `json:"Code"`
+	Message        *string         `json:"Message"`
+	RequestId      *string         `json:"RequestId"`
+	HttpStatusCode json.RawMessage `json:"HttpStatusCode"`
+	Success        *bool           `json:"Success"`
+}
+
+type xmlModifyApiKeyStatusResponse struct {
+	XMLName        xml.Name `xml:"ModifyApiKeyStatusResponse"`
+	RequestId      string   `xml:"RequestId"`
+	HttpStatusCode string   `xml:"HttpStatusCode"`
+	Code           string   `xml:"Code"`
+	Success        bool     `xml:"Success"`
+	Message        string   `xml:"Message"`
+}
+
+func parseModifyApiKeyStatusResponse(res map[string]interface{}) (*ModifyApiKeyStatusResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &ModifyApiKeyStatusResponse{Headers: make(map[string]*string)}
+	parsed := &ModifyApiKeyStatusResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xr xmlModifyApiKeyStatusResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = dara.String(xr.Code)
+			parsed.RequestId = dara.String(xr.RequestId)
+			parsed.Success = dara.Bool(xr.Success)
+			parsed.Message = dara.String(xr.Message)
+			if s := strings.TrimSpace(xr.HttpStatusCode); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					parsed.HttpStatusCode = dara.Int32(int32(n))
+				}
+			}
+		} else {
+			var wire modifyApiKeyStatusJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = wire.Code
+			parsed.Message = wire.Message
+			parsed.RequestId = wire.RequestId
+			parsed.Success = wire.Success
+			n, derr := int32FromFlexibleJSON(wire.HttpStatusCode)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: fmt.Errorf("HttpStatusCode: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.HttpStatusCode = n
+		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
