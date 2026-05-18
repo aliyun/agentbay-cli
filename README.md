@@ -1,153 +1,470 @@
 # AgentBay CLI
 
+[中文版](README.zh-CN.md) | **English**
+
 A command-line interface for AgentBay services.
 
-## Features
+---
 
-AgentBay CLI provides image management, API key management, network management, and skills management:
+## Overview
 
-**Note**: The current version of the CLI tool supports creating and activating CodeSpace type images only.
+AgentBay CLI is a Cobra-based command-line tool that talks to AgentBay services through Alibaba Cloud OpenAPI. It provides:
 
-- **Authentication**: OAuth login with Aliyun, or AccessKey via environment variables (`AGENTBAY_ACCESS_KEY_ID` / `AGENTBAY_ACCESS_KEY_SECRET`) for automation and CI
-- **Dockerfile Template**: Download Dockerfile templates from the cloud
-- **Image Creation**: Build custom images from Dockerfiles with base image support; automatically parses and uploads COPY/ADD referenced files
-- **Image Management**: Activate, deactivate, delete, and monitor image instances with configurable resource specifications (CPU/memory) and network types
-- **Image Listing**: Browse user and system images with separated display, pagination and filtering support
-- **Image Status**: Query resource lifecycle status for an image by ID (`agentbay image status`)
-- **API Key Management**: Create API keys, enable/disable/delete keys, and configure session concurrency limits for authentication and access control
-- **Network Management**: Query network packages by region, view package details including EIP addresses and office site bindings
-- **Skills**: Push local skills and show skill details by ID (`skills list` is a placeholder until the backend list API is available)
-- **Configuration Management**: Secure token storage and automatic token refresh
+- **Image Management** — create, list, activate / deactivate / delete custom images, query lifecycle status, and configure session concurrency
+- **API Key Management** — create / enable / disable / delete keys, set per-key concurrency limits
+- **Network Management** — query network packages and EIP bindings by region
+- **Skills Management** — push local skills and inspect details by ID
+- **Docker Operations** — log in to ACR, tag and push images for AgentBay
+- **Authentication** — AccessKey / STS environment variables (recommended), or OAuth login for local development
+- **Configuration** — secure token storage, automatic token refresh, multi-environment support
+
+> The current CLI version supports creating and activating **CodeSpace** type images only.
+
+---
+
+## Installation
+
+Pre-built binaries are available under `bin/` and `packages/`. On macOS / Linux you can also install via Homebrew tap (see `homebrew/agentbay.rb`).
+
+```bash
+# Verify installation
+agentbay version
+```
+
+---
+
+## Authentication
+
+The CLI supports three authentication methods. **AccessKey or STS is the recommended method for production scripts and CI/CD.**
+
+> Priority: `AGENTBAY_ACCESS_KEY_ID` / `AGENTBAY_ACCESS_KEY_SECRET` env vars > OAuth tokens stored locally.
+
+### 1. AccessKey (Recommended)
+
+Set the following environment variables. This is the preferred method for automation, scripts, and CI/CD:
+
+```bash
+export AGENTBAY_ACCESS_KEY_ID="your-access-key-id"
+export AGENTBAY_ACCESS_KEY_SECRET="your-access-key-secret"
+```
+
+### 2. STS Temporary Credentials (Recommended for short-lived sessions)
+
+For STS (Security Token Service) temporary credentials, set the session token in addition to the AK/SK pair:
+
+```bash
+export AGENTBAY_ACCESS_KEY_ID="STS.xxx"
+export AGENTBAY_ACCESS_KEY_SECRET="your-sts-secret"
+export AGENTBAY_ACCESS_KEY_SESSION_TOKEN="your-sts-session-token"
+```
+
+### 3. OAuth Login (Deprecated — not recommended)
+
+> WARNING: `agentbay login` is **deprecated and will be removed in a future release**. Please use AccessKey or STS instead.
+
+```bash
+agentbay login    # Opens a browser for OAuth login
+agentbay logout   # Invalidate session and clear local credentials
+```
+
+---
+
+## Environment Variables
+
+All AgentBay CLI environment variables are optional unless noted otherwise.
+
+### How to Set Environment Variables
+
+**Method 1: Export in current session** (lost when terminal closes)
+
+```bash
+export AGENTBAY_ACCESS_KEY_ID="your-access-key-id"
+export AGENTBAY_ACCESS_KEY_SECRET="your-access-key-secret"
+```
+
+**Method 2: `.env` file in the working directory** (recommended for project-scoped configuration)
+
+The CLI automatically loads `.env` from the current working directory on startup (via `godotenv`). Create a `.env` file:
+
+```dotenv
+AGENTBAY_ACCESS_KEY_ID=your-access-key-id
+AGENTBAY_ACCESS_KEY_SECRET=your-access-key-secret
+AGENTBAY_ENV=production
+```
+
+> Do **not** commit `.env` to version control — add it to `.gitignore`.
+
+**Method 3: Shell profile** (persists across all terminal sessions)
+
+Append to `~/.bashrc`, `~/.zshrc`, or equivalent:
+
+```bash
+export AGENTBAY_ACCESS_KEY_ID="your-access-key-id"
+export AGENTBAY_ACCESS_KEY_SECRET="your-access-key-secret"
+```
+
+Then reload: `source ~/.zshrc` (or open a new terminal).
+
+**Method 4: Inline per command**
+
+```bash
+AGENTBAY_ENV=prerelease agentbay image list
+```
+
+### Authentication
+
+| Variable                            | Description                                                  |
+| ----------------------------------- | ------------------------------------------------------------ |
+| `AGENTBAY_ACCESS_KEY_ID`            | AccessKey ID (or STS Token ID prefixed with `STS.`)          |
+| `AGENTBAY_ACCESS_KEY_SECRET`        | AccessKey Secret (or STS secret)                             |
+| `AGENTBAY_ACCESS_KEY_SESSION_TOKEN` | STS session token (only required when using STS credentials) |
+
+### Environment Selection
+
+| Variable       | Default      | Allowed values                                                                                                                             |
+| -------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `AGENTBAY_ENV` | `production` | `production` / `prod`, `prerelease` / `pre` / `staging`, `international` / `intl` / `prod-international`, `international-pre` / `intl-pre` |
+
+```bash
+# Switch to pre-release
+export AGENTBAY_ENV=prerelease
+# Switch to international production
+export AGENTBAY_ENV=international
+```
+
+Endpoints per environment:
+
+| Environment         | Endpoint                                   |
+| ------------------- | ------------------------------------------ |
+| `production`        | `xiaoying.cn-shanghai.aliyuncs.com`        |
+| `prerelease`        | `xiaoying-pre.cn-hangzhou.aliyuncs.com`    |
+| `international`     | `xiaoying.ap-southeast-1.aliyuncs.com`     |
+| `international-pre` | `xiaoying-pre.ap-southeast-1.aliyuncs.com` |
+
+### Advanced Configuration
+
+| Variable                   | Description                                                                 |
+| -------------------------- | --------------------------------------------------------------------------- |
+| `AGENTBAY_CLI_ENDPOINT`    | Override the default API endpoint for the current environment               |
+| `AGENTBAY_CLI_TIMEOUT_MS`  | API request timeout in milliseconds                                         |
+| `AGENTBAY_CLI_CONFIG_DIR`  | Override the default config directory (default: `~/.agentbay`)              |
+| `AGENTBAY_OAUTH_CLIENT_ID` | Override the default OAuth client ID (only relevant for `agentbay login`)   |
+| `AGENTBAY_OAUTH_REGION`    | Override the OAuth region (`cn` or `intl`)                                  |
+| `AGENTBAY_API_URL`         | _(Legacy)_ Same as `AGENTBAY_CLI_ENDPOINT`, kept for backward compatibility |
+
+---
+
+## Command Reference
+
+Run `agentbay --help` to discover commands. Commands are organised into two groups: **Core Commands** and **Management Commands**.
+
+### Core Commands
+
+#### `agentbay version`
+
+Show version, git commit, build date, current environment and endpoint.
+
+```bash
+agentbay version
+```
+
+#### `agentbay logout`
+
+Log out from AgentBay (invalidate the OAuth session on the server and clear local credentials).
+
+```bash
+agentbay logout
+```
+
+#### `agentbay login` _(deprecated — will be removed in a future release)_
+
+See [Authentication](#authentication).
+
+---
+
+### Image Management — `agentbay image`
+
+#### `image list`
+
+List available AgentBay images.
+
+```bash
+agentbay image list                      # User images (default)
+agentbay image list --include-system     # User + system images
+agentbay image list --system-only        # System images only
+agentbay image list --os-type Linux      # Filter by OS type: Linux / Android / Windows
+agentbay image list --page 2 --size 5    # Pagination
+```
+
+#### `image init`
+
+Download a Dockerfile template from the cloud to the current directory.
+
+```bash
+agentbay image init --sourceImageId code-space-debian-12
+agentbay image init -i code-space-debian-12
+```
+
+> The first N lines of the downloaded Dockerfile are system-defined and must not be modified. Only edit content after line N+1.
+
+Available `sourceImageId` values for production:
+
+- `code-space-debian-12`
+- `code-space-debian-12-enhanced`
+
+#### `image create` _(deprecated — use `create-from-template` instead)_
+
+> WARNING: `image create` is **deprecated and will be removed in a future release**. To create a custom image, please use [`agentbay image create-from-template`](#image-create-from-template) instead.
+
+Build a custom image from a Dockerfile. Files referenced by `COPY` / `ADD` are parsed and uploaded automatically.
+
+```bash
+agentbay image create myapp --dockerfile ./Dockerfile --imageId code-space-debian-12
+agentbay image create myapp -f ./Dockerfile -i code-space-debian-12
+```
+
+#### `image create-from-template`
+
+Create a custom image from a system image template (calls the `CreateImageFromTemplate` API).
+
+```bash
+agentbay image create-from-template \
+  --source-image registry.cn-hangzhou.aliyuncs.com/myrepo/myimage:v1.0 \
+  --name my-custom-image \
+  --imageId <system-image-id>
+
+# Short form
+agentbay image create-from-template -s registry.cn-hangzhou.aliyuncs.com/myrepo/myimage:v1.0 -n my-custom-image -i <system-image-id>
+```
+
+#### `image activate`
+
+Activate a User image so it can be used.
+
+```bash
+# Default resources
+agentbay image activate imgc-xxxxxxxxxxxxxx
+
+# Specific CPU and memory (must be specified together)
+agentbay image activate imgc-xxxxxxxxxxxxxx --cpu 2 --memory 4
+
+# Advanced network
+agentbay image activate imgc-xxxxxxxxxxxxxx \
+  --network-type ADVANCED \
+  --session-bandwidth 100 \
+  --dns-address 8.8.8.8 \
+  --dns-address 8.8.4.4
+
+# Sandbox lifecycle
+agentbay image activate imgc-xxxxxxxxxxxxxx \
+  --lifecycle-mode auto \
+  --lifecycle-max-runtime 3600 \
+  --lifecycle-hibernate 1800 \
+  --lifecycle-idle-timeout 600
+
+# Specify region
+agentbay image activate imgc-xxxxxxxxxxxxxx --region-id cn-shanghai
+```
+
+Notes:
+
+- `--cpu` and `--memory` must be specified together.
+- `--network-type ADVANCED` requires `--session-bandwidth` and `--dns-address`.
+- `--lifecycle-mode` accepts `auto` or `manual`.
+
+#### `image deactivate`
+
+Deactivate an activated User image.
+
+```bash
+agentbay image deactivate imgc-xxxxxxxxxxxxxx
+```
+
+#### `image delete`
+
+Delete a User image **permanently**. Only deactivated User images can be deleted.
+
+```bash
+agentbay image delete imgc-xxxxxxxxxxxxxx          # With confirmation
+agentbay image delete imgc-xxxxxxxxxxxxxx --yes    # Skip confirmation (CI / scripts)
+```
+
+#### `image status`
+
+Query the resource lifecycle status of an image (different from the Docker build task status during `image create`).
+
+```bash
+agentbay image status imgc-xxxxxxxxxxxxxx
+```
+
+Common statuses: `IMAGE_CREATING`, `IMAGE_CREATE_FAILED`, `IMAGE_AVAILABLE`, `RESOURCE_DEPLOYING`, `RESOURCE_PUBLISHED`, `RESOURCE_DELETING`, `RESOURCE_FAILED`, `RESOURCE_CEASED`.
+
+#### `image set-max-session`
+
+Set the maximum concurrent session count for an activated User image. Requires the image to be in `RESOURCE_PUBLISHED` state and use **advanced network**.
+
+```bash
+agentbay image set-max-session --image-id imgc-xxxxxxxxxxxxxx --max-session-num 10
+```
+
+> The command polls until the resource group is ready (typically ~5 minutes).
+
+---
+
+### API Key Management — `agentbay apikey`
+
+> API key creation requires account real-name verification. Each API key must have a unique name.
+
+#### `apikey create`
+
+Create a new API key.
+
+```bash
+agentbay apikey create --name "my-api-key"
+```
+
+#### `apikey enable`
+
+Re-enable a disabled API key.
+
+```bash
+agentbay apikey enable akm-xxxxxxxxxxxxxxxx
+```
+
+#### `apikey disable`
+
+Disable an API key (it can no longer authenticate requests).
+
+```bash
+agentbay apikey disable akm-xxxxxxxxxxxxxxxx
+```
+
+#### `apikey delete`
+
+Delete an API key permanently. Only `DISABLED` keys can be deleted directly; if the key is `ENABLED` you will be prompted to disable it first.
+
+```bash
+agentbay apikey delete akm-xxxxxxxxxxxxxxxx          # Interactive (with confirmation)
+agentbay apikey delete akm-xxxxxxxxxxxxxxxx --yes    # Skip all prompts (CI / scripts)
+```
+
+#### `apikey concurrency set`
+
+Set the maximum concurrent session limit for an API key.
+
+```bash
+agentbay apikey concurrency set --api-key-id ak-xxx --concurrency 10
+```
+
+---
+
+### Network Management — `agentbay network`
+
+#### `network package list`
+
+List network packages for a region.
+
+```bash
+agentbay network package list                              # Default region: cn-hangzhou
+agentbay network package list --biz-region-id cn-shanghai  # Custom region
+```
+
+---
+
+### Skills Management — `agentbay skills`
+
+#### `skills push`
+
+Push a local skill (directory or `.zip`) to the cloud. A directory must contain `SKILL.md` with `name` / `description` frontmatter; a directory is packed into a zip and uploaded.
+
+```bash
+agentbay skills push ./my-skill
+agentbay skills push ./my-skill.zip
+```
+
+#### `skills show`
+
+Show skill details by ID.
+
+```bash
+agentbay skills show <skill-id>
+```
+
+#### `skills list` _(placeholder)_
+
+Lists cloud skills. Backend list API is not yet available; this command currently acts as a placeholder.
+
+---
+
+### Docker Operations — `agentbay docker`
+
+These commands wrap the local `docker` CLI to interact with the AgentBay ACR registry.
+
+#### `docker login`
+
+Log in to the AgentBay ACR registry using temporary credentials obtained from the `GetACRRepoCredential` API. The credential info (`RegistryUrl`, `Namespace`, `RepoName`, `ImageTag`) is cached for `tag` / `push`.
+
+```bash
+agentbay docker login
+```
+
+#### `docker tag`
+
+Tag a local image for the AgentBay ACR registry. The target image name is constructed as `$RegistryUrl/$Namespace/$RepoName:<target-tag>`.
+
+```bash
+agentbay docker tag myapp:latest v1.0
+```
+
+> Run `agentbay docker login` first.
+
+#### `docker push`
+
+Push a tagged image to the AgentBay ACR registry. The image name must match `$RegistryUrl/$Namespace/$RepoName[:tag]`; mismatched names are rejected.
+
+```bash
+agentbay docker push <registry>/<namespace>/<repo>:v1.0
+```
+
+> Run `agentbay docker login` first.
+
+---
 
 ## Quick Start
 
-```bash
-# 1. Authenticate (pick one)
-agentbay login
-# Or set AGENTBAY_ACCESS_KEY_ID and AGENTBAY_ACCESS_KEY_SECRET (optional: AGENTBAY_ACCESS_KEY_SESSION_TOKEN for STS)
-
-# 2. List available images
-agentbay image list                    # List user images (default)
-agentbay image list --include-system   # List both user and system images
-agentbay image list --system-only      # List only system images
-
-# 3. Download Dockerfile template
-agentbay image init --sourceImageId code-space-debian-12    # Download Dockerfile template to current directory
-# Or use short form:
-agentbay image init -i code-space-debian-12
-
-# 4. Create a custom image (using system image as base)
-agentbay image create myapp --dockerfile ./Dockerfile --imageId code-space-debian-12
-
-# 5. Activate the image (uses default resources; specify --cpu/--memory for other sizes)
-agentbay image activate imgc-xxxxx...xxx
-
-# Activate with specific CPU and memory
-agentbay image activate imgc-xxxxx...xxx --cpu 2 --memory 4
-
-# Activate with advanced network configuration
-agentbay image activate imgc-xxxxx...xxx --network-type ADVANCED --session-bandwidth 100 --dns-address 8.8.8.8 --dns-address 8.8.4.4
-
-# Activate with sandbox lifecycle parameters
-agentbay image activate imgc-xxxxx...xxx --lifecycle-mode auto --lifecycle-max-runtime 3600 --lifecycle-hibernate 1800 --lifecycle-idle-timeout 600
-
-# Activate with a specific region
-agentbay image activate imgc-xxxxx...xxx --region-id cn-shanghai
-
-# 6. Deactivate when done
-agentbay image deactivate imgc-xxxxx...xxx
-
-# 7. Delete an image permanently (irreversible, only for deactivated User images)
-agentbay image delete imgc-xxxxx...xxx
-agentbay image delete imgc-xxxxx...xxx --yes  # Skip confirmation (for scripts/CI)
-
-# Optional: check resource status (activate/deactivate lifecycle, not Docker build task)
-agentbay image status imgc-xxxxx...xxx
-
-# API Key Management (optional)
-agentbay apikey create --name "my-api-key"                        # Create a new API key
-agentbay apikey enable "akm-xxx"                        # Enable a disabled API key
-agentbay apikey disable "akm-xxx"                       # Disable an API key
-agentbay apikey delete "akm-xxx"                        # Delete an API key (must be DISABLED; prompts for confirmation)
-agentbay apikey delete "akm-xxx" --yes                  # Delete without confirmation (for scripts/CI)
-agentbay apikey concurrency set --api-key-id ak-xxx --concurrency 10  # Set concurrency limit
-
-# Network Management (optional)
-agentbay network package list                              # List network packages (default region: cn-hangzhou)
-agentbay network package list --biz-region-id cn-shanghai  # List for a specific region
-
-# Skills (optional; directory or .zip with SKILL.md frontmatter; list is a placeholder)
-agentbay skills push ./my-skill
-agentbay skills push ./my-skill.zip
-agentbay skills show <skill-id>              # Show skill details
-```
-
-**Note**:
-
-- With both OAuth tokens and AccessKey env set, the CLI prefers AccessKey for API calls.
-- System images are always available and don't require activation. Only user-created images need to be activated before use.
-- When downloading Dockerfile templates, the first N lines (N is returned by the system) are system-defined and cannot be modified. Only modify content after line N+1.
-- Available sourceImageID for production environment:
-  `code-space-debian-12`
-  `code-space-debian-12-enhanced`.
-- Image activation uses default resource configuration if `--cpu` and `--memory` are not specified. CPU and memory must be specified together.
-- Advanced network type (`--network-type ADVANCED`) requires `--session-bandwidth` and `--dns-address` parameters.
-- Sandbox lifecycle parameters (`--lifecycle-mode`, `--lifecycle-max-runtime`, `--lifecycle-hibernate`, `--lifecycle-idle-timeout`) are optional and override existing policy values. `--lifecycle-mode` accepts `auto` or `manual`.
-- API keys require account real-name verification before creation. Each API key must have a unique name. Only DISABLED API keys can be deleted; if an ENABLED key is provided, the CLI will prompt to disable it first. Use `--yes` to skip all confirmation prompts.
-- Network package list uses `cn-hangzhou` as the default region. Use `--biz-region-id` to query other regions.
-
-For detailed usage instructions and examples, see the [User Guide](docs/USER_GUIDE.md) .
-
-## Development Workflow
-
-This project is synchronized across three repositories:
-
-| Remote                          | URL                                                    | Role                                                               |
-| ------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------ |
-| `aliyun`                        | https://github.com/aliyun/agentbay-cli                 | Public-facing repository, single source of truth                   |
-| `origin`                        | https://code.alibaba-inc.com/InnoArchClub/agentbay-cli | Internal mirror, triggers aone.ci build for pre-merge verification |
-| `upstream` _(legacy, optional)_ | https://github.com/LXY02/agentbay-cli                  | Personal fork, historical PR proxy (no longer required)            |
-
-### Branches
-
-- **`aliyun/master`** is the baseline for all new development.
-- **`origin/master`** is frozen for historical audit purposes. **No new feature should be based on it.**
-- Feature branches use the `feat/**`, `fix/**`, or `release/**` naming convention.
-
-### Standard Flow (new features / bug fixes)
+A minimal end-to-end flow:
 
 ```bash
-# 0. One-time setup — add the aliyun remote if missing
-git remote add aliyun git@github.com:aliyun/agentbay-cli.git
-git fetch aliyun
+# 1. Authenticate (AccessKey recommended)
+export AGENTBAY_ACCESS_KEY_ID="your-access-key-id"
+export AGENTBAY_ACCESS_KEY_SECRET="your-access-key-secret"
 
-# 1. Create a feature branch from aliyun/master
-git fetch aliyun
-git checkout -b feat/<topic> aliyun/master
+# 2. Create an API key (account real-name verification is required)
+agentbay apikey create --name "my-api-key"
 
-# 2. Develop and commit
-git commit -am "feat: <description>"
+# 3. Disable the API key when temporarily not needed
+agentbay apikey disable akm-xxxxxxxxxxxxxxxx
 
-# 3. Push to internal GitLab → triggers .aoneci/cicd.yml for build verification
-git push origin feat/<topic>
+# 4. Re-enable it later
+agentbay apikey enable akm-xxxxxxxxxxxxxxxx
 
-#    (Optional) adjust .aoneci/cicd.yml on this branch if the feature needs
-#    special build behavior, then push again to rerun the pipeline.
-
-# 4. After internal verification passes, push to aliyun and open a PR
-git push aliyun feat/<topic>
-#    Open PR on https://github.com/aliyun/agentbay-cli : feat/<topic> → master
+# 5. Delete the API key permanently (must be DISABLED first; --yes skips prompts)
+agentbay apikey delete akm-xxxxxxxxxxxxxxxx --yes
 ```
 
-### Why this workflow
+For full command details, see the [Command Reference](#command-reference) above and the [User Guide](docs/USER_GUIDE.md).
 
-- `.aoneci/cicd.yml` now triggers on `feat/**`, `fix/**`, and `release/**` branches,
-  so every feature branch gets an internal multi-platform build + OSS upload automatically.
-- Because feature branches are cut from `aliyun/master`, no cherry-pick is required
-  when promoting a change to the public repository.
-- `.github/workflows/` on the public repo only runs on tag pushes (`v*`) or manual
-  dispatch, so pushing feature branches to `aliyun` is safe and does not trigger releases.
+---
+
+## Notes
+
+- When both AccessKey env vars and OAuth tokens are present, the CLI prefers AccessKey for API calls.
+- System images are always available and don't need activation; only User images must be activated.
+- API keys require real-name verification before creation, and each key must have a unique name.
+- Use `--yes` / `-y` on destructive commands (`apikey delete`, `image delete`) to skip prompts in non-interactive environments.
+
+---
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the LICENSE file for details.
+This project is licensed under the Apache License 2.0 — see the [LICENSE](LICENSE) file for details.
