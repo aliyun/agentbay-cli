@@ -116,6 +116,10 @@ func (m *mockGetMcpImageInfoClient) ModifyApiKeyStatus(ctx context.Context, requ
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockGetMcpImageInfoClient) DeleteApiKey(ctx context.Context, request *client.DeleteApiKeyRequest) (*client.DeleteApiKeyResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 var _ agentbay.Client = (*mockGetMcpImageInfoClient)(nil)
 
 func TestInferImageTypeFromImageID(t *testing.T) {

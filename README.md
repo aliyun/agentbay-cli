@@ -14,7 +14,7 @@ AgentBay CLI provides image management, API key management, network management, 
 - **Image Management**: Activate, deactivate, delete, and monitor image instances with configurable resource specifications (CPU/memory) and network types
 - **Image Listing**: Browse user and system images with separated display, pagination and filtering support
 - **Image Status**: Query resource lifecycle status for an image by ID (`agentbay image status`)
-- **API Key Management**: Create API keys, enable/disable keys, and configure session concurrency limits for authentication and access control
+- **API Key Management**: Create API keys, enable/disable/delete keys, and configure session concurrency limits for authentication and access control
 - **Network Management**: Query network packages by region, view package details including EIP addresses and office site bindings
 - **Skills**: Push local skills and show skill details by ID (`skills list` is a placeholder until the backend list API is available)
 - **Configuration Management**: Secure token storage and automatic token refresh
@@ -68,6 +68,8 @@ agentbay image status imgc-xxxxx...xxx
 agentbay apikey create --name "my-api-key"                        # Create a new API key
 agentbay apikey enable "akm-xxx"                        # Enable a disabled API key
 agentbay apikey disable "akm-xxx"                       # Disable an API key
+agentbay apikey delete "akm-xxx"                        # Delete an API key (must be DISABLED; prompts for confirmation)
+agentbay apikey delete "akm-xxx" --yes                  # Delete without confirmation (for scripts/CI)
 agentbay apikey concurrency set --api-key-id ak-xxx --concurrency 10  # Set concurrency limit
 
 # Network Management (optional)
@@ -91,7 +93,7 @@ agentbay skills show <skill-id>              # Show skill details
 - Image activation uses default resource configuration if `--cpu` and `--memory` are not specified. CPU and memory must be specified together.
 - Advanced network type (`--network-type ADVANCED`) requires `--session-bandwidth` and `--dns-address` parameters.
 - Sandbox lifecycle parameters (`--lifecycle-mode`, `--lifecycle-max-runtime`, `--lifecycle-hibernate`, `--lifecycle-idle-timeout`) are optional and override existing policy values. `--lifecycle-mode` accepts `auto` or `manual`.
-- API keys require account real-name verification before creation. Each API key must have a unique name.
+- API keys require account real-name verification before creation. Each API key must have a unique name. Only DISABLED API keys can be deleted; if an ENABLED key is provided, the CLI will prompt to disable it first. Use `--yes` to skip all confirmation prompts.
 - Network package list uses `cn-hangzhou` as the default region. Use `--biz-region-id` to query other regions.
 
 For detailed usage instructions and examples, see the [User Guide](docs/USER_GUIDE.md) .

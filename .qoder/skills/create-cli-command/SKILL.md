@@ -198,6 +198,50 @@ if err != nil {
 
 **verbose / `-v` 的真正用途**: 仅控制额外的调试信息（请求体、响应体 JSON、堆栈等），**不再**控制 RequestId 是否打印。
 
+##### 🛡️ 破坏性操作的二次确认设计（强制）
+
+**规则**：命令涉及**不可逆操作**（删除、永久停用等）时，**必须**同时实现二次确认提示和 `--yes` / `-y` 跳过参数。
+
+**哪些情况触发**：
+
+| 操作类型 | 示例 | 是否需要 |
+|---------|------|---------|
+| 永久删除资源 | `apikey delete`, `image delete` | ✅ 必须 |
+| 多步骤前置依赖（如先禁用才能删除）| 每步都提示 | ✅ 每步 |
+| 可逆状态变更 | `enable`, `disable` | ❌ 不需要 |
+| 查询/只读操作 | `list`, `status` | ❌ 不需要 |
+
+**标准实现**（复用 `cmd/confirm.go` 中已有的 `ConfirmPrompt`）：
+
+```go
+// init() 中注册 flag
+apikeyDeleteCmd.Flags().BoolP("yes", "y", false, "Skip all confirmation prompts (for non-interactive use)")
+
+// RunE 中使用
+autoYes, _ := cmd.Flags().GetBool("yes")
+
+// 每个确认点调用 ConfirmPrompt，autoYes 透传
+confirmed, err := ConfirmPrompt("Are you sure you want to delete? [y/N]: ", autoYes)
+if err != nil {
+    return fmt.Errorf("[ERROR] %w", err)
+}
+if !confirmed {
+    fmt.Printf("[INFO] Operation cancelled.\n")
+    return nil
+}
+```
+
+**`ConfirmPrompt` 三种行为**：
+- `--yes` 传入 → 直接 true，无任何输出
+- 交互式 TTY → 打印提示，读取输入（仅 y/Y/yes/YES 通过）
+- 非 TTY 且无 `--yes` → 返回错误，提示用户加 `--yes`
+
+**多步骤命令**：每步单独调用 `ConfirmPrompt(prompt, autoYes)`，一个 `--yes` 跳过全部步骤。
+
+**参考实现**：
+- `cmd/apikey_delete.go` —— 多步骤（禁用确认 + 删除确认）
+- `cmd/image.go` `runImageDelete` —— 单步骤确认
+
 **命令层级**:
 
 ```

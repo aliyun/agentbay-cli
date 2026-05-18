@@ -22,7 +22,7 @@ func TestApiKeyCmd(t *testing.T) {
 		assert.True(t, strings.Contains(cmd.ApiKeyCmd.Long, "API keys"))
 	})
 
-	t.Run("apikey has subcommands create, concurrency, enable, and disable", func(t *testing.T) {
+	t.Run("apikey has subcommands create, concurrency, enable, disable, and delete", func(t *testing.T) {
 		children := cmd.ApiKeyCmd.Commands()
 		names := make([]string, len(children))
 		for i, c := range children {
@@ -32,6 +32,7 @@ func TestApiKeyCmd(t *testing.T) {
 		assert.Contains(t, names, "concurrency")
 		assert.Contains(t, names, "enable")
 		assert.Contains(t, names, "disable")
+		assert.Contains(t, names, "delete")
 	})
 }
 
@@ -277,5 +278,42 @@ func TestApiKeyConcurrencySetCmd(t *testing.T) {
 		concurrencyFlag := setCmd.Flags().Lookup("concurrency")
 		assert.NotNil(t, concurrencyFlag)
 		assert.Equal(t, "0", concurrencyFlag.DefValue)
+	})
+}
+
+func TestApikeyDeleteCmd(t *testing.T) {
+	var deleteCmd *cobra.Command
+	for _, c := range cmd.ApiKeyCmd.Commands() {
+		if c.Name() == "delete" {
+			deleteCmd = c
+			break
+		}
+	}
+
+	t.Run("delete command exists", func(t *testing.T) {
+		assert.NotNil(t, deleteCmd)
+	})
+
+	t.Run("delete command has correct metadata", func(t *testing.T) {
+		assert.NotNil(t, deleteCmd)
+		assert.Equal(t, "delete <api-key>", deleteCmd.Use)
+		assert.Equal(t, "Delete an API key", deleteCmd.Short)
+		assert.True(t, strings.Contains(deleteCmd.Long, "akm-"))
+	})
+
+	t.Run("delete command uses positional argument", func(t *testing.T) {
+		assert.NotNil(t, deleteCmd)
+		assert.Contains(t, deleteCmd.Use, "<api-key>")
+		// No --api-key flag; the key is a positional argument
+		apiKeyFlag := deleteCmd.Flags().Lookup("api-key")
+		assert.Nil(t, apiKeyFlag)
+	})
+
+	t.Run("delete command has --yes flag", func(t *testing.T) {
+		assert.NotNil(t, deleteCmd)
+		yesFlag := deleteCmd.Flags().Lookup("yes")
+		assert.NotNil(t, yesFlag)
+		assert.Equal(t, "false", yesFlag.DefValue)
+		assert.Equal(t, "y", yesFlag.Shorthand)
 	})
 }

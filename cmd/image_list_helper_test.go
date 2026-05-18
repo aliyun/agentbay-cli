@@ -152,6 +152,10 @@ func (m *mockImageListClient) ModifyApiKeyStatus(ctx context.Context, request *c
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockImageListClient) DeleteApiKey(ctx context.Context, request *client.DeleteApiKeyRequest) (*client.DeleteApiKeyResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 // Helper functions for testing
 func boolPtr(b bool) *bool {
 	return &b

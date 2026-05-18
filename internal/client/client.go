@@ -1130,6 +1130,64 @@ func (client *Client) DeleteMcpImage(request *DeleteMcpImageRequest) (_result *D
 	return _result, _err
 }
 
+func (client *Client) DeleteApiKeyWithOptions(request *DeleteApiKeyRequest, runtime *dara.RuntimeOptions) (_result *DeleteApiKeyResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	body := map[string]interface{}{}
+	if request.KeyIdListJson != nil {
+		body["KeyIdListJson"] = request.KeyIdListJson
+	}
+	req := &openapiutil.OpenApiRequest{
+		Body:    openapiutil.ParseToMap(body),
+		Headers: map[string]*string{"Accept": dara.String("application/json")},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("DeleteApiKey"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &DeleteApiKeyResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseDeleteApiKeyResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) DeleteApiKey(request *DeleteApiKeyRequest) (_result *DeleteApiKeyResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &DeleteApiKeyResponse{}
+	_body, _err := client.DeleteApiKeyWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+func (client *Client) DeleteApiKeyWithContext(ctx context.Context, request *DeleteApiKeyRequest, runtime *dara.RuntimeOptions) (_result *DeleteApiKeyResponse, _err error) {
+	_result = &DeleteApiKeyResponse{}
+	_body, _err := client.DeleteApiKeyWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
 // Summary:
 //
 // 下载dockerfile模版
