@@ -1,0 +1,116 @@
+# AgentBay CLI 命令 OpenAPI Action 对照表
+
+| CLI 命令 | OpenAPI Action | 说明 |
+|---------|---------------|------|
+| `agentbay image init` | `GetDockerfileTemplate` | 获取 Dockerfile 模板 |
+| `agentbay docker login` | `GetACRRepoCredential` | 获取 ACR 仓库临时凭证 |
+| `agentbay image create-from-template` | `CreateImageFromTemplate` | 从模板创建镜像 |
+| `agentbay image activate` | `GetMcpImageInfo` | 获取镜像信息（前置检查） |
+| | `DescribeInstanceTypes` | 获取可用实例规格 |
+| | `DescribeMcpPolicyData` | 获取策略数据 |
+| | `CreateMcpPolicyData` / `ModifyMcpPolicyData` | 创建或修改策略数据 |
+| | `DescribeOfficeSites`（仅 ADVANCED 网络） | 获取办公网络站点信息 |
+| | `SaveMcpPolicyData` | 保存策略数据 |
+| | `CreateResourceGroup` | 创建资源组（实际激活） |
+| | `GetMcpImageInfo`（轮询） | 轮询激活状态 |
+| `agentbay image set-max-session` | `GetMcpImageInfo` | 校验镜像状态（前置检查） |
+| | `BatchCreateHideResourceGroupsWithMaxSession` | 设置最大会话数 |
+| | `GetMcpImageInfo`（轮询） | 等待资源组就绪 |
+| `agentbay image deactivate` | `GetMcpImageInfo` | 获取镜像信息（前置检查） |
+| | `ListMcpImages` | 获取 ResourceGroupId |
+| | `DeleteResourceGroup` | 删除资源组（停用镜像） |
+| | `GetMcpImageInfo`（轮询） | 等待停用完成 |
+| `agentbay image warmup-status` | `DescribeWarmUpStatusOpen` | 查询预热状态 |
+
+## 详细说明
+
+### 1. `agentbay image init`
+
+- **Action**: `GetDockerfileTemplate`
+- **调用方式**: OpenAPI SDK（版本 2025-05-01）
+- **参数**: Source, SourceImageId, UsePublicNetwork
+
+### 2. `agentbay docker login`
+
+- **Action**: `GetACRRepoCredential`
+- **调用方式**: POP RPC V1（原生 ACS HTTP 客户端）
+- **参数**: 无
+
+### 3. `agentbay image create-from-template`
+
+- **Action**: `CreateImageFromTemplate`
+- **调用方式**: POP RPC V1（原生 ACS HTTP 客户端）
+- **参数**: PhysicalImageId, ImageName, TemplateImageId
+
+### 4. `agentbay image activate`
+
+该命令流程较复杂，涉及多个 Action 的编排：
+
+| 步骤 | Action | 用途 |
+|------|--------|------|
+| 前置 | `GetMcpImageInfo` | 检查镜像类型和当前状态 |
+| STEP 1 | `DescribeInstanceTypes` | 获取可用实例规格列表 |
+| STEP 2 | `DescribeMcpPolicyData` | 获取当前策略数据 |
+| STEP 3 | `CreateMcpPolicyData` 或 `ModifyMcpPolicyData` | 创建或修改策略 |
+| STEP 4（ADVANCED） | `DescribeOfficeSites` | 获取办公网络站点（仅高级网络） |
+| STEP 4/5 | `SaveMcpPolicyData` | 保存策略数据 |
+| STEP 5/6 | `CreateResourceGroup` | 创建资源组，触发激活 |
+| STEP 6/7 | `GetMcpImageInfo`（轮询） | 轮询等待激活完成 |
+
+> DEFAULT 网络：共 6 步（跳过 DescribeOfficeSites）
+> ADVANCED 网络：共 7 步
+
+### 5. `agentbay image set-max-session`
+
+该命令涉及 3 步：
+
+| 步骤 | Action | 用途 |
+|------|--------|------|
+| Step 1 | `GetMcpImageInfo` | 校验镜像类型和状态（必须为 User 且已激活） |
+| Step 2 | `BatchCreateHideResourceGroupsWithMaxSession` | 设置最大会话数 |
+| Step 3 | `GetMcpImageInfo`（轮询） | 等待资源组就绪 |
+
+- **调用方式**: OpenAPI SDK（版本 2025-05-01）
+- **主要参数**: ImageId, MaxSessionNum
+
+### 6. `agentbay image deactivate`
+
+该命令涉及 4 步：
+
+| 步骤 | Action | 用途 |
+|------|--------|------|
+| Step 1 | `GetMcpImageInfo` | 检查镜像类型和当前状态 |
+| Step 2 | `ListMcpImages` | 查询镜像列表获取 ResourceGroupId |
+| Step 3 | `DeleteResourceGroup` | 删除资源组，触发停用 |
+| Step 4 | `GetMcpImageInfo`（轮询） | 等待停用完成（状态变为 Available） |
+
+- **调用方式**: OpenAPI SDK（版本 2025-05-01）
+- **主要参数**: ImageId, ResourceGroupId
+
+### 7. `agentbay image warmup-status`
+
+- **Action**: `DescribeWarmUpStatusOpen`
+- **调用方式**: OpenAPI SDK（版本 2025-05-01）
+- **参数**: 无
+
+## Action 汇总（去重）
+
+共涉及 **15 个** 不同的 OpenAPI Action：
+
+| # | Action | 涉及命令 |
+|---|--------|---------|
+| 1 | `GetDockerfileTemplate` | image init |
+| 2 | `GetACRRepoCredential` | docker login |
+| 3 | `CreateImageFromTemplate` | image create-from-template |
+| 4 | `GetMcpImageInfo` | image activate / set-max-session / deactivate |
+| 5 | `DescribeInstanceTypes` | image activate |
+| 6 | `DescribeMcpPolicyData` | image activate |
+| 7 | `CreateMcpPolicyData` | image activate |
+| 8 | `ModifyMcpPolicyData` | image activate |
+| 9 | `DescribeOfficeSites` | image activate (ADVANCED) |
+| 10 | `SaveMcpPolicyData` | image activate |
+| 11 | `CreateResourceGroup` | image activate |
+| 12 | `ListMcpImages` | image deactivate |
+| 13 | `DeleteResourceGroup` | image deactivate |
+| 14 | `BatchCreateHideResourceGroupsWithMaxSession` | image set-max-session |
+| 15 | `DescribeWarmUpStatusOpen` | image warmup-status |
