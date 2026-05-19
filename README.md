@@ -353,7 +353,7 @@ agentbay apikey delete akm-xxxxxxxxxxxxxxxx --yes    # Skip all prompts (CI / sc
 Set the maximum concurrent session limit for an API key.
 
 ```bash
-agentbay apikey concurrency set --api-key-id ak-xxx --concurrency 10
+agentbay apikey concurrency set --api-key akm-xxx --concurrency 10
 ```
 
 ---
