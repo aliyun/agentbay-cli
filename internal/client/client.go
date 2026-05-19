@@ -1713,3 +1713,85 @@ func (client *Client) BatchCreateHideResourceGroupsWithMaxSessionWithContext(ctx
 	_result, _err = parseBatchCreateHideResourceGroupsWithMaxSessionResponse(_body)
 	return _result, _err
 }
+
+// DescribeWarmUpStatusOpenWithOptions queries warm-up status for the current account
+func (client *Client) DescribeWarmUpStatusOpenWithOptions(request *DescribeWarmUpStatusOpenRequest, runtime *dara.RuntimeOptions) (_result *DescribeWarmUpStatusOpenResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("DescribeWarmUpStatusOpen"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &DescribeWarmUpStatusOpenResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseDescribeWarmUpStatusOpenResponse(_body)
+	return _result, _err
+}
+
+// DescribeWarmUpStatusOpen queries warm-up status for the current account (convenience method)
+func (client *Client) DescribeWarmUpStatusOpen(request *DescribeWarmUpStatusOpenRequest) (_result *DescribeWarmUpStatusOpenResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	return client.DescribeWarmUpStatusOpenWithOptions(request, runtime)
+}
+
+// DescribeWarmUpStatusOpenWithContext queries warm-up status for the current account with context
+func (client *Client) DescribeWarmUpStatusOpenWithContext(ctx context.Context, request *DescribeWarmUpStatusOpenRequest, runtime *dara.RuntimeOptions) (_result *DescribeWarmUpStatusOpenResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("DescribeWarmUpStatusOpen"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &DescribeWarmUpStatusOpenResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseDescribeWarmUpStatusOpenResponse(_body)
+	return _result, _err
+}

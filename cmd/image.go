@@ -247,6 +247,7 @@ func init() {
 	ImageCmd.AddCommand(imageInitCmd)
 	ImageCmd.AddCommand(imageStatusCmd)
 	ImageCmd.AddCommand(imageSetMaxSessionCmd)
+	ImageCmd.AddCommand(imageWarmupStatusCmd)
 }
 
 func runImageCreate(cmd *cobra.Command, args []string) error {

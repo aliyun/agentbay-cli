@@ -144,6 +144,10 @@ func (m *mockImageListClient) BatchCreateHideResourceGroupsWithMaxSession(ctx co
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockImageListClient) DescribeWarmUpStatusOpen(ctx context.Context, request *client.DescribeWarmUpStatusOpenRequest) (*client.DescribeWarmUpStatusOpenResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 // Helper functions for testing
 func boolPtr(b bool) *bool {
 	return &b

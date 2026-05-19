@@ -46,6 +46,8 @@ type Client interface {
 	DescribeNetworkPackages(ctx context.Context, request *client.DescribeNetworkPackagesRequest) (*client.DescribeNetworkPackagesResponse, error)
 	// Resource Group Max Session
 	BatchCreateHideResourceGroupsWithMaxSession(ctx context.Context, request *client.BatchCreateHideResourceGroupsWithMaxSessionRequest) (*client.BatchCreateHideResourceGroupsWithMaxSessionResponse, error)
+	// WarmUp Status
+	DescribeWarmUpStatusOpen(ctx context.Context, request *client.DescribeWarmUpStatusOpenRequest) (*client.DescribeWarmUpStatusOpenResponse, error)
 }
 
 // clientWrapper wraps the generated SDK client with additional functionality
@@ -318,4 +320,13 @@ func (cw *clientWrapper) BatchCreateHideResourceGroupsWithMaxSession(ctx context
 		return nil, err
 	}
 	return sdkClient.BatchCreateHideResourceGroupsWithMaxSessionWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// DescribeWarmUpStatusOpen wraps the SDK client method
+func (cw *clientWrapper) DescribeWarmUpStatusOpen(ctx context.Context, request *client.DescribeWarmUpStatusOpenRequest) (*client.DescribeWarmUpStatusOpenResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.DescribeWarmUpStatusOpenWithContext(ctx, request, cw.getRuntimeOptions())
 }

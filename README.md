@@ -14,6 +14,7 @@ AgentBay CLI provides image management, API key management, network management, 
 - **Image Management**: Activate, deactivate, delete, and monitor image instances with configurable resource specifications (CPU/memory) and network types
 - **Image Listing**: Browse user and system images with separated display, pagination and filtering support
 - **Image Status**: Query resource lifecycle status for an image by ID (`agentbay image status`)
+- **Warm-up Status**: Query session quota, image quota, and warm-up image details for the current account (`agentbay image warmup-status`)
 - **API Key Management**: Create API keys and configure session concurrency limits for authentication and access control
 - **Network Management**: Query network packages by region, view package details including EIP addresses and office site bindings
 - **Skills**: Push local skills and show skill details by ID (`skills list` is a placeholder until the backend list API is available)
@@ -63,6 +64,9 @@ agentbay image delete imgc-xxxxx...xxx --yes  # Skip confirmation (for scripts/C
 
 # Optional: check resource status (activate/deactivate lifecycle, not Docker build task)
 agentbay image status imgc-xxxxx...xxx
+
+# Optional: check warm-up status (session quota, image quota, and warm-up images)
+agentbay image warmup-status
 
 # API Key Management (optional)
 agentbay apikey create --name "my-api-key"                        # Create a new API key
