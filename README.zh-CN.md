@@ -11,7 +11,7 @@ AgentBay 服务的命令行工具。
 AgentBay CLI 是基于 Cobra 框架的命令行工具，通过阿里云 OpenAPI 与 AgentBay 服务交互。功能包括：
 
 - **镜像管理** —— 创建、列出、激活 / 停用 / 删除自定义镜像，查询生命周期状态，配置会话并发数
-- **API Key 管理** —— 创建 / 启用 / 禁用 / 删除密钥，设置每个密钥的并发上限
+- **API Key 管理** —— 创建 / 列出 / 启用 / 禁用 / 删除密钥，设置每个密钥的并发上限
 - **网络管理** —— 按区域查询网络包及其 EIP 绑定信息
 - **技能管理** —— 推送本地技能包，按 ID 查看技能详情
 - **Docker 操作** —— 登录 ACR、为 AgentBay 打 tag 并推送镜像
@@ -346,6 +346,17 @@ agentbay apikey disable akm-xxxxxxxxxxxxxxxx
 ```bash
 agentbay apikey delete akm-xxxxxxxxxxxxxxxx          # 交互式（带确认）
 agentbay apikey delete akm-xxxxxxxxxxxxxxxx --yes    # 跳过所有提示（脚本 / CI）
+```
+
+#### `apikey list`
+
+列出 API Key，支持筛选和分页。
+
+```bash
+agentbay apikey list                                        # 最多列出 10 个 API Key
+agentbay apikey list --max-results 20                       # 最多列出 20 个 API Key
+agentbay apikey list --api-key akm-xxxxxxxxxxxxxxxx         # 查询指定的 API Key
+agentbay apikey list --next-token <token>                   # 获取下一页
 ```
 
 #### `apikey concurrency set`

@@ -11,7 +11,7 @@ A command-line interface for AgentBay services.
 AgentBay CLI is a Cobra-based command-line tool that talks to AgentBay services through Alibaba Cloud OpenAPI. It provides:
 
 - **Image Management** — create, list, activate / deactivate / delete custom images, query lifecycle status, and configure session concurrency
-- **API Key Management** — create / enable / disable / delete keys, set per-key concurrency limits
+- **API Key Management** — create / list / enable / disable / delete keys, set per-key concurrency limits
 - **Network Management** — query network packages and EIP bindings by region
 - **Skills Management** — push local skills and inspect details by ID
 - **Docker Operations** — log in to ACR, tag and push images for AgentBay
@@ -346,6 +346,17 @@ Delete an API key permanently. Only `DISABLED` keys can be deleted directly; if 
 ```bash
 agentbay apikey delete akm-xxxxxxxxxxxxxxxx          # Interactive (with confirmation)
 agentbay apikey delete akm-xxxxxxxxxxxxxxxx --yes    # Skip all prompts (CI / scripts)
+```
+
+#### `apikey list`
+
+List API keys with optional filtering and pagination.
+
+```bash
+agentbay apikey list                                        # List up to 10 API keys
+agentbay apikey list --max-results 20                       # List up to 20 API keys
+agentbay apikey list --api-key akm-xxxxxxxxxxxxxxxx         # Query a specific API key
+agentbay apikey list --next-token <token>                   # Fetch the next page
 ```
 
 #### `apikey concurrency set`

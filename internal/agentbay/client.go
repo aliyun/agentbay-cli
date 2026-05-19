@@ -37,6 +37,7 @@ type Client interface {
 	DescribeMcpApiKey(ctx context.Context, request *client.DescribeMcpApiKeyRequest) (*client.DescribeMcpApiKeyResponse, error)
 	ModifyApiKeyStatus(ctx context.Context, request *client.ModifyApiKeyStatusRequest) (*client.ModifyApiKeyStatusResponse, error)
 	DeleteApiKey(ctx context.Context, request *client.DeleteApiKeyRequest) (*client.DeleteApiKeyResponse, error)
+	DescribeApiKeys(ctx context.Context, request *client.DescribeApiKeysRequest) (*client.DescribeApiKeysResponse, error)
 	// Advanced Network
 	DescribeInstanceTypes(ctx context.Context, request *client.DescribeInstanceTypesRequest) (*client.DescribeInstanceTypesResponse, error)
 	DescribeMcpPolicyData(ctx context.Context, request *client.DescribeMcpPolicyDataRequest) (*client.DescribeMcpPolicyDataResponse, error)
@@ -348,4 +349,13 @@ func (cw *clientWrapper) DeleteApiKey(ctx context.Context, request *client.Delet
 		return nil, err
 	}
 	return sdkClient.DeleteApiKeyWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// DescribeApiKeys wraps the SDK client method
+func (cw *clientWrapper) DescribeApiKeys(ctx context.Context, request *client.DescribeApiKeysRequest) (*client.DescribeApiKeysResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.DescribeApiKeysWithContext(ctx, request, cw.getRuntimeOptions())
 }
