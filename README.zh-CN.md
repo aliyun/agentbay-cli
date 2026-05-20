@@ -467,13 +467,16 @@ export AGENTBAY_ACCESS_KEY_SECRET="your-access-key-secret"
 # 2. 创建 API Key（账户需先完成实名认证）
 agentbay apikey create --name "my-api-key"
 
-# 3. 临时不需要时禁用 API Key
+# 3. 查看已创建的 API Key，从输出中获取 API Key ID（akm-xxxxxxxxxxxxxxxx）
+agentbay apikey list
+
+# 4. 临时不需要时禁用 API Key
 agentbay apikey disable akm-xxxxxxxxxxxxxxxx
 
-# 4. 需要时重新启用
+# 5. 需要时重新启用
 agentbay apikey enable akm-xxxxxxxxxxxxxxxx
 
-# 5. 永久删除 API Key（必须先 DISABLED；--yes 跳过确认）
+# 6. 永久删除 API Key（必须先 DISABLED；--yes 跳过确认）
 agentbay apikey delete akm-xxxxxxxxxxxxxxxx --yes
 ```
 
