@@ -334,6 +334,10 @@ Output includes:
 Create a new API key.
 
 ```bash
+# Positional argument (recommended)
+agentbay apikey create "my-api-key"
+
+# --name flag (backward compatible)
 agentbay apikey create --name "my-api-key"
 ```
 
@@ -465,7 +469,7 @@ export AGENTBAY_ACCESS_KEY_ID="your-access-key-id"
 export AGENTBAY_ACCESS_KEY_SECRET="your-access-key-secret"
 
 # 2. Create an API key (account real-name verification is required)
-agentbay apikey create --name "my-api-key"
+agentbay apikey create "my-api-key"
 
 # 3. List your API keys and find the API Key ID (akm-xxxxxxxxxxxxxxxx) from the output
 agentbay apikey list

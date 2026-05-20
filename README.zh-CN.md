@@ -334,6 +334,10 @@ agentbay image warmup-status
 创建新的 API Key。
 
 ```bash
+# 使用位置参数（推荐，更简洁）
+agentbay apikey create "my-api-key"
+
+# 使用 --name 参数（向后兼容）
 agentbay apikey create --name "my-api-key"
 ```
 
@@ -465,7 +469,7 @@ export AGENTBAY_ACCESS_KEY_ID="your-access-key-id"
 export AGENTBAY_ACCESS_KEY_SECRET="your-access-key-secret"
 
 # 2. 创建 API Key（账户需先完成实名认证）
-agentbay apikey create --name "my-api-key"
+agentbay apikey create "my-api-key"
 
 # 3. 查看已创建的 API Key，从输出中获取 API Key ID（akm-xxxxxxxxxxxxxxxx）
 agentbay apikey list

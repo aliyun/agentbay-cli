@@ -4,7 +4,9 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 
@@ -83,7 +85,24 @@ func main() {
 	// Execute root command
 	err := rootCmd.Execute()
 	if err != nil {
-		// Error messages are already displayed by cobra
+		if isAuthError(err) {
+			fmt.Fprintln(os.Stderr, "[ERROR] Authentication required.")
+			fmt.Fprintln(os.Stderr, "")
+			fmt.Fprintln(os.Stderr, "Set your Access Key credentials via environment variables:")
+			fmt.Fprintln(os.Stderr, "  export AGENTBAY_ACCESS_KEY_ID=\"your-access-key-id\"")
+			fmt.Fprintln(os.Stderr, "  export AGENTBAY_ACCESS_KEY_SECRET=\"your-access-key-secret\"")
+		}
 		os.Exit(1)
 	}
+}
+
+// isAuthError reports whether err is caused by missing or invalid authentication credentials.
+func isAuthError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "no authentication token found") ||
+		strings.Contains(msg, "failed to ensure valid token") ||
+		strings.Contains(msg, "no valid token found")
 }
