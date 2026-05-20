@@ -270,6 +270,187 @@ func parseCreateMarketSkillResponse(res map[string]interface{}) (*CreateMarketSk
 	return out, nil
 }
 
+// --- DescribeWarmUpStatusOpen ---
+
+type describeWarmUpStatusOpenJSONWireDataImage struct {
+	ImageId      *string         `json:"ImageId"`
+	TotalMaxSize json.RawMessage `json:"TotalMaxSize"`
+	GroupCount   json.RawMessage `json:"GroupCount"`
+}
+
+type describeWarmUpStatusOpenJSONWire struct {
+	Code           *string `json:"Code"`
+	Message        *string `json:"Message"`
+	RequestId      *string `json:"RequestId"`
+	HttpStatusCode json.RawMessage `json:"HttpStatusCode"`
+	Success        *bool   `json:"Success"`
+	Data           *struct {
+		MaxSessionNumLimit    json.RawMessage `json:"MaxSessionNumLimit"`
+		TotalUsedSessionQuota json.RawMessage `json:"TotalUsedSessionQuota"`
+		AvailableSessionQuota json.RawMessage `json:"AvailableSessionQuota"`
+		MaxImageCount         json.RawMessage `json:"MaxImageCount"`
+		CurrentImageCount     json.RawMessage `json:"CurrentImageCount"`
+		Images                []describeWarmUpStatusOpenJSONWireDataImage `json:"Images"`
+	} `json:"Data"`
+}
+
+type xmlDescribeWarmUpStatusOpenDataImage struct {
+	ImageId      string `xml:"ImageId"`
+	TotalMaxSize string `xml:"TotalMaxSize"`
+	GroupCount   string `xml:"GroupCount"`
+}
+
+type xmlDescribeWarmUpStatusOpenData struct {
+	MaxSessionNumLimit    string                                 `xml:"MaxSessionNumLimit"`
+	TotalUsedSessionQuota string                                 `xml:"TotalUsedSessionQuota"`
+	AvailableSessionQuota string                                 `xml:"AvailableSessionQuota"`
+	MaxImageCount         string                                 `xml:"MaxImageCount"`
+	CurrentImageCount     string                                 `xml:"CurrentImageCount"`
+	Images                []xmlDescribeWarmUpStatusOpenDataImage `xml:"Images>Image"`
+}
+
+type xmlDescribeWarmUpStatusOpenResponse struct {
+	XMLName        xml.Name                        `xml:"DescribeWarmUpStatusOpenResponse"`
+	RequestId      string                          `xml:"RequestId"`
+	HttpStatusCode string                          `xml:"HttpStatusCode"`
+	Code           string                          `xml:"Code"`
+	Success        bool                            `xml:"Success"`
+	Message        string                          `xml:"Message"`
+	Data           xmlDescribeWarmUpStatusOpenData `xml:"Data"`
+}
+
+func parseDescribeWarmUpStatusOpenResponse(res map[string]interface{}) (*DescribeWarmUpStatusOpenResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &DescribeWarmUpStatusOpenResponse{Headers: make(map[string]*string)}
+	parsed := &DescribeWarmUpStatusOpenResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xr xmlDescribeWarmUpStatusOpenResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = dara.String(xr.Code)
+			parsed.RequestId = dara.String(xr.RequestId)
+			parsed.Success = dara.Bool(xr.Success)
+			parsed.Message = dara.String(xr.Message)
+			if s := strings.TrimSpace(xr.HttpStatusCode); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					parsed.HttpStatusCode = dara.Int32(int32(n))
+				}
+			}
+			data := &DescribeWarmUpStatusOpenResponseBodyData{}
+			if s := strings.TrimSpace(xr.Data.MaxSessionNumLimit); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					data.MaxSessionNumLimit = dara.Int32(int32(n))
+				}
+			}
+			if s := strings.TrimSpace(xr.Data.TotalUsedSessionQuota); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					data.TotalUsedSessionQuota = dara.Int32(int32(n))
+				}
+			}
+			if s := strings.TrimSpace(xr.Data.AvailableSessionQuota); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					data.AvailableSessionQuota = dara.Int32(int32(n))
+				}
+			}
+			if s := strings.TrimSpace(xr.Data.MaxImageCount); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					data.MaxImageCount = dara.Int32(int32(n))
+				}
+			}
+			if s := strings.TrimSpace(xr.Data.CurrentImageCount); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					data.CurrentImageCount = dara.Int32(int32(n))
+				}
+			}
+			for _, img := range xr.Data.Images {
+				item := &DescribeWarmUpStatusOpenResponseBodyDataImage{
+					ImageId: dara.String(img.ImageId),
+				}
+				if s := strings.TrimSpace(img.TotalMaxSize); s != "" {
+					if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+						item.TotalMaxSize = dara.Int32(int32(n))
+					}
+				}
+				if s := strings.TrimSpace(img.GroupCount); s != "" {
+					if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+						item.GroupCount = dara.Int32(int32(n))
+					}
+				}
+				data.Images = append(data.Images, item)
+			}
+			parsed.Data = data
+		} else {
+			var wire describeWarmUpStatusOpenJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = wire.Code
+			parsed.Message = wire.Message
+			parsed.RequestId = wire.RequestId
+			parsed.Success = wire.Success
+			n, derr := int32FromFlexibleJSON(wire.HttpStatusCode)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: fmt.Errorf("HttpStatusCode: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.HttpStatusCode = n
+			if wire.Data != nil {
+				data := &DescribeWarmUpStatusOpenResponseBodyData{}
+				v, derr := int32FromFlexibleJSON(wire.Data.MaxSessionNumLimit)
+				if derr != nil {
+					return nil, &ErrWithRequestID{Err: fmt.Errorf("Data.MaxSessionNumLimit: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+				}
+				data.MaxSessionNumLimit = v
+				v, derr = int32FromFlexibleJSON(wire.Data.TotalUsedSessionQuota)
+				if derr != nil {
+					return nil, &ErrWithRequestID{Err: fmt.Errorf("Data.TotalUsedSessionQuota: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+				}
+				data.TotalUsedSessionQuota = v
+				v, derr = int32FromFlexibleJSON(wire.Data.AvailableSessionQuota)
+				if derr != nil {
+					return nil, &ErrWithRequestID{Err: fmt.Errorf("Data.AvailableSessionQuota: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+				}
+				data.AvailableSessionQuota = v
+				v, derr = int32FromFlexibleJSON(wire.Data.MaxImageCount)
+				if derr != nil {
+					return nil, &ErrWithRequestID{Err: fmt.Errorf("Data.MaxImageCount: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+				}
+				data.MaxImageCount = v
+				v, derr = int32FromFlexibleJSON(wire.Data.CurrentImageCount)
+				if derr != nil {
+					return nil, &ErrWithRequestID{Err: fmt.Errorf("Data.CurrentImageCount: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+				}
+				data.CurrentImageCount = v
+				for _, img := range wire.Data.Images {
+					item := &DescribeWarmUpStatusOpenResponseBodyDataImage{
+						ImageId: img.ImageId,
+					}
+					sz, derr := int32FromFlexibleJSON(img.TotalMaxSize)
+					if derr != nil {
+						return nil, &ErrWithRequestID{Err: fmt.Errorf("Images.TotalMaxSize: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+					}
+					item.TotalMaxSize = sz
+					gc, derr := int32FromFlexibleJSON(img.GroupCount)
+					if derr != nil {
+						return nil, &ErrWithRequestID{Err: fmt.Errorf("Images.GroupCount: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+					}
+					item.GroupCount = gc
+					data.Images = append(data.Images, item)
+				}
+				parsed.Data = data
+			}
+		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
+
 // --- ListMcpImages ---
 
 type xmlListMcpImagesResponse struct {

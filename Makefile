@@ -25,7 +25,7 @@ GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 
 # Build targets
-.PHONY: all build clean test test-unit test-integration test-all coverage test-coverage deps help dist hash release release-dry-run
+.PHONY: all build clean test test-unit test-integration test-all coverage test-coverage deps help dist hash release release-dry-run changelog changelog-next changelog-install
 
 all: test-unit build
 
@@ -255,6 +255,9 @@ help:
 	@echo "  build-all-upx      - Build UPX-compressed binaries for all platforms"
 	@echo "  release            - Build and upload release to production OSS"
 	@echo "  release-dry-run    - Preview release without uploading"
+	@echo "  changelog          - Generate/update CHANGELOG.md from git history"
+	@echo "  changelog-next     - Preview changes for the next release (stdout)"
+	@echo "  changelog-install  - Install git-cliff tool (brew install git-cliff)"
 
 # Release to production OSS
 release:
@@ -271,4 +274,21 @@ release-dry-run:
 		bash scripts/release-to-oss.sh --version "$(VERSION)" --dry-run; \
 	else \
 		bash scripts/release-to-oss.sh --version "$(VERSION)" --description "$(DESC)" --dry-run; \
+	fi
+
+# Changelog generation (requires git-cliff: brew install git-cliff)
+changelog:
+	@if ! command -v git-cliff >/dev/null 2>&1; then echo "git-cliff is required. Install with: make changelog-install"; exit 1; fi
+	git-cliff -o CHANGELOG.md
+
+changelog-next:
+	@if ! command -v git-cliff >/dev/null 2>&1; then echo "git-cliff is required. Install with: make changelog-install"; exit 1; fi
+	git-cliff --unreleased --bump
+
+changelog-install:
+	@if command -v brew >/dev/null 2>&1; then \
+		brew install git-cliff; \
+	else \
+		echo "Please install git-cliff manually: https://git-cliff.org/docs/installation/"; \
+		exit 1; \
 	fi

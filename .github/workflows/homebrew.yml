@@ -41,6 +41,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install git-cliff
+        run: |
+          echo "Installing git-cliff for changelog generation..."
+          GIT_CLIFF_VERSION="2.8.0"
+          curl -sL "https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-gnu.tar.gz" | tar xz -C /tmp
+          sudo mv /tmp/git-cliff-${GIT_CLIFF_VERSION}/git-cliff /usr/local/bin/git-cliff
+          git-cliff --version
+          echo "✅ git-cliff installed successfully"
+
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
@@ -355,6 +364,32 @@ jobs:
 
           echo "✅ File organization completed successfully"
 
+      - name: Generate Release Notes
+        run: |
+          echo "📝 Generating release notes from git history..."
+
+          # Generate changelog content for this version only (strip the top-level header)
+          git-cliff --tag "v$VERSION" --unreleased --strip header > /tmp/release-changes.md
+
+          # Combine changelog content with installation instructions
+          cat /tmp/release-changes.md > /tmp/release-notes-full.md
+          cat >> /tmp/release-notes-full.md << 'INSTALL_EOF'
+
+          ## Installation
+          Once merged into Homebrew core, install with:
+          ```bash
+          brew install agentbay
+          ```
+
+          ## Manual Installation
+          Download the appropriate binary for your platform from the assets below.
+          INSTALL_EOF
+
+          echo "✅ Release notes generated"
+          echo "--- Preview ---"
+          cat /tmp/release-notes-full.md
+          echo "--- End Preview ---"
+
       - name: Create GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -379,22 +414,8 @@ jobs:
           echo "Total size: ${total_size_mb}MB"
 
           if gh release create "v$VERSION" \
-            --title "🚀 Agentbay CLI v$VERSION" \
-            --notes "Official release v${VERSION} for Homebrew submission
-
-          ## What's Changed
-          - Official release build for Homebrew core repository submission
-          - Multi-platform binaries (macOS Intel/ARM, Linux Intel/ARM, Windows Intel/ARM)
-          - Comprehensive testing and validation
-
-          ## Installation
-          Once merged into Homebrew core, install with:
-          \`\`\`bash
-          brew install agentbay
-          \`\`\`
-
-          ## Manual Installation
-          Download the appropriate binary for your platform from the assets below." \
+            --title "Agentbay CLI v$VERSION" \
+            --notes-file /tmp/release-notes-full.md \
             "${all_files[@]}"; then
 
             echo "✅ GitHub Release created successfully!"
@@ -404,6 +425,17 @@ jobs:
             echo "❌ Failed to create GitHub Release!"
             exit 1
           fi
+
+      - name: Update CHANGELOG.md
+        run: |
+          echo "📝 Updating CHANGELOG.md..."
+          git-cliff -o CHANGELOG.md
+
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add CHANGELOG.md
+          git commit -m "docs: update CHANGELOG.md for v$VERSION" || echo "No changelog changes"
+          git push
 
       - name: Create Official Homebrew Formula
         run: |
