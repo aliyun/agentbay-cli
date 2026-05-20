@@ -77,7 +77,7 @@ func runApikeyCreate(cmd *cobra.Command, args []string) error {
 	req := &client.CreateApiKeyRequest{Name: &name}
 	resp, err := apiClient.CreateApiKey(ctx, req)
 	if err != nil {
-		printRequestIDFromErrIfVerbose(cmd, err)
+		printReqIDFromErr(err)
 		
 		// Check for specific error codes
 		if resp != nil && resp.Body != nil {
@@ -93,9 +93,8 @@ func runApikeyCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("[ERROR] Invalid response: missing body")
 	}
 	
-	verbose, _ := cmd.Flags().GetBool("verbose")
-	if verbose && resp.Body.RequestId != nil && *resp.Body.RequestId != "" {
-		printRequestIDIfVerbose(cmd, *resp.Body.RequestId)
+	if resp.Body.RequestId != nil && *resp.Body.RequestId != "" {
+		fmt.Printf("[INFO] CreateApiKey Request ID: %s\n", *resp.Body.RequestId)
 	}
 	
 	keyId := resp.Body.GetData()

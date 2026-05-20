@@ -332,7 +332,7 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 		// Check if the error is an authentication error
 		if IsAuthenticationError(err) {
 			return printErrorMessage(
-				"[ERROR] Authentication failed. Please run 'agentbay login' first.",
+				"[ERROR] Authentication failed. Please set AGENTBAY_ACCESS_KEY_ID and AGENTBAY_ACCESS_KEY_SECRET environment variables.",
 				"",
 			)
 		}

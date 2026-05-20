@@ -36,5 +36,5 @@ func AccessKeyFromEnv() (accessKeyID, accessKeySecret, securityToken string, ok 
 
 // ErrNotAuthenticated is returned when neither OAuth tokens nor AccessKey env credentials are available.
 func ErrNotAuthenticated() error {
-	return fmt.Errorf("not authenticated. Please run 'agentbay login' or set %s and %s", EnvAccessKeyID, EnvAccessKeySecret)
+	return fmt.Errorf("not authenticated. Please set %s and %s environment variables", EnvAccessKeyID, EnvAccessKeySecret)
 }

@@ -75,8 +75,8 @@ func TestPostLogout_ErrorReporting(t *testing.T) {
 			}
 
 			// Verify that helpful guidance is provided (Cobra prints "Error: ..." to SetErr)
-			if !strings.Contains(combined, "agentbay login") {
-				t.Errorf("Expected output to suggest 'agentbay login', but got:\n%s", buf.String())
+			if !strings.Contains(combined, "agentbay_access_key_id") {
+				t.Errorf("Expected output to suggest setting AGENTBAY_ACCESS_KEY_ID, but got:\n%s", buf.String())
 			}
 		})
 	}
@@ -84,7 +84,7 @@ func TestPostLogout_ErrorReporting(t *testing.T) {
 
 func TestPostLogout_ErrorMessageFormat(t *testing.T) {
 	// Returned error and Cobra output use ErrNotAuthenticated text (no duplicate stderr line).
-	expectedFormat := "not authenticated. Please run 'agentbay login' or set AGENTBAY_ACCESS_KEY_ID and AGENTBAY_ACCESS_KEY_SECRET"
+	expectedFormat := "not authenticated. Please set AGENTBAY_ACCESS_KEY_ID and AGENTBAY_ACCESS_KEY_SECRET environment variables"
 
 	t.Logf("Expected error message format: %s", expectedFormat)
 	t.Log("This format should be consistent across all commands that require authentication")

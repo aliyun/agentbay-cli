@@ -463,7 +463,7 @@ func RefreshTokenIfNeeded(cfg TokenConfig, clientID string) error {
 		if clearErr := cfg.ClearTokens(); clearErr != nil {
 			log.Warnf("ClearTokens after failed refresh: %v", clearErr)
 		}
-		return fmt.Errorf("token refresh failed, please run 'agentbay login' to reauthenticate: %w", err)
+		return fmt.Errorf("token refresh failed, please set %s and %s environment variables to reauthenticate: %w", "AGENTBAY_ACCESS_KEY_ID", "AGENTBAY_ACCESS_KEY_SECRET", err)
 	}
 
 	err = cfg.RefreshTokens(

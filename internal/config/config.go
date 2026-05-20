@@ -27,7 +27,7 @@ type Token struct {
 }
 
 var (
-	ErrNoTokenFound = errors.New("no authentication token found. Run 'agentbay login' to authenticate")
+	ErrNoTokenFound = errors.New("no authentication token found")
 )
 
 // GetConfig loads the configuration from file or creates a new one
