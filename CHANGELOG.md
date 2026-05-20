@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Features
 
 - Add image warmup-status command
+- Integrate git-cliff for automated changelog generation
+
+### Bug Fixes
+
+- Correct git-cliff download URL in homebrew workflow
 
 ### Documentation
 
