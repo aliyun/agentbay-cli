@@ -148,6 +148,10 @@ git push aliyun feat/<topic>
 - `.github/workflows/` on the public repo only runs on tag pushes (`v*`) or manual
   dispatch, so pushing feature branches to `aliyun` is safe and does not trigger releases.
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a history of changes to this project.
+
 ## License
 
 This project is licensed under the Apache License 2.0 - see the LICENSE file for details.
