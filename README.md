@@ -10,7 +10,7 @@ A command-line interface for AgentBay services.
 
 AgentBay CLI is a Cobra-based command-line tool that talks to AgentBay services through Alibaba Cloud OpenAPI. It provides:
 
-- **Image Management** — create, list, activate / deactivate / delete custom images, query lifecycle status, and configure session concurrency
+- **Image Management** — create, list, activate / deactivate / delete custom images, query lifecycle status, check warm-up quota, and configure session concurrency
 - **API Key Management** — create / list / enable / disable / delete keys, set per-key concurrency limits
 - **Network Management** — query network packages and EIP bindings by region
 - **Skills Management** — push local skills and inspect details by ID
@@ -308,6 +308,20 @@ agentbay image set-max-session --image-id imgc-xxxxxxxxxxxxxx --max-session-num 
 ```
 
 > The command polls until the resource group is ready (typically ~5 minutes).
+
+#### `image warmup-status`
+
+Query the warm-up status for the current account, including session quota, image quota, and details of warm-up images.
+
+```bash
+agentbay image warmup-status
+```
+
+Output includes:
+
+- **Session Quota** — max session limit, total used, and available sessions
+- **Image Quota** — max image count and current image count
+- **Warm-up Images** — table of image IDs, total max size, and group count
 
 ---
 
