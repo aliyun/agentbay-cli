@@ -27,9 +27,9 @@ export AGENTBAY_ACCESS_KEY_SECRET="your-sts-secret"
 export AGENTBAY_ACCESS_KEY_SESSION_TOKEN="your-sts-session-token"
 ```
 
-### 3. OAuth Login (Deprecated — not recommended)
+### 3. OAuth Login (not recommended)
 
-> WARNING: `agentbay login` is **deprecated and will be removed in a future release**. Please use AccessKey or STS instead.
+> NOTE: `agentbay login` is **not recommended**. Please prefer AccessKey or STS instead.
 
 ```bash
 agentbay login    # Opens a browser for OAuth login

@@ -26,9 +26,9 @@ Endpoint: xiaoying.cn-shanghai.aliyuncs.com
 
 ---
 
-### `agentbay login` _(deprecated — will be removed in a future release)_
+### `agentbay login` _(not recommended)_
 
-> WARNING: `agentbay login` is **deprecated and will be removed in a future release**. Please use AccessKey or STS environment variables instead.
+> NOTE: `agentbay login` is **not recommended**. Please prefer AccessKey or STS environment variables instead.
 
 Opens a browser for Aliyun OAuth authentication. After completing the login in the browser, return to the terminal.
 

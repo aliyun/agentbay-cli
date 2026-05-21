@@ -26,9 +26,9 @@ Endpoint: xiaoying.cn-shanghai.aliyuncs.com
 
 ---
 
-### `agentbay login`（已废弃，后续版本将移除）
+### `agentbay login`（不推荐使用）
 
-> 警告：`agentbay login` **已不推荐使用，后续版本将被废弃移除**。请改用 AccessKey 或 STS 环境变量方式。
+> 提示：`agentbay login` **不推荐使用**。请优先使用 AccessKey 或 STS 环境变量方式。
 
 打开浏览器进行阿里云 OAuth 认证。在浏览器中完成登录后返回终端。
 

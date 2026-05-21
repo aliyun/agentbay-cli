@@ -27,9 +27,9 @@ export AGENTBAY_ACCESS_KEY_SECRET="your-sts-secret"
 export AGENTBAY_ACCESS_KEY_SESSION_TOKEN="your-sts-session-token"
 ```
 
-### 3. OAuth 登录（已废弃，不推荐使用）
+### 3. OAuth 登录（不推荐使用）
 
-> 警告：`agentbay login` **已不推荐使用，后续版本将被废弃移除**。请改用 AccessKey 或 STS 方式。
+> 提示：`agentbay login` **不推荐使用**。请优先使用 AccessKey 或 STS 方式。
 
 ```bash
 agentbay login    # 打开浏览器进行 OAuth 登录

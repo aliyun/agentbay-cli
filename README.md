@@ -40,7 +40,7 @@ export AGENTBAY_ACCESS_KEY_ID="your-access-key-id"
 export AGENTBAY_ACCESS_KEY_SECRET="your-access-key-secret"
 ```
 
-See [Authentication & Environment](docs/en/authentication.md) for STS, OAuth (deprecated), and environment variables.
+See [Authentication & Environment](docs/en/authentication.md) for STS, OAuth (not recommended), and environment variables.
 
 ---
 

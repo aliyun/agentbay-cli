@@ -40,7 +40,7 @@ export AGENTBAY_ACCESS_KEY_ID="your-access-key-id"
 export AGENTBAY_ACCESS_KEY_SECRET="your-access-key-secret"
 ```
 
-STS、OAuth（已废弃）及环境变量详见 [认证与环境](docs/zh/authentication.md)。
+STS、OAuth（不推荐使用）及环境变量详见 [认证与环境](docs/zh/authentication.md)。
 
 ---
 
