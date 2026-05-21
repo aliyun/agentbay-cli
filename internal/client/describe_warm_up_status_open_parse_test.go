@@ -23,8 +23,8 @@ func TestParseDescribeWarmUpStatusOpenResponse_JSONInt32AsString(t *testing.T) {
 			"MaxImageCount":"5",
 			"CurrentImageCount":"2",
 			"Images":[
-				{"ImageId":"imgc-xxx","TotalMaxSize":"100","GroupCount":"3"},
-				{"ImageId":"imgc-yyy","TotalMaxSize":"50","GroupCount":"1"}
+				{"ImageId":"imgc-xxx","TotalMaxSize":"100","GroupCount":"3","AvailableInstanceSize":"80"},
+				{"ImageId":"imgc-yyy","TotalMaxSize":"50","GroupCount":"1","AvailableInstanceSize":"40"}
 			]
 		}
 	}`
@@ -46,9 +46,11 @@ func TestParseDescribeWarmUpStatusOpenResponse_JSONInt32AsString(t *testing.T) {
 	require.Equal(t, "imgc-xxx", out.Body.Data.Images[0].GetImageId())
 	require.Equal(t, int32(100), out.Body.Data.Images[0].GetTotalMaxSize())
 	require.Equal(t, int32(3), out.Body.Data.Images[0].GetGroupCount())
+	require.Equal(t, int32(80), out.Body.Data.Images[0].GetAvailableInstanceSize())
 	require.Equal(t, "imgc-yyy", out.Body.Data.Images[1].GetImageId())
 	require.Equal(t, int32(50), out.Body.Data.Images[1].GetTotalMaxSize())
 	require.Equal(t, int32(1), out.Body.Data.Images[1].GetGroupCount())
+	require.Equal(t, int32(40), out.Body.Data.Images[1].GetAvailableInstanceSize())
 }
 
 func TestParseDescribeWarmUpStatusOpenResponse_JSONInt32AsNumber(t *testing.T) {
@@ -65,7 +67,7 @@ func TestParseDescribeWarmUpStatusOpenResponse_JSONInt32AsNumber(t *testing.T) {
 			"MaxImageCount":5,
 			"CurrentImageCount":2,
 			"Images":[
-				{"ImageId":"imgc-xxx","TotalMaxSize":100,"GroupCount":3}
+				{"ImageId":"imgc-xxx","TotalMaxSize":100,"GroupCount":3,"AvailableInstanceSize":80}
 			]
 		}
 	}`
@@ -85,6 +87,7 @@ func TestParseDescribeWarmUpStatusOpenResponse_JSONInt32AsNumber(t *testing.T) {
 	require.Len(t, out.Body.Data.Images, 1)
 	require.Equal(t, int32(100), out.Body.Data.Images[0].GetTotalMaxSize())
 	require.Equal(t, int32(3), out.Body.Data.Images[0].GetGroupCount())
+	require.Equal(t, int32(80), out.Body.Data.Images[0].GetAvailableInstanceSize())
 }
 
 func TestParseDescribeWarmUpStatusOpenResponse_XML(t *testing.T) {
@@ -105,6 +108,7 @@ func TestParseDescribeWarmUpStatusOpenResponse_XML(t *testing.T) {
 		`<ImageId>imgc-xxx</ImageId>` +
 		`<TotalMaxSize>100</TotalMaxSize>` +
 		`<GroupCount>3</GroupCount>` +
+		`<AvailableInstanceSize>80</AvailableInstanceSize>` +
 		`</Image>` +
 		`</Images>` +
 		`</Data>` +
@@ -127,6 +131,7 @@ func TestParseDescribeWarmUpStatusOpenResponse_XML(t *testing.T) {
 	require.Equal(t, "imgc-xxx", out.Body.Data.Images[0].GetImageId())
 	require.Equal(t, int32(100), out.Body.Data.Images[0].GetTotalMaxSize())
 	require.Equal(t, int32(3), out.Body.Data.Images[0].GetGroupCount())
+	require.Equal(t, int32(80), out.Body.Data.Images[0].GetAvailableInstanceSize())
 }
 
 func TestParseDescribeWarmUpStatusOpenResponse_JSONEmptyImages(t *testing.T) {
