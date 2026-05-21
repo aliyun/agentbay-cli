@@ -1,4 +1,4 @@
-[English](../../en/authentication.md) | **中文**
+[English](../en/authentication.md) | **中文**
 
 # 认证与环境
 

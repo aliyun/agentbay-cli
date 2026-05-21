@@ -1,4 +1,4 @@
-[English](../../en/faq.md) | **中文**
+[English](../en/faq.md) | **中文**
 
 # 常见问题
 

@@ -1,4 +1,4 @@
-[中文](../../zh/faq.md) | **English**
+[中文](../zh/faq.md) | **English**
 
 # FAQ
 

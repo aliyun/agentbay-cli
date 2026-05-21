@@ -1,4 +1,4 @@
-[中文](../../zh/docker.md) | **English**
+[中文](../zh/docker.md) | **English**
 
 # Docker Operations — `agentbay docker`
 

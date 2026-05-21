@@ -1,4 +1,4 @@
-[中文](../../zh/README.md) | **English**
+[中文](../zh/README.md) | **English**
 
 # AgentBay CLI Documentation
 

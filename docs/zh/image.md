@@ -1,4 +1,4 @@
-[English](../../en/image.md) | **中文**
+[English](../en/image.md) | **中文**
 
 # 镜像管理 — `agentbay image`
 

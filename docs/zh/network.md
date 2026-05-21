@@ -1,4 +1,4 @@
-[English](../../en/network.md) | **中文**
+[English](../en/network.md) | **中文**
 
 # 网络管理 — `agentbay network`
 

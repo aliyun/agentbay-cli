@@ -1,4 +1,4 @@
-[English](../../en/core.md) | **中文**
+[English](../en/core.md) | **中文**
 
 # 核心命令 — `agentbay`
 

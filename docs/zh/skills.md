@@ -1,4 +1,4 @@
-[English](../../en/skills.md) | **中文**
+[English](../en/skills.md) | **中文**
 
 # 技能管理 — `agentbay skills`
 

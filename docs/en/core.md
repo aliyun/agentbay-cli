@@ -1,4 +1,4 @@
-[中文](../../zh/core.md) | **English**
+[中文](../zh/core.md) | **English**
 
 # Core Commands — `agentbay`
 

@@ -1,4 +1,4 @@
-[English](../../en/apikey.md) | **中文**
+[English](../en/apikey.md) | **中文**
 
 # API Key 管理 — `agentbay apikey`
 

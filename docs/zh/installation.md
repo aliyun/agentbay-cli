@@ -1,4 +1,4 @@
-[English](../../en/installation.md) | **中文**
+[English](../en/installation.md) | **中文**
 
 # 安装
 

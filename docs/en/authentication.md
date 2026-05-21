@@ -1,4 +1,4 @@
-[中文](../../zh/authentication.md) | **English**
+[中文](../zh/authentication.md) | **English**
 
 # Authentication & Environment
 
