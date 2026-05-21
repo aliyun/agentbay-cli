@@ -325,7 +325,41 @@ Test<子命令>Cmd           // 测试子命令
 
    ⚠️ **隔离原则**：新增命令不得修改其它命令的公共行为。如果必须改公共代码（如 `internal/agentbay/client.go`、`config`、`auth`），必须在 PR/变更档案里明确列出影响范围，并跑完所有相关命令的回归用例。
 
-### Phase 5: 文档生成
+### Phase 5: 文档生成与同步
+
+#### 5.1 更新 docs/ 命令文档（必须）
+
+根据新命令所属的命令组，更新对应的双语文档文件：
+
+| 命令组 | 文件路径 |
+|--------|----------|
+| core（version/login/logout） | `docs/en/core.md` / `docs/zh/core.md` |
+| image | `docs/en/image.md` / `docs/zh/image.md` |
+| apikey | `docs/en/apikey.md` / `docs/zh/apikey.md` |
+| network | `docs/en/network.md` / `docs/zh/network.md` |
+| skills | `docs/en/skills.md` / `docs/zh/skills.md` |
+| docker | `docs/en/docker.md` / `docs/zh/docker.md` |
+
+**更新内容**：
+- 添加命令语法（`agentbay <group> <subcommand> [flags]`）
+- 参数说明表格（参数名、类型、必填、说明）
+- 使用示例（至少 1 个基本示例）
+- 输出说明
+- 注意事项（如有）
+
+**要求**：
+- 中英文文档**必须同步更新**，结构保持一致
+- 命令示例保持英文（如 `agentbay image list`）
+- 参考同文件中已有命令的文档风格
+
+#### 5.2 更新 README（必须）
+
+更新 `README.md` 和 `README.zh-CN.md` 的 Command Overview 表格：
+- 新增命令：在对应命令组行添加新子命令的简短说明
+- 修改命令：更新对应行的描述
+- 保持中英文表格内容一致
+
+#### 5.3 更新对客文档
 
 创建对客功能文档（放在 `cli-analysis/` 目录）：
 
@@ -382,6 +416,13 @@ git commit -m "feat: add <功能描述> CLI command
 - [ ] 错误处理友好
 
 ### 文档输出
+
+✅ **docs/ 命令文档**（必须）:
+
+- [ ] `docs/en/<command-group>.md` 已更新（语法、参数、示例、输出）
+- [ ] `docs/zh/<command-group>.md` 已更新（与英文版结构一致）
+- [ ] `README.md` Command Overview 表格已更新
+- [ ] `README.zh-CN.md` Command Overview 表格已更新
 
 ✅ **对客文档**（cli-analysis/）:
 

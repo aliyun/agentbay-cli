@@ -345,21 +345,31 @@ assert.Equal(t, "y", yesFlag.Shorthand)
 - `cmd/image.go` `runImageDelete` —— 单步骤确认
 - `cmd/confirm.go` `ConfirmPrompt` —— 可复用的确认函数
 
-### 新增或修改命令必须同步更新 README 和测试用例
+### 新增或修改命令必须同步更新文档和测试用例
 
 **规则**: 每次**新增或修改** CLI 命令（包括新增参数、修改默认值、调整输出格式等）时，**必须**同步完成以下工作：
 
-1. **更新 `agentbay-cli/README.md`**
-   - 新增命令：在 Features 列表和 Quick Start 示例中补充新命令的使用说明
-   - 修改命令：同步更新 README 中对应命令的参数说明、示例和注意事项
-   - 保持与已有命令文档风格一致
+1. **更新 `README.md` 和 `README.zh-CN.md`**
+   - 更新 Command Overview 表格，添加或修改对应命令的说明
+   - 保持中英文 README 表格内容一致
 
-2. **同步更新对外文档**
+2. **更新 `docs/en/<command-group>.md` 和 `docs/zh/<command-group>.md`**
+   - 命令组与文件对应关系：`core` / `image` / `apikey` / `network` / `skills` / `docker`
+   - 新增命令：在对应命令组文件中添加完整的语法、参数、示例和输出说明
+   - 修改命令：同步更新参数说明、示例和注意事项
+   - **中英文文档必须同步更新**，保持结构一致
+
+3. **更新 `CHANGELOG.md`** — 发布前补充中文翻译
+   - git-cliff 自动生成的条目包含英文内容 + `<!-- 中文翻译待补充 -->` 占位
+   - 发版前**必须**将占位符替换为准确的中文翻译
+   - 翻译格式：在英文条目下方，用 `* * *` 分隔后添加中文翻译（参考已有版本的格式）
+
+4. **同步更新对外文档**
    - 钉钉文档（对外使用手册）和 `cli-analysis/Agentbay cli 使用手册.md` 需同步更新
    - 对外文档遵循精简原则：仅保留客户需要的功能说明，剔除内部实现细节
    - 文档内容包括：语法、参数、示例、输出说明、注意事项
 
-3. **编写/更新单元测试**
+5. **编写/更新单元测试**
    - 在 `test/unit/cmd/` 下创建或更新对应的测试文件
    - 测试内容必须覆盖：命令元数据、必填参数校验、子命令结构
    - 运行 `go test ./... -count=1` 确保全部通过
@@ -367,7 +377,10 @@ assert.Equal(t, "y", yesFlag.Shorthand)
 **检查清单**:
 
 - [ ] 命令代码已完成（新增或修改）
-- [ ] README.md 已更新，反映最新的命令用法
+- [ ] `README.md` Command Overview 表格已更新
+- [ ] `README.zh-CN.md` Command Overview 表格已更新
+- [ ] `docs/en/<command-group>.md` 详细文档已更新
+- [ ] `docs/zh/<command-group>.md` 详细文档已更新
 - [ ] 对外文档已同步（钉钉文档 / cli 使用手册）
 - [ ] 单元测试已编写或更新并通过
 - [ ] mock 类已同步更新（如有接口变更）

@@ -390,6 +390,23 @@ jobs:
           cat /tmp/release-notes-full.md
           echo "--- End Preview ---"
 
+      - name: Check Chinese Translation
+        run: |
+          echo "🔍 Checking for missing Chinese translations in release notes..."
+
+          if grep -q "中文翻译待补充" /tmp/release-notes-full.md; then
+            echo "⚠️ WARNING: Release notes contain placeholder for Chinese translation!"
+            echo "⚠️ Please add Chinese translation before publishing the release."
+            echo "⚠️ Placeholder found: <!-- 中文翻译待补充 / Add Chinese translation before release -->"
+            echo ""
+            echo "Lines with placeholder:"
+            grep -n "中文翻译待补充" /tmp/release-notes-full.md || true
+            echo ""
+            echo "⚠️ This is a non-blocking warning. The release will proceed, but please update CHANGELOG.md with Chinese translation ASAP."
+          else
+            echo "✅ No missing Chinese translation placeholders found."
+          fi
+
       - name: Create GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
