@@ -6,9 +6,10 @@ package client
 
 // DescribeWarmUpStatusOpenResponseBodyDataImage represents a single image in the warm-up status response
 type DescribeWarmUpStatusOpenResponseBodyDataImage struct {
-	ImageId      *string `json:"ImageId,omitempty" xml:"ImageId,omitempty"`
-	TotalMaxSize *int32  `json:"TotalMaxSize,omitempty" xml:"TotalMaxSize,omitempty"`
-	GroupCount   *int32  `json:"GroupCount,omitempty" xml:"GroupCount,omitempty"`
+	ImageId               *string `json:"ImageId,omitempty" xml:"ImageId,omitempty"`
+	TotalMaxSize          *int32  `json:"TotalMaxSize,omitempty" xml:"TotalMaxSize,omitempty"`
+	GroupCount            *int32  `json:"GroupCount,omitempty" xml:"GroupCount,omitempty"`
+	AvailableInstanceSize *int32  `json:"AvailableInstanceSize,omitempty" xml:"AvailableInstanceSize,omitempty"`
 }
 
 // GetImageId returns the ImageId value or empty string if nil
@@ -33,6 +34,14 @@ func (s *DescribeWarmUpStatusOpenResponseBodyDataImage) GetGroupCount() int32 {
 		return 0
 	}
 	return *s.GroupCount
+}
+
+// GetAvailableInstanceSize returns the AvailableInstanceSize value or 0 if nil
+func (s *DescribeWarmUpStatusOpenResponseBodyDataImage) GetAvailableInstanceSize() int32 {
+	if s == nil || s.AvailableInstanceSize == nil {
+		return 0
+	}
+	return *s.AvailableInstanceSize
 }
 
 // DescribeWarmUpStatusOpenResponseBodyData represents the Data field in the response

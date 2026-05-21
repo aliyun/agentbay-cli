@@ -106,19 +106,22 @@ func runImageWarmupStatus(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("[IMAGES] Warm-up Images (%d):\n\n", len(images))
-	fmt.Printf("  %s %s %s\n",
+	fmt.Printf("  %s %s %s %s\n",
 		padString("IMAGE ID", 25),
 		padString("TOTAL MAX SIZE", 18),
-		padString("GROUP COUNT", 14))
-	fmt.Printf("  %s %s %s\n",
+		padString("GROUP COUNT", 14),
+		padString("AVAILABLE INSTANCE SIZE", 25))
+	fmt.Printf("  %s %s %s %s\n",
 		padString("--------", 25),
 		padString("--------------", 18),
-		padString("-----------", 14))
+		padString("-----------", 14),
+		padString("-----------------------", 25))
 	for _, img := range images {
-		fmt.Printf("  %s %s %s\n",
+		fmt.Printf("  %s %s %s %s\n",
 			padString(truncateString(img.GetImageId(), 25), 25),
 			padString(fmt.Sprintf("%d", img.GetTotalMaxSize()), 18),
-			padString(fmt.Sprintf("%d", img.GetGroupCount()), 14))
+			padString(fmt.Sprintf("%d", img.GetGroupCount()), 14),
+			padString(fmt.Sprintf("%d", img.GetAvailableInstanceSize()), 25))
 	}
 
 	return nil
