@@ -273,9 +273,10 @@ func parseCreateMarketSkillResponse(res map[string]interface{}) (*CreateMarketSk
 // --- DescribeWarmUpStatusOpen ---
 
 type describeWarmUpStatusOpenJSONWireDataImage struct {
-	ImageId      *string         `json:"ImageId"`
-	TotalMaxSize json.RawMessage `json:"TotalMaxSize"`
-	GroupCount   json.RawMessage `json:"GroupCount"`
+	ImageId               *string         `json:"ImageId"`
+	TotalMaxSize          json.RawMessage `json:"TotalMaxSize"`
+	GroupCount            json.RawMessage `json:"GroupCount"`
+	AvailableInstanceSize json.RawMessage `json:"AvailableInstanceSize"`
 }
 
 type describeWarmUpStatusOpenJSONWire struct {
@@ -295,9 +296,10 @@ type describeWarmUpStatusOpenJSONWire struct {
 }
 
 type xmlDescribeWarmUpStatusOpenDataImage struct {
-	ImageId      string `xml:"ImageId"`
-	TotalMaxSize string `xml:"TotalMaxSize"`
-	GroupCount   string `xml:"GroupCount"`
+	ImageId               string `xml:"ImageId"`
+	TotalMaxSize          string `xml:"TotalMaxSize"`
+	GroupCount            string `xml:"GroupCount"`
+	AvailableInstanceSize string `xml:"AvailableInstanceSize"`
 }
 
 type xmlDescribeWarmUpStatusOpenData struct {
@@ -382,6 +384,11 @@ func parseDescribeWarmUpStatusOpenResponse(res map[string]interface{}) (*Describ
 						item.GroupCount = dara.Int32(int32(n))
 					}
 				}
+				if s := strings.TrimSpace(img.AvailableInstanceSize); s != "" {
+					if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+						item.AvailableInstanceSize = dara.Int32(int32(n))
+					}
+				}
 				data.Images = append(data.Images, item)
 			}
 			parsed.Data = data
@@ -440,6 +447,11 @@ func parseDescribeWarmUpStatusOpenResponse(res map[string]interface{}) (*Describ
 						return nil, &ErrWithRequestID{Err: fmt.Errorf("Images.GroupCount: %w", derr), RequestID: extractRequestIDFromResponse(res)}
 					}
 					item.GroupCount = gc
+					ais, derr := int32FromFlexibleJSON(img.AvailableInstanceSize)
+					if derr != nil {
+						return nil, &ErrWithRequestID{Err: fmt.Errorf("Images.AvailableInstanceSize: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+					}
+					item.AvailableInstanceSize = ais
 					data.Images = append(data.Images, item)
 				}
 				parsed.Data = data
