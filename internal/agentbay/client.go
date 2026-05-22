@@ -34,6 +34,11 @@ type Client interface {
 	// API Key
 	CreateApiKey(ctx context.Context, request *client.CreateApiKeyRequest) (*client.CreateApiKeyResponse, error)
 	ModifyMcpApiKeyConfig(ctx context.Context, request *client.ModifyMcpApiKeyConfigRequest) (*client.ModifyMcpApiKeyConfigResponse, error)
+	DescribeMcpApiKey(ctx context.Context, request *client.DescribeMcpApiKeyRequest) (*client.DescribeMcpApiKeyResponse, error)
+	ModifyApiKeyStatus(ctx context.Context, request *client.ModifyApiKeyStatusRequest) (*client.ModifyApiKeyStatusResponse, error)
+	DeleteApiKey(ctx context.Context, request *client.DeleteApiKeyRequest) (*client.DeleteApiKeyResponse, error)
+	DescribeApiKeys(ctx context.Context, request *client.DescribeApiKeysRequest) (*client.DescribeApiKeysResponse, error)
+	DescribeKeyContent(ctx context.Context, request *client.DescribeKeyContentRequest) (*client.DescribeKeyContentResponse, error)
 	// Advanced Network
 	DescribeInstanceTypes(ctx context.Context, request *client.DescribeInstanceTypesRequest) (*client.DescribeInstanceTypesResponse, error)
 	DescribeMcpPolicyData(ctx context.Context, request *client.DescribeMcpPolicyDataRequest) (*client.DescribeMcpPolicyDataResponse, error)
@@ -320,6 +325,51 @@ func (cw *clientWrapper) BatchCreateHideResourceGroupsWithMaxSession(ctx context
 		return nil, err
 	}
 	return sdkClient.BatchCreateHideResourceGroupsWithMaxSessionWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// DescribeMcpApiKey wraps the SDK client method
+func (cw *clientWrapper) DescribeMcpApiKey(ctx context.Context, request *client.DescribeMcpApiKeyRequest) (*client.DescribeMcpApiKeyResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.DescribeMcpApiKeyWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// ModifyApiKeyStatus wraps the SDK client method
+func (cw *clientWrapper) ModifyApiKeyStatus(ctx context.Context, request *client.ModifyApiKeyStatusRequest) (*client.ModifyApiKeyStatusResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.ModifyApiKeyStatusWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// DeleteApiKey wraps the SDK client method
+func (cw *clientWrapper) DeleteApiKey(ctx context.Context, request *client.DeleteApiKeyRequest) (*client.DeleteApiKeyResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.DeleteApiKeyWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// DescribeApiKeys wraps the SDK client method
+func (cw *clientWrapper) DescribeApiKeys(ctx context.Context, request *client.DescribeApiKeysRequest) (*client.DescribeApiKeysResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.DescribeApiKeysWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// DescribeKeyContent wraps the SDK client method
+func (cw *clientWrapper) DescribeKeyContent(ctx context.Context, request *client.DescribeKeyContentRequest) (*client.DescribeKeyContentResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.DescribeKeyContentWithContext(ctx, request, cw.getRuntimeOptions())
 }
 
 // DescribeWarmUpStatusOpen wraps the SDK client method

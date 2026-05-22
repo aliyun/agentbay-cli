@@ -1,116 +1,313 @@
 # AgentBay CLI
 
+[中文版](README.zh-CN.md) | **English**
+
 A command-line interface for AgentBay services.
 
-## Features
+---
 
-AgentBay CLI provides image management, API key management, network management, and skills management:
+## Overview
 
-**Note**: The current version of the CLI tool supports creating and activating CodeSpace type images only.
+AgentBay CLI is a Cobra-based command-line tool that talks to AgentBay services through Alibaba Cloud OpenAPI. It provides image management, API key management, network management, skills management, Docker operations, and flexible authentication.
 
-- **Authentication**: OAuth login with Aliyun, or AccessKey via environment variables (`AGENTBAY_ACCESS_KEY_ID` / `AGENTBAY_ACCESS_KEY_SECRET`) for automation and CI
-- **Dockerfile Template**: Download Dockerfile templates from the cloud
-- **Image Creation**: Build custom images from Dockerfiles with base image support; automatically parses and uploads COPY/ADD referenced files
-- **Image Management**: Activate, deactivate, delete, and monitor image instances with configurable resource specifications (CPU/memory) and network types
-- **Image Listing**: Browse user and system images with separated display, pagination and filtering support
-- **Image Status**: Query resource lifecycle status for an image by ID (`agentbay image status`)
-- **Warm-up Status**: Query session quota, image quota, and warm-up image details for the current account (`agentbay image warmup-status`)
-- **API Key Management**: Create API keys and configure session concurrency limits for authentication and access control
-- **Network Management**: Query network packages by region, view package details including EIP addresses and office site bindings
-- **Skills**: Push local skills and show skill details by ID (`skills list` is a placeholder until the backend list API is available)
-- **Configuration Management**: Secure token storage and automatic token refresh
+> The current CLI version supports creating and activating **CodeSpace** type images only.
+
+---
+
+## Installation
+
+```bash
+# macOS / Linux (Homebrew)
+brew tap aliyun/agentbay && brew install agentbay
+
+# Windows (PowerShell)
+powershell -Command "irm https://aliyun.github.io/agentbay-cli/windows | iex"
+
+# Verify
+agentbay version
+```
+
+### Update
+
+```bash
+# macOS / Linux (Homebrew)
+brew update && brew upgrade agentbay
+
+# Windows (PowerShell): re-run the install command to upgrade in place
+powershell -Command "irm https://aliyun.github.io/agentbay-cli/windows | iex"
+```
+
+### Uninstall
+
+```bash
+# macOS / Linux (Homebrew)
+brew uninstall agentbay
+brew untap aliyun/agentbay   # optional
+```
+
+```powershell
+# Windows (PowerShell)
+Remove-Item -Path "$env:LOCALAPPDATA\agentbay" -Recurse -Force
+$agentbayPath = "$env:LOCALAPPDATA\agentbay"
+$currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+$newPath = ($currentPath.Split(';') | Where-Object { $_ -ne $agentbayPath }) -join ';'
+[Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+```
+
+See [Installation Guide](docs/en/installation.md) for details (including pre-built binaries and troubleshooting).
+
+---
+
+## Authentication
+
+**AccessKey (recommended for scripts/CI):**
+
+```bash
+export AGENTBAY_ACCESS_KEY_ID="your-access-key-id"
+export AGENTBAY_ACCESS_KEY_SECRET="your-access-key-secret"
+```
+
+See [Authentication & Environment](docs/en/authentication.md) for STS, OAuth (not recommended), and environment variables.
+
+---
+
+## RAM Permissions (RAM Sub-accounts Only)
+
+> The main Alibaba Cloud account does **not** require any additional permission configuration.
+> This section applies only to **RAM sub-accounts** using AK/SK authentication.
+
+If you are using a RAM sub-account's AK/SK, grant the required permissions via the [RAM console](https://ram.console.aliyun.com/users).
+
+### `apikey` Command Group
+
+| OpenAPI Action | Required Permission | Used By |
+|---|---|---|
+| `CreateApiKey` | `agentbay:CreateApiKey` | `apikey create` |
+| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` | `apikey enable`, `apikey disable`, `apikey delete`, `apikey list`, `apikey concurrency set` |
+| `DescribeApiKeys` | `agentbay:DescribeApiKeys` | `apikey delete`, `apikey list` |
+| `ModifyApiKeyStatus` | `agentbay:ModifyApiKeyStatus` | `apikey enable`, `apikey disable`, `apikey delete` |
+| `DeleteApiKey` | `agentbay:DeleteApiKey` | `apikey delete` |
+| `ModifyMcpApiKeyConfig` | `agentbay:ModifyMcpApiKeyConfig` | `apikey concurrency set` |
+| `DescribeKeyContent` | `agentbay:DescribeKeyContent` | `apikey describe-key-content` |
+
+**RAM Policy example (full access to `apikey` commands):**
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "agentbay:CreateApiKey",
+        "agentbay:DescribeMcpApiKey",
+        "agentbay:DescribeApiKeys",
+        "agentbay:ModifyApiKeyStatus",
+        "agentbay:DeleteApiKey",
+        "agentbay:ModifyMcpApiKeyConfig",
+        "agentbay:DescribeKeyContent"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+> If you only use specific commands, refer to the **Involved APIs** section in [API Key docs](docs/en/apikey.md) and grant only the required subset.
+
+### `image` Command Group
+
+| OpenAPI Action | Required Permission | Used By |
+|---|---|---|
+| `ListMcpImages` | `agentbay:ListMcpImages` | `image list`, `image deactivate` |
+| `GetMcpImageInfo` | `agentbay:GetMcpImageInfo` | `image create`, `image activate`, `image deactivate`, `image delete`, `image status`, `image set-max-session` |
+| `GetDockerFileStoreCredential` | `agentbay:GetDockerFileStoreCredential` | `image create` |
+| `CreateDockerImageTask` | `agentbay:CreateDockerImageTask` | `image create` |
+| `GetDockerImageTask` | `agentbay:GetDockerImageTask` | `image create` |
+| `CreateImageFromTemplate` | `agentbay:CreateImageFromTemplate` | `image create-from-template` |
+| `DescribeInstanceTypes` | `agentbay:DescribeInstanceTypes` | `image activate` |
+| `DescribeMcpPolicyData` | `agentbay:DescribeMcpPolicyData` | `image activate` |
+| `CreateMcpPolicyData` | `agentbay:CreateMcpPolicyData` | `image activate` |
+| `ModifyMcpPolicyData` | `agentbay:ModifyMcpPolicyData` | `image activate` |
+| `DescribeOfficeSites` | `agentbay:DescribeOfficeSites` | `image activate` |
+| `SaveMcpPolicyData` | `agentbay:SaveMcpPolicyData` | `image activate` |
+| `CreateResourceGroup` | `agentbay:CreateResourceGroup` | `image activate` |
+| `DeleteResourceGroup` | `agentbay:DeleteResourceGroup` | `image deactivate` |
+| `DeleteMcpImage` | `agentbay:DeleteMcpImage` | `image delete` |
+| `GetDockerfileTemplate` | `agentbay:GetDockerfileTemplate` | `image init` |
+| `BatchCreateHideResourceGroupsWithMaxSession` | `agentbay:BatchCreateHideResourceGroupsWithMaxSession` | `image set-max-session` |
+| `DescribeWarmUpStatusOpen` | `agentbay:DescribeWarmUpStatusOpen` | `image warmup-status` |
+
+**RAM Policy example (full access to `image` commands):**
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "agentbay:ListMcpImages",
+        "agentbay:GetMcpImageInfo",
+        "agentbay:GetDockerFileStoreCredential",
+        "agentbay:CreateDockerImageTask",
+        "agentbay:GetDockerImageTask",
+        "agentbay:CreateImageFromTemplate",
+        "agentbay:DescribeInstanceTypes",
+        "agentbay:DescribeMcpPolicyData",
+        "agentbay:CreateMcpPolicyData",
+        "agentbay:ModifyMcpPolicyData",
+        "agentbay:DescribeOfficeSites",
+        "agentbay:SaveMcpPolicyData",
+        "agentbay:CreateResourceGroup",
+        "agentbay:DeleteResourceGroup",
+        "agentbay:DeleteMcpImage",
+        "agentbay:GetDockerfileTemplate",
+        "agentbay:BatchCreateHideResourceGroupsWithMaxSession",
+        "agentbay:DescribeWarmUpStatusOpen"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+> If you only use specific commands, refer to the **Involved APIs** section in [Image docs](docs/en/image.md) and grant only the required subset.
+
+### `network` Command Group
+
+| OpenAPI Action | Required Permission | Used By |
+|---|---|---|
+| `DescribeNetworkPackages` | `agentbay:DescribeNetworkPackages` | `network package list` |
+
+**RAM Policy example:**
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "agentbay:DescribeNetworkPackages"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+### `skills` Command Group
+
+| OpenAPI Action | Required Permission | Used By |
+|---|---|---|
+| `GetMarketSkillCredential` | `agentbay:GetMarketSkillCredential` | `skills push` |
+| `CreateMarketSkill` | `agentbay:CreateMarketSkill` | `skills push` |
+| `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` | `skills show` |
+
+**RAM Policy example:**
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "agentbay:GetMarketSkillCredential",
+        "agentbay:CreateMarketSkill",
+        "agentbay:DescribeMarketSkillDetail"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+### `docker` Command Group
+
+| OpenAPI Action | Required Permission | Used By |
+|---|---|---|
+| `GetACRRepoCredential` | `agentbay:GetACRRepoCredential` | `docker login` |
+
+**RAM Policy example:**
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "agentbay:GetACRRepoCredential"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+> `docker tag` and `docker push` are wrappers around the native `docker` CLI and do not call any AgentBay API directly.
+
+---
+
+## Command Overview
+
+| Group | Commands | Description | Details |
+|-------|----------|-------------|---------|
+| Core | `version`, `login`, `logout` | Version & auth | [→](docs/en/core.md) |
+| Image | `list`, `init`, `create`, `create-from-template`, `activate`, `deactivate`, `delete`, `status`, `set-max-session`, `warmup-status` | Image lifecycle | [→](docs/en/image.md) |
+| API Key | `create`, `enable`, `disable`, `delete`, `list`, `concurrency set`, `describe-key-content` | Key management | [→](docs/en/apikey.md) |
+| Network | `package list` | Network config | [→](docs/en/network.md) |
+| Skills | `push`, `show`, `list` | Skill management | [→](docs/en/skills.md) |
+| Docker | `login`, `tag`, `push` | Docker registry | [→](docs/en/docker.md) |
+
+---
 
 ## Quick Start
 
 ```bash
-# 1. Authenticate (pick one)
-agentbay login
-# Or set AGENTBAY_ACCESS_KEY_ID and AGENTBAY_ACCESS_KEY_SECRET (optional: AGENTBAY_ACCESS_KEY_SESSION_TOKEN for STS)
+# 1. Authenticate (AccessKey recommended)
+export AGENTBAY_ACCESS_KEY_ID="your-access-key-id"
+export AGENTBAY_ACCESS_KEY_SECRET="your-access-key-secret"
 
-# 2. List available images
-agentbay image list                    # List user images (default)
-agentbay image list --include-system   # List both user and system images
-agentbay image list --system-only      # List only system images
+# 2. Create an API key (account real-name verification is required)
+agentbay apikey create "my-api-key"
 
-# 3. Download Dockerfile template
-agentbay image init --sourceImageId code-space-debian-12    # Download Dockerfile template to current directory
-# Or use short form:
-agentbay image init -i code-space-debian-12
+# 3. List your API keys and find the API Key (akm-xxxxxxxxxxxxxxxx) from the output
+agentbay apikey list
 
-# 4. Create a custom image (using system image as base)
-agentbay image create myapp --dockerfile ./Dockerfile --imageId code-space-debian-12
+# 4. Disable the API key when temporarily not needed
+agentbay apikey disable --api-key akm-xxxxxxxxxxxxxxxx
 
-# 5. Activate the image (uses default resources; specify --cpu/--memory for other sizes)
-agentbay image activate imgc-xxxxx...xxx
+# 5. Re-enable it later
+agentbay apikey enable --api-key akm-xxxxxxxxxxxxxxxx
 
-# Activate with specific CPU and memory
-agentbay image activate imgc-xxxxx...xxx --cpu 2 --memory 4
-
-# Activate with advanced network configuration
-agentbay image activate imgc-xxxxx...xxx --network-type ADVANCED --session-bandwidth 100 --dns-address 8.8.8.8 --dns-address 8.8.4.4
-
-# Activate with sandbox lifecycle parameters
-agentbay image activate imgc-xxxxx...xxx --lifecycle-mode auto --lifecycle-max-runtime 3600 --lifecycle-hibernate 1800 --lifecycle-idle-timeout 600
-
-# Activate with a specific region
-agentbay image activate imgc-xxxxx...xxx --region-id cn-shanghai
-
-# 6. Deactivate when done
-agentbay image deactivate imgc-xxxxx...xxx
-
-# 7. Delete an image permanently (irreversible, only for deactivated User images)
-agentbay image delete imgc-xxxxx...xxx
-agentbay image delete imgc-xxxxx...xxx --yes  # Skip confirmation (for scripts/CI)
-
-# Optional: check resource status (activate/deactivate lifecycle, not Docker build task)
-agentbay image status imgc-xxxxx...xxx
-
-# Optional: check warm-up status (session quota, image quota, and warm-up images)
-agentbay image warmup-status
-
-# API Key Management (optional)
-agentbay apikey create --name "my-api-key"                        # Create a new API key
-agentbay apikey concurrency set --api-key-id ak-xxx --concurrency 10  # Set concurrency limit
-
-# Network Management (optional)
-agentbay network package list                              # List network packages (default region: cn-hangzhou)
-agentbay network package list --biz-region-id cn-shanghai  # List for a specific region
-
-# Skills (optional; directory or .zip with SKILL.md frontmatter; list is a placeholder)
-agentbay skills push ./my-skill
-agentbay skills push ./my-skill.zip
-agentbay skills show <skill-id>              # Show skill details
+# 6. Delete the API key permanently (must be DISABLED first; --yes skips prompts)
+agentbay apikey delete --api-key akm-xxxxxxxxxxxxxxxx --yes
 ```
 
-**Note**:
+> **Tip:** For automation scripts, you can use `--api-key-id ak-xxxxxxxxxxxxxxxx` (returned by `apikey create`) instead of `--api-key`. See [API Key docs](docs/en/apikey.md#terminology) for details.
 
-- With both OAuth tokens and AccessKey env set, the CLI prefers AccessKey for API calls.
-- System images are always available and don't require activation. Only user-created images need to be activated before use.
-- When downloading Dockerfile templates, the first N lines (N is returned by the system) are system-defined and cannot be modified. Only modify content after line N+1.
-- Available sourceImageID for production environment:
-  `code-space-debian-12`
-  `code-space-debian-12-enhanced`.
-- Image activation uses default resource configuration if `--cpu` and `--memory` are not specified. CPU and memory must be specified together.
-- Advanced network type (`--network-type ADVANCED`) requires `--session-bandwidth` and `--dns-address` parameters.
-- Sandbox lifecycle parameters (`--lifecycle-mode`, `--lifecycle-max-runtime`, `--lifecycle-hibernate`, `--lifecycle-idle-timeout`) are optional and override existing policy values. `--lifecycle-mode` accepts `auto` or `manual`.
-- API keys require account real-name verification before creation. Each API key must have a unique name.
-- Network package list uses `cn-hangzhou` as the default region. Use `--biz-region-id` to query other regions.
+For full command details, see the [Command Reference](docs/en/README.md).
 
-For detailed usage instructions and examples, see the [User Guide](docs/USER_GUIDE.md) .
-
-### Why this workflow
-
-- `.aoneci/cicd.yml` now triggers on `feat/**`, `fix/**`, and `release/**` branches,
-  so every feature branch gets an internal multi-platform build + OSS upload automatically.
-- Because feature branches are cut from `aliyun/master`, no cherry-pick is required
-  when promoting a change to the public repository.
-- `.github/workflows/` on the public repo only runs on tag pushes (`v*`) or manual
-  dispatch, so pushing feature branches to `aliyun` is safe and does not trigger releases.
+---
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for a history of changes to this project.
+See [CHANGELOG.md](CHANGELOG.md) for release history.
+
+---
+
+## Notes
+
+- When both AccessKey env vars and OAuth tokens are present, the CLI prefers AccessKey for API calls.
+- System images are always available and don't need activation; only User images must be activated.
+- API keys require real-name verification before creation, and each key must have a unique name.
+- Use `--yes` / `-y` on destructive commands (`apikey delete`, `image delete`) to skip prompts in non-interactive environments.
+
+---
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the LICENSE file for details.
+This project is licensed under the Apache License 2.0 — see the [LICENSE](LICENSE) file for details.

@@ -147,6 +147,7 @@ git remote remove <name>
 
 - 接口变更必须同步所有 mock 类
 - 新增/修改命令必须同步 README 和对外文档
+- 文档同步遵循 update-cli-command-docs skill（由 create-cli-command Phase 5 自动委托，或独立触发）
 - 新增命令必须有单元测试
 - 参数使用命名参数(`--name`),不使用位置参数
 

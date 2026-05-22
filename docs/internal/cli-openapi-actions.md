@@ -21,6 +21,16 @@
 | | `DeleteResourceGroup` | 删除资源组（停用镜像） |
 | | `GetMcpImageInfo`（轮询） | 等待停用完成 |
 | `agentbay image warmup-status` | `DescribeWarmUpStatusOpen` | 查询预热状态 |
+| `agentbay image delete` | `GetMcpImageInfo` | 获取镜像信息（前置检查） |
+| | `DeleteMcpImage` | 删除镜像 |
+| `agentbay image status` | `GetMcpImageInfo` | 查询镜像资源生命周期状态 |
+| `agentbay apikey create` | `CreateApiKey` | 创建 API Key |
+| `agentbay apikey enable` | `ModifyMcpApiKeyConfig` | 启用 API Key（Action=EnableMcpApiKey） |
+| `agentbay apikey disable` | `ModifyMcpApiKeyConfig` | 禁用 API Key（Action=DisableMcpApiKey） |
+| `agentbay apikey delete` | `DeleteApiKey` | 删除 API Key |
+| `agentbay apikey list` | `DescribeMcpApiKey` | 查询 API Key 列表 |
+| `agentbay apikey concurrency set` | `ModifyMcpApiKeyConfig` | 设置并发上限（Action=SetMcpApiKeyConcurrency） |
+| `agentbay network package list` | `DescribeNetworkPackages` | 查询网络包 |
 
 ## 详细说明
 
@@ -93,16 +103,71 @@
 - **调用方式**: OpenAPI SDK（版本 2025-05-01）
 - **参数**: 无
 
+### 8. `agentbay image delete`
+
+- **Action**: `GetMcpImageInfo`（前置） → `DeleteMcpImage`
+- **调用方式**: OpenAPI SDK（版本 2025-05-01）
+- **主要参数**: ImageId
+
+### 9. `agentbay image status`
+
+- **Action**: `GetMcpImageInfo`
+- **调用方式**: OpenAPI SDK（版本 2025-05-01）
+- **主要参数**: ImageId
+- **说明**: 与 image activate / set-max-session / deactivate 共用同一 Action，但仅查询状态
+
+### 10. `agentbay apikey create`
+
+- **Action**: `CreateApiKey`
+- **调用方式**: OpenAPI SDK（版本 2025-05-01）
+- **主要参数**: ApiKeyName
+
+### 11. `agentbay apikey enable`
+
+- **Action**: `ModifyMcpApiKeyConfig`（Action=EnableMcpApiKey）
+- **调用方式**: OpenAPI SDK（版本 2025-05-01）
+- **主要参数**: ApiKeyId
+
+### 12. `agentbay apikey disable`
+
+- **Action**: `ModifyMcpApiKeyConfig`（Action=DisableMcpApiKey）
+- **调用方式**: OpenAPI SDK（版本 2025-05-01）
+- **主要参数**: ApiKeyId
+
+### 13. `agentbay apikey delete`
+
+- **Action**: `DeleteApiKey`
+- **调用方式**: OpenAPI SDK（版本 2025-05-01）
+- **主要参数**: ApiKeyId
+
+### 14. `agentbay apikey list`
+
+- **Action**: `DescribeMcpApiKey`
+- **调用方式**: OpenAPI SDK（版本 2025-05-01）
+- **主要参数**: MaxResults, ApiKeyId, NextToken
+
+### 15. `agentbay apikey concurrency set`
+
+- **Action**: `ModifyMcpApiKeyConfig`（Action=SetMcpApiKeyConcurrency）
+- **调用方式**: OpenAPI SDK（版本 2025-05-01）
+- **主要参数**: ApiKeyId, MaxConcurrency
+
+### 16. `agentbay network package list`
+
+- **Action**: `DescribeNetworkPackages`
+- **调用方式**: OpenAPI SDK（版本 2025-05-01）
+- **主要参数**: BizRegionId
+
 ## Action 汇总（去重）
 
-共涉及 **15 个** 不同的 OpenAPI Action：
+共涉及 **20 个** 不同的 OpenAPI Action：
 
 | # | Action | 涉及命令 |
 |---|--------|---------|
 | 1 | `GetDockerfileTemplate` | image init |
 | 2 | `GetACRRepoCredential` | docker login |
 | 3 | `CreateImageFromTemplate` | image create-from-template |
-| 4 | `GetMcpImageInfo` | image activate / set-max-session / deactivate |
+| 4 | `GetMcpImageInfo` | image activate / set-max-session / deactivate / delete / status |
 | 5 | `DescribeInstanceTypes` | image activate |
 | 6 | `DescribeMcpPolicyData` | image activate |
 | 7 | `CreateMcpPolicyData` | image activate |
@@ -114,3 +179,8 @@
 | 13 | `DeleteResourceGroup` | image deactivate |
 | 14 | `BatchCreateHideResourceGroupsWithMaxSession` | image set-max-session |
 | 15 | `DescribeWarmUpStatusOpen` | image warmup-status |
+| 16 | `DeleteMcpImage` | image delete |
+| 17 | `CreateApiKey` | apikey create |
+| 18 | `ModifyMcpApiKeyConfig` | apikey enable / disable / concurrency set |
+| 19 | `DeleteApiKey` | apikey delete |
+| 20 | `DescribeMcpApiKey` | apikey list |

@@ -1130,6 +1130,64 @@ func (client *Client) DeleteMcpImage(request *DeleteMcpImageRequest) (_result *D
 	return _result, _err
 }
 
+func (client *Client) DeleteApiKeyWithOptions(request *DeleteApiKeyRequest, runtime *dara.RuntimeOptions) (_result *DeleteApiKeyResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	body := map[string]interface{}{}
+	if request.KeyIdListJson != nil {
+		body["KeyIdListJson"] = request.KeyIdListJson
+	}
+	req := &openapiutil.OpenApiRequest{
+		Body:    openapiutil.ParseToMap(body),
+		Headers: map[string]*string{"Accept": dara.String("application/json")},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("DeleteApiKey"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &DeleteApiKeyResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseDeleteApiKeyResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) DeleteApiKey(request *DeleteApiKeyRequest) (_result *DeleteApiKeyResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &DeleteApiKeyResponse{}
+	_body, _err := client.DeleteApiKeyWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+func (client *Client) DeleteApiKeyWithContext(ctx context.Context, request *DeleteApiKeyRequest, runtime *dara.RuntimeOptions) (_result *DeleteApiKeyResponse, _err error) {
+	_result = &DeleteApiKeyResponse{}
+	_body, _err := client.DeleteApiKeyWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
 // Summary:
 //
 // 下载dockerfile模版
@@ -1711,6 +1769,379 @@ func (client *Client) BatchCreateHideResourceGroupsWithMaxSessionWithContext(ctx
 		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
 	}
 	_result, _err = parseBatchCreateHideResourceGroupsWithMaxSessionResponse(_body)
+	return _result, _err
+}
+
+// DescribeMcpApiKey 查询 MCP API Key 详情
+func (client *Client) DescribeMcpApiKeyWithOptions(request *DescribeMcpApiKeyRequest, runtime *dara.RuntimeOptions) (_result *DescribeMcpApiKeyResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.ApiKey) {
+		query["ApiKey"] = request.ApiKey
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("DescribeMcpApiKey"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &DescribeMcpApiKeyResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseDescribeMcpApiKeyResponse(_body)
+	return _result, _err
+}
+
+// DescribeMcpApiKey 查询 MCP API Key 详情（简便方法）
+func (client *Client) DescribeMcpApiKey(request *DescribeMcpApiKeyRequest) (_result *DescribeMcpApiKeyResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	return client.DescribeMcpApiKeyWithOptions(request, runtime)
+}
+
+// DescribeMcpApiKeyWithContext 查询 MCP API Key 详情，支持 context
+func (client *Client) DescribeMcpApiKeyWithContext(ctx context.Context, request *DescribeMcpApiKeyRequest, runtime *dara.RuntimeOptions) (_result *DescribeMcpApiKeyResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.ApiKey) {
+		query["ApiKey"] = request.ApiKey
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("DescribeMcpApiKey"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &DescribeMcpApiKeyResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseDescribeMcpApiKeyResponse(_body)
+	return _result, _err
+}
+
+// ModifyApiKeyStatus 修改 API Key 状态（启用/禁用）
+func (client *Client) ModifyApiKeyStatusWithOptions(request *ModifyApiKeyStatusRequest, runtime *dara.RuntimeOptions) (_result *ModifyApiKeyStatusResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.ApiKey) {
+		query["ApiKey"] = request.ApiKey
+	}
+	if !dara.IsNil(request.Status) {
+		query["Status"] = request.Status
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("ModifyApiKeyStatus"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &ModifyApiKeyStatusResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseModifyApiKeyStatusResponse(_body)
+	return _result, _err
+}
+
+// ModifyApiKeyStatus 修改 API Key 状态（启用/禁用）（简便方法）
+func (client *Client) ModifyApiKeyStatus(request *ModifyApiKeyStatusRequest) (_result *ModifyApiKeyStatusResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	return client.ModifyApiKeyStatusWithOptions(request, runtime)
+}
+
+// ModifyApiKeyStatusWithContext 修改 API Key 状态（启用/禁用），支持 context
+func (client *Client) ModifyApiKeyStatusWithContext(ctx context.Context, request *ModifyApiKeyStatusRequest, runtime *dara.RuntimeOptions) (_result *ModifyApiKeyStatusResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.ApiKey) {
+		query["ApiKey"] = request.ApiKey
+	}
+	if !dara.IsNil(request.Status) {
+		query["Status"] = request.Status
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("ModifyApiKeyStatus"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &ModifyApiKeyStatusResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseModifyApiKeyStatusResponse(_body)
+	return _result, _err
+}
+
+// DescribeApiKeys 查询 API Key 列表
+func (client *Client) DescribeApiKeysWithOptions(request *DescribeApiKeysRequest, runtime *dara.RuntimeOptions) (_result *DescribeApiKeysResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.MaxResults) {
+		query["MaxResults"] = request.MaxResults
+	}
+	if request.NextToken != nil && *request.NextToken != "" {
+		query["NextToken"] = request.NextToken
+	}
+	// Handle KeyIds with special format: KeyIds.1, KeyIds.2, ...
+	for i, id := range request.KeyIds {
+		key := fmt.Sprintf("KeyIds.%d", i+1)
+		query[key] = id
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("DescribeApiKeys"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &DescribeApiKeysResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseDescribeApiKeysResponse(_body)
+	return _result, _err
+}
+
+// DescribeApiKeys 查询 API Key 列表（简便方法）
+func (client *Client) DescribeApiKeys(request *DescribeApiKeysRequest) (_result *DescribeApiKeysResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	return client.DescribeApiKeysWithOptions(request, runtime)
+}
+
+// DescribeApiKeysWithContext 查询 API Key 列表，支持 context
+func (client *Client) DescribeApiKeysWithContext(ctx context.Context, request *DescribeApiKeysRequest, runtime *dara.RuntimeOptions) (_result *DescribeApiKeysResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.MaxResults) {
+		query["MaxResults"] = request.MaxResults
+	}
+	if request.NextToken != nil && *request.NextToken != "" {
+		query["NextToken"] = request.NextToken
+	}
+	// Handle KeyIds with special format: KeyIds.1, KeyIds.2, ...
+	for i, id := range request.KeyIds {
+		key := fmt.Sprintf("KeyIds.%d", i+1)
+		query[key] = id
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("DescribeApiKeys"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &DescribeApiKeysResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseDescribeApiKeysResponse(_body)
+	return _result, _err
+}
+
+// DescribeKeyContentWithOptions retrieves the plaintext API key content by KeyId
+func (client *Client) DescribeKeyContentWithOptions(request *DescribeKeyContentRequest, runtime *dara.RuntimeOptions) (_result *DescribeKeyContentResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.KeyId) {
+		query["KeyId"] = request.KeyId
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("DescribeKeyContent"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &DescribeKeyContentResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseDescribeKeyContentResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) DescribeKeyContent(request *DescribeKeyContentRequest) (_result *DescribeKeyContentResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	return client.DescribeKeyContentWithOptions(request, runtime)
+}
+
+// DescribeKeyContentWithContext retrieves the plaintext API key content by KeyId, with context support
+func (client *Client) DescribeKeyContentWithContext(ctx context.Context, request *DescribeKeyContentRequest, runtime *dara.RuntimeOptions) (_result *DescribeKeyContentResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.KeyId) {
+		query["KeyId"] = request.KeyId
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("DescribeKeyContent"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &DescribeKeyContentResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseDescribeKeyContentResponse(_body)
 	return _result, _err
 }
 

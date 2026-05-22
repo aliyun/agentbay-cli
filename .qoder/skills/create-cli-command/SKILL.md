@@ -198,6 +198,50 @@ if err != nil {
 
 **verbose / `-v` 的真正用途**: 仅控制额外的调试信息（请求体、响应体 JSON、堆栈等），**不再**控制 RequestId 是否打印。
 
+##### 🛡️ 破坏性操作的二次确认设计（强制）
+
+**规则**：命令涉及**不可逆操作**（删除、永久停用等）时，**必须**同时实现二次确认提示和 `--yes` / `-y` 跳过参数。
+
+**哪些情况触发**：
+
+| 操作类型 | 示例 | 是否需要 |
+|---------|------|---------|
+| 永久删除资源 | `apikey delete`, `image delete` | ✅ 必须 |
+| 多步骤前置依赖（如先禁用才能删除）| 每步都提示 | ✅ 每步 |
+| 可逆状态变更 | `enable`, `disable` | ❌ 不需要 |
+| 查询/只读操作 | `list`, `status` | ❌ 不需要 |
+
+**标准实现**（复用 `cmd/confirm.go` 中已有的 `ConfirmPrompt`）：
+
+```go
+// init() 中注册 flag
+apikeyDeleteCmd.Flags().BoolP("yes", "y", false, "Skip all confirmation prompts (for non-interactive use)")
+
+// RunE 中使用
+autoYes, _ := cmd.Flags().GetBool("yes")
+
+// 每个确认点调用 ConfirmPrompt，autoYes 透传
+confirmed, err := ConfirmPrompt("Are you sure you want to delete? [y/N]: ", autoYes)
+if err != nil {
+    return fmt.Errorf("[ERROR] %w", err)
+}
+if !confirmed {
+    fmt.Printf("[INFO] Operation cancelled.\n")
+    return nil
+}
+```
+
+**`ConfirmPrompt` 三种行为**：
+- `--yes` 传入 → 直接 true，无任何输出
+- 交互式 TTY → 打印提示，读取输入（仅 y/Y/yes/YES 通过）
+- 非 TTY 且无 `--yes` → 返回错误，提示用户加 `--yes`
+
+**多步骤命令**：每步单独调用 `ConfirmPrompt(prompt, autoYes)`，一个 `--yes` 跳过全部步骤。
+
+**参考实现**：
+- `cmd/apikey_delete.go` —— 多步骤（禁用确认 + 删除确认）
+- `cmd/image.go` `runImageDelete` —— 单步骤确认
+
 **命令层级**:
 
 ```
@@ -281,17 +325,18 @@ Test<子命令>Cmd           // 测试子命令
 
    ⚠️ **隔离原则**：新增命令不得修改其它命令的公共行为。如果必须改公共代码（如 `internal/agentbay/client.go`、`config`、`auth`），必须在 PR/变更档案里明确列出影响范围，并跑完所有相关命令的回归用例。
 
-### Phase 5: 文档生成
+### Phase 5: 文档生成与同步
 
-创建对客功能文档（放在 `cli-analysis/` 目录）：
+**本阶段委托 `update-cli-command-docs` skill 执行**，不在本 skill 内展开。
 
-**文档要求**:
+加载并执行 `.qoder/skills/update-cli-command-docs/SKILL.md`，该 skill 将完成：
+- 更新 `docs/en/<group>.md` 和 `docs/zh/<group>.md`
+- 更新 `README.md` 和 `README.zh-CN.md` Command Overview 表格
+- 更新 `CHANGELOG.md`（git-cliff 生成 + 中文翻译）
 
-- 面向客户，不包含代码实现细节
-- 包含完整的使用示例
-- 参数说明表格
-- 错误处理和 FAQ
-- 认证方式和环境配置
+> ⚠️ 不得在本 Phase 中内联执行文档操作，必须遵循 `update-cli-command-docs` 的 Phase 0-3 完整流程。
+
+对客文档（`cli-analysis/` 目录、钉钉文档）不在此 skill 范围内，需手动同步。
 
 ### Phase 6: 代码提交（需用户确认）
 
@@ -338,6 +383,13 @@ git commit -m "feat: add <功能描述> CLI command
 - [ ] 错误处理友好
 
 ### 文档输出
+
+✅ **docs/ 命令文档**（必须）:
+
+- [ ] `docs/en/<command-group>.md` 已更新（语法、参数、示例、输出）
+- [ ] `docs/zh/<command-group>.md` 已更新（与英文版结构一致）
+- [ ] `README.md` Command Overview 表格已更新
+- [ ] `README.zh-CN.md` Command Overview 表格已更新
 
 ✅ **对客文档**（cli-analysis/）:
 

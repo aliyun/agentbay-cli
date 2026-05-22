@@ -25,7 +25,7 @@ var ApiKeyCmd = &cobra.Command{
 }
 
 var apikeyCreateCmd = &cobra.Command{
-	Use:   "create",
+	Use:   "create [name]",
 	Short: "Create a new API key",
 	Long: `Create a new API key with the specified name.
 
@@ -33,26 +33,37 @@ The API key is used to authenticate requests to AgentBay services.
 Each key must have a unique name.
 
 Examples:
-  # Create an API key
+  # Create an API key (positional argument, recommended)
+  agentbay apikey create "my-api-key"
+
+  # Create an API key (--name flag, backward compatible)
   agentbay apikey create --name "my-api-key"
-  
+
   # Create with verbose output
-  agentbay apikey create --name "production-key" -v`,
+  agentbay apikey create "production-key" -v`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: runApikeyCreate,
 }
 
 var apikeyCreateName string
 
 func init() {
-	apikeyCreateCmd.Flags().StringVar(&apikeyCreateName, "name", "", "API key name (required)")
-	apikeyCreateCmd.MarkFlagRequired("name")
-	
+	apikeyCreateCmd.Flags().StringVar(&apikeyCreateName, "name", "", "API key name (can also be provided as positional argument)")
+
 	ApiKeyCmd.AddCommand(apikeyCreateCmd)
 	ApiKeyCmd.AddCommand(ApiKeyConcurrencyCmd)
 }
 
 func runApikeyCreate(cmd *cobra.Command, args []string) error {
-	name := apikeyCreateName
+	var name string
+	if len(args) > 0 {
+		name = args[0] // positional argument takes priority
+	} else {
+		name = apikeyCreateName // fall back to --name flag
+	}
+	if name == "" {
+		return fmt.Errorf("[ERROR] API key name is required. Usage: agentbay apikey create <name>  or  --name <name>")
+	}
 	
 	cfg, err := config.GetConfig()
 	if err != nil {
@@ -66,7 +77,7 @@ func runApikeyCreate(cmd *cobra.Command, args []string) error {
 	req := &client.CreateApiKeyRequest{Name: &name}
 	resp, err := apiClient.CreateApiKey(ctx, req)
 	if err != nil {
-		printRequestIDFromErrIfVerbose(cmd, err)
+		printReqIDFromErr(err)
 		
 		// Check for specific error codes
 		if resp != nil && resp.Body != nil {
@@ -82,19 +93,18 @@ func runApikeyCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("[ERROR] Invalid response: missing body")
 	}
 	
-	verbose, _ := cmd.Flags().GetBool("verbose")
-	if verbose && resp.Body.RequestId != nil && *resp.Body.RequestId != "" {
-		printRequestIDIfVerbose(cmd, *resp.Body.RequestId)
+	if resp.Body.RequestId != nil && *resp.Body.RequestId != "" {
+		fmt.Printf("[INFO] CreateApiKey Request ID: %s\n", *resp.Body.RequestId)
 	}
 	
 	keyId := resp.Body.GetData()
 	if keyId == "" {
-		return fmt.Errorf("[ERROR] Invalid response: missing KeyId")
+		return fmt.Errorf("[ERROR] Invalid response: missing ApiKeyId")
 	}
-	
+
 	fmt.Println()
 	fmt.Printf("[SUCCESS] ✅ API key created successfully!\n")
-	fmt.Printf("%-*s %s\n", apikeyDetailLabelW, "KeyId:", keyId)
+	fmt.Printf("%-*s %s\n", apikeyDetailLabelW, "ApiKeyId:", keyId)
 	fmt.Printf("%-*s %s\n", apikeyDetailLabelW, "Name:", name)
 	
 	return nil

@@ -12,7 +12,8 @@ trigger: always_on
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
 | 新增 / 修改 CLI 命令、参数、子命令，或将前端 API 封装为命令 | **create-cli-command**                                                                           | `.qoder/skills/create-cli-command/SKILL.md`           |
 | 涉及分支管理、commit、push、PR、变更档案（Quest/CR 目录）   | **feature-development-workflow**                                                                 | `.qoder/skills/feature-development-workflow/SKILL.md` |
-| 新增 CLI 命令类需求（同时触发上述两条）                     | **两者组合使用**：先 workflow 拉分支/建档 → 再 create-cli-command 实现 → 回到 workflow 提交/推送 | 同上                                                  |
+| 更新/同步 CLI 命令文档（README、docs/、CHANGELOG）          | **update-cli-command-docs**                                                                      | `.qoder/skills/update-cli-command-docs/SKILL.md`      |
+| 新增 CLI 命令类需求（同时触发上述三条）                     | **三者组合使用**：先 workflow 拉分支/建档 → 再 create-cli-command 实现 → 再 update-cli-command-docs 同步文档 → 回到 workflow 提交/推送 | 同上                                                  |
 
 **执行铁律**:
 
@@ -20,6 +21,7 @@ trigger: always_on
 2. **前置检查**：进入实现阶段前，必须确认 `feature-development-workflow` 的 Phase 0（变更档案）和分支创建已完成，否则先引导用户补齐。
 3. **Quest 场景**：Quest 生成 spec 后的 Execute 阶段，等同于"对话入口"，本规则照常生效，无需 spec 里额外声明。
 4. **Execute Directly 场景**：即便跳过 Design 阶段，AI 也必须在动手前主动加载匹配的 skill。
+5. **文档同步**：`create-cli-command` 的 Phase 5 已委托 `update-cli-command-docs` skill，文档操作不得在 `create-cli-command` 中内联执行。
 
 **目的**：让 Skill 指南在所有入口（slash command / Quest spec / 直接对话 / Execute Directly）下统一自动生效，避免重复约定。
 
@@ -215,6 +217,57 @@ Error: failed to set max session: json: cannot unmarshal string into Go struct f
 
 ---
 
+### ⚠️ 命令层接口成功判定 SOP（仅约束新增接口，存量不改造）
+
+**背景**：OpenAPI 各接口对响应体的字段下发并不一致——有的接口在 `data` 里返回 `Success: true`，有的接口（例如 `DeleteApiKey`）只返回 `{"RequestId":"...","HttpStatusCode":200,"Code":"ok"}`，**根本不下发 `Success`**。如果命令层用 `if !resp.Body.GetSuccess()` 判失败，对后者会因为 `Success` 是 `*bool` 且为 `nil`，`GetSuccess()` 返回 `false`，直接给用户报出 `Code=ok, Message=` 的"假错误"。
+
+> 真实事故：`apikey delete` 服务端实际删除成功，但 CLI 因为依赖 `Success` 字段导致命令以错误码退出。
+
+**适用范围**：
+
+- ✅ **对接全新 OpenAPI 接口的命令**：必须遵守本 SOP。
+- ❌ **存量已上线且工作正常的命令**（如 `apikey enable/disable`、`describe-mcp-api-key` 等）：**不改造**，避免引入回归风险。
+- ❌ **新增 CLI 命令但复用已有接口**：如果该接口在已有命令中已用 `GetSuccess()` 判定且工作正常，新命令中**沿用相同写法即可**，不要为了统一而改。
+- 📌 **`create-cli-command` skill 模板保持现状**（仍使用 `GetSuccess()` 写法），新增接口若发现服务端不下发 `Success`，按本 SOP 切换写法即可。
+
+**简言之**：只有当你为一个**从未在 CLI 中使用过的全新 OpenAPI 接口**编写命令时，才需要按本 SOP 决定成功判定写法。
+
+**判定规则**（新增接口必须遵守）：
+
+1. **以 `Code` 字段为主依据**：约定 `"ok"`（不区分大小写）= 成功，其它非空值 = 失败。
+2. **`Success` 兼容**：仅当 `Success` **显式为 `false`** 时才视为失败；为 `nil`（未下发）按成功处理。
+3. **统一写法模板**：
+
+```go
+code := resp.Body.GetCode()
+successPtr := resp.Body.Success // *bool
+if (successPtr != nil && !*successPtr) || (code != "" && !strings.EqualFold(code, "ok")) {
+    msg := resp.Body.GetMessage()
+    return fmt.Errorf("[ERROR] Failed to xxx: Code=%s, Message=%s", code, msg)
+}
+```
+
+4. **RequestID 仍要先打印**：`[INFO] XxxRequestID: ...` 在判定之前输出，便于排障。
+
+**如何判断当前接口是否需要切换到本 SOP**：
+
+- 真机调用一次接口（开发环境或预发），观察响应 body 是否包含 `Success` 字段。
+- 若**不包含**或**不稳定**（部分场景缺失），按本 SOP 写；
+- 若**稳定包含**，沿用 skill 模板 `GetSuccess()` 写法亦可。
+
+**参考实现**：
+
+- [cmd/apikey_delete.go](file:///Users/lxy/work/project/ai/agentbay/cli/agentbay-cli/cmd/apikey_delete.go) —— `Success` 字段缺失场景下的标准成功判定写法
+
+**检查清单（仅对接全新接口时适用）**：
+
+- [ ] 已确认服务端响应是否稳定下发 `Success`
+- [ ] 不下发的：采用 `Code != "ok"` 为失败的统一写法
+- [ ] 下发的：可继续使用 `GetSuccess()`，但建议同时兼容 `Code` 判定
+- [ ] 失败信息包含 `Code` 与 `Message`，并先打印 `RequestID`
+
+---
+
 ### 单元测试
 
 - 所有新增的 CLI 命令都必须有对应的单元测试
@@ -231,21 +284,96 @@ Error: failed to set max session: json: cannot unmarshal string into Go struct f
 - 将相关功能组织为子命令（如 `apikey create`, `apikey concurrency set`）
 - 提供清晰的错误提示和使用示例
 
-### 新增或修改命令必须同步更新 README 和测试用例
+### ⚠️ 破坏性操作必须设计二次确认与 --yes 跳过（重要！）
+
+**规则**：凡命令会导致**不可逆的数据变更**（删除、永久停用、批量覆盖等），**必须**同时实现：
+
+1. **二次确认提示**（默认启用）：在执行前向用户展示操作对象信息并要求输入确认
+2. **`--yes` / `-y` 跳过参数**：允许脚本/CI 场景绕过所有交互提示
+
+**判断标准 —— 以下情况必须加确认**：
+
+| 场景                           | 示例命令                        | 是否需要确认  |
+| ------------------------------ | ------------------------------- | ------------- |
+| 永久删除资源                   | `apikey delete`, `image delete` | ✅ 必须       |
+| 状态前置依赖（如先禁用再删除） | `apikey delete` 遇到 ENABLED    | ✅ 每步都需要 |
+| 批量覆盖/清空                  | 未来的批量删除命令              | ✅ 必须       |
+| 可逆的状态变更                 | `apikey enable/disable`         | ❌ 不需要     |
+| 只读查询                       | `image list`, `image status`    | ❌ 不需要     |
+
+**实现规范**：
+
+```go
+// 1. 注册 flag（在 init() 中）
+cmd.Flags().BoolP("yes", "y", false, "Skip all confirmation prompts (for non-interactive use)")
+
+// 2. 读取 flag
+autoYes, _ := cmd.Flags().GetBool("yes")
+
+// 3. 所有确认点均复用 cmd/confirm.go 的 ConfirmPrompt()
+confirmed, err := ConfirmPrompt("Are you sure? [y/N]: ", autoYes)
+if err != nil {
+    return fmt.Errorf("[ERROR] %w", err)  // 非 TTY 且未传 --yes 时报错
+}
+if !confirmed {
+    fmt.Printf("[INFO] Operation cancelled.\n")
+    return nil
+}
+```
+
+**`ConfirmPrompt` 行为**（`cmd/confirm.go`）：
+
+| 条件                     | 行为                                                                   |
+| ------------------------ | ---------------------------------------------------------------------- |
+| `autoYes=true`           | 直接返回 true，跳过提示                                                |
+| 交互式终端（TTY）        | 打印提示，读取输入（仅 y/Y/yes/YES 确认）                              |
+| 非 TTY + `autoYes=false` | 返回错误：`non-interactive environment detected: use --yes to confirm` |
+
+**多步骤命令**（如先禁用再删除）：每个关键步骤单独调用 `ConfirmPrompt`，`autoYes` 透传，**一个 `--yes` 跳过全部**。
+
+**单元测试要求**：在 `test/unit/cmd/` 的测试中必须验证：
+
+```go
+// 验证 --yes flag 存在且配置正确
+yesFlag := deleteCmd.Flags().Lookup("yes")
+assert.NotNil(t, yesFlag)
+assert.Equal(t, "false", yesFlag.DefValue)
+assert.Equal(t, "y", yesFlag.Shorthand)
+```
+
+**参考实现**：
+
+- `cmd/apikey_delete.go` —— 多步骤确认（先禁用确认 + 最终删除确认）
+- `cmd/image.go` `runImageDelete` —— 单步骤确认
+- `cmd/confirm.go` `ConfirmPrompt` —— 可复用的确认函数
+
+### 新增或修改命令必须同步更新文档和测试用例
+
+> 文档更新的具体操作流程参见 `update-cli-command-docs` skill。以下为规则概要和检查清单。
 
 **规则**: 每次**新增或修改** CLI 命令（包括新增参数、修改默认值、调整输出格式等）时，**必须**同步完成以下工作：
 
-1. **更新 `agentbay-cli/README.md`**
-   - 新增命令：在 Features 列表和 Quick Start 示例中补充新命令的使用说明
-   - 修改命令：同步更新 README 中对应命令的参数说明、示例和注意事项
-   - 保持与已有命令文档风格一致
+1. **更新 `README.md` 和 `README.zh-CN.md`**
+   - 更新 Command Overview 表格，添加或修改对应命令的说明
+   - 保持中英文 README 表格内容一致
 
-2. **同步更新对外文档**
+2. **更新 `docs/en/<command-group>.md` 和 `docs/zh/<command-group>.md`**
+   - 命令组与文件对应关系：`core` / `image` / `apikey` / `network` / `skills` / `docker`
+   - 新增命令：在对应命令组文件中添加完整的语法、参数、示例和输出说明
+   - 修改命令：同步更新参数说明、示例和注意事项
+   - **中英文文档必须同步更新**，保持结构一致
+
+3. **更新 `CHANGELOG.md`** — 发布前补充中文翻译
+   - git-cliff 自动生成的条目包含英文内容 + `<!-- 中文翻译待补充 -->` 占位
+   - 发版前**必须**将占位符替换为准确的中文翻译
+   - 翻译格式：在英文条目下方，用 `* * *` 分隔后添加中文翻译（参考已有版本的格式）
+
+4. **同步更新对外文档**
    - 钉钉文档（对外使用手册）和 `cli-analysis/Agentbay cli 使用手册.md` 需同步更新
    - 对外文档遵循精简原则：仅保留客户需要的功能说明，剔除内部实现细节
    - 文档内容包括：语法、参数、示例、输出说明、注意事项
 
-3. **编写/更新单元测试**
+5. **编写/更新单元测试**
    - 在 `test/unit/cmd/` 下创建或更新对应的测试文件
    - 测试内容必须覆盖：命令元数据、必填参数校验、子命令结构
    - 运行 `go test ./... -count=1` 确保全部通过
@@ -253,12 +381,16 @@ Error: failed to set max session: json: cannot unmarshal string into Go struct f
 **检查清单**:
 
 - [ ] 命令代码已完成（新增或修改）
-- [ ] README.md 已更新，反映最新的命令用法
+- [ ] `README.md` Command Overview 表格已更新
+- [ ] `README.zh-CN.md` Command Overview 表格已更新
+- [ ] `docs/en/<command-group>.md` 详细文档已更新
+- [ ] `docs/zh/<command-group>.md` 详细文档已更新
 - [ ] 对外文档已同步（钉钉文档 / cli 使用手册）
 - [ ] 单元测试已编写或更新并通过
 - [ ] mock 类已同步更新（如有接口变更）
 - [ ] `go build -o agentbay .` 构建出可执行二进制并通过
 - [ ] `go test ./... -count=1` 全部通过
+- [ ] `update-cli-command-docs` skill 已执行（或已完成等效的手动文档同步）
 
 ---
 

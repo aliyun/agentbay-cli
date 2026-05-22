@@ -22,7 +22,7 @@ func TestApiKeyCmd(t *testing.T) {
 		assert.True(t, strings.Contains(cmd.ApiKeyCmd.Long, "API keys"))
 	})
 
-	t.Run("apikey has subcommands create and concurrency", func(t *testing.T) {
+	t.Run("apikey has subcommands create, concurrency, enable, disable, and delete", func(t *testing.T) {
 		children := cmd.ApiKeyCmd.Commands()
 		names := make([]string, len(children))
 		for i, c := range children {
@@ -30,6 +30,9 @@ func TestApiKeyCmd(t *testing.T) {
 		}
 		assert.Contains(t, names, "create")
 		assert.Contains(t, names, "concurrency")
+		assert.Contains(t, names, "enable")
+		assert.Contains(t, names, "disable")
+		assert.Contains(t, names, "delete")
 	})
 }
 
@@ -42,14 +45,14 @@ func TestApiKeyCreateCmd(t *testing.T) {
 				break
 			}
 		}
-		
+
 		assert.NotNil(t, createCmd)
-		assert.Equal(t, "create", createCmd.Use)
+		assert.Equal(t, "create [name]", createCmd.Use)
 		assert.Equal(t, "Create a new API key", createCmd.Short)
 		assert.True(t, strings.Contains(createCmd.Long, "API key"))
 	})
 
-	t.Run("create command has required name flag", func(t *testing.T) {
+	t.Run("create command has optional --name flag", func(t *testing.T) {
 		var createCmd *cobra.Command
 		for _, c := range cmd.ApiKeyCmd.Commands() {
 			if c.Name() == "create" {
@@ -57,16 +60,17 @@ func TestApiKeyCreateCmd(t *testing.T) {
 				break
 			}
 		}
-		
+
 		assert.NotNil(t, createCmd)
-		
+
 		nameFlag := createCmd.Flags().Lookup("name")
 		assert.NotNil(t, nameFlag)
 		assert.Equal(t, "", nameFlag.DefValue)
-		assert.True(t, strings.Contains(nameFlag.Usage, "required"))
+		// --name is now optional; name can also be provided as a positional argument
+		assert.False(t, strings.Contains(nameFlag.Usage, "required"))
 	})
 
-	t.Run("create command fails without name flag", func(t *testing.T) {
+	t.Run("create command accepts positional argument", func(t *testing.T) {
 		var createCmd *cobra.Command
 		for _, c := range cmd.ApiKeyCmd.Commands() {
 			if c.Name() == "create" {
@@ -74,16 +78,10 @@ func TestApiKeyCreateCmd(t *testing.T) {
 				break
 			}
 		}
-		
+
 		assert.NotNil(t, createCmd)
-		
-		// Test that the RunE function checks for required flag
-		createCmd.SetArgs([]string{})
-		// Don't execute, just verify the flag is marked as required
-		flag := createCmd.Flags().Lookup("name")
-		assert.NotNil(t, flag)
-		// The flag should have no default value, making it required
-		assert.Equal(t, "", flag.DefValue)
+		// Use field should indicate optional positional argument
+		assert.Contains(t, createCmd.Use, "[name]")
 	})
 }
 
@@ -96,7 +94,7 @@ func TestApiKeyConcurrencyCmd(t *testing.T) {
 				break
 			}
 		}
-		
+
 		assert.NotNil(t, concurrencyCmd)
 		assert.Equal(t, "concurrency", concurrencyCmd.Use)
 		assert.Equal(t, "Manage API key concurrency settings", concurrencyCmd.Short)
@@ -110,15 +108,121 @@ func TestApiKeyConcurrencyCmd(t *testing.T) {
 				break
 			}
 		}
-		
+
 		assert.NotNil(t, concurrencyCmd)
-		
+
 		children := concurrencyCmd.Commands()
 		names := make([]string, len(children))
 		for i, c := range children {
 			names[i] = c.Name()
 		}
 		assert.Contains(t, names, "set")
+	})
+}
+
+func TestApiKeyEnableCmd(t *testing.T) {
+	t.Run("enable command has correct metadata", func(t *testing.T) {
+		var enableCmd *cobra.Command
+		for _, c := range cmd.ApiKeyCmd.Commands() {
+			if c.Name() == "enable" {
+				enableCmd = c
+				break
+			}
+		}
+
+		assert.NotNil(t, enableCmd)
+		assert.Equal(t, "enable", enableCmd.Use)
+		assert.Equal(t, "Enable an API key", enableCmd.Short)
+		assert.True(t, strings.Contains(enableCmd.Long, "--api-key"))
+		assert.True(t, strings.Contains(enableCmd.Long, "--api-key-id"))
+		assert.True(t, strings.Contains(enableCmd.Long, "akm-"))
+	})
+
+	t.Run("enable command has --api-key flag as recommended", func(t *testing.T) {
+		var enableCmd *cobra.Command
+		for _, c := range cmd.ApiKeyCmd.Commands() {
+			if c.Name() == "enable" {
+				enableCmd = c
+				break
+			}
+		}
+
+		assert.NotNil(t, enableCmd)
+
+		apiKeyFlag := enableCmd.Flags().Lookup("api-key")
+		assert.NotNil(t, apiKeyFlag)
+		assert.Equal(t, "", apiKeyFlag.DefValue)
+		assert.True(t, strings.Contains(apiKeyFlag.Usage, "recommended"))
+	})
+
+	t.Run("enable command has --api-key-id flag with prefer --api-key usage", func(t *testing.T) {
+		var enableCmd *cobra.Command
+		for _, c := range cmd.ApiKeyCmd.Commands() {
+			if c.Name() == "enable" {
+				enableCmd = c
+				break
+			}
+		}
+
+		assert.NotNil(t, enableCmd)
+
+		apiKeyIdFlag := enableCmd.Flags().Lookup("api-key-id")
+		assert.NotNil(t, apiKeyIdFlag)
+		assert.Equal(t, "", apiKeyIdFlag.DefValue)
+		assert.True(t, strings.Contains(apiKeyIdFlag.Usage, "--api-key"))
+	})
+}
+
+func TestApiKeyDisableCmd(t *testing.T) {
+	t.Run("disable command has correct metadata", func(t *testing.T) {
+		var disableCmd *cobra.Command
+		for _, c := range cmd.ApiKeyCmd.Commands() {
+			if c.Name() == "disable" {
+				disableCmd = c
+				break
+			}
+		}
+
+		assert.NotNil(t, disableCmd)
+		assert.Equal(t, "disable", disableCmd.Use)
+		assert.Equal(t, "Disable an API key", disableCmd.Short)
+		assert.True(t, strings.Contains(disableCmd.Long, "--api-key"))
+		assert.True(t, strings.Contains(disableCmd.Long, "--api-key-id"))
+		assert.True(t, strings.Contains(disableCmd.Long, "akm-"))
+	})
+
+	t.Run("disable command has --api-key flag as recommended", func(t *testing.T) {
+		var disableCmd *cobra.Command
+		for _, c := range cmd.ApiKeyCmd.Commands() {
+			if c.Name() == "disable" {
+				disableCmd = c
+				break
+			}
+		}
+
+		assert.NotNil(t, disableCmd)
+
+		apiKeyFlag := disableCmd.Flags().Lookup("api-key")
+		assert.NotNil(t, apiKeyFlag)
+		assert.Equal(t, "", apiKeyFlag.DefValue)
+		assert.True(t, strings.Contains(apiKeyFlag.Usage, "recommended"))
+	})
+
+	t.Run("disable command has --api-key-id flag with prefer --api-key usage", func(t *testing.T) {
+		var disableCmd *cobra.Command
+		for _, c := range cmd.ApiKeyCmd.Commands() {
+			if c.Name() == "disable" {
+				disableCmd = c
+				break
+			}
+		}
+
+		assert.NotNil(t, disableCmd)
+
+		apiKeyIdFlag := disableCmd.Flags().Lookup("api-key-id")
+		assert.NotNil(t, apiKeyIdFlag)
+		assert.Equal(t, "", apiKeyIdFlag.DefValue)
+		assert.True(t, strings.Contains(apiKeyIdFlag.Usage, "--api-key"))
 	})
 }
 
@@ -131,9 +235,9 @@ func TestApiKeyConcurrencySetCmd(t *testing.T) {
 				break
 			}
 		}
-		
+
 		assert.NotNil(t, concurrencyCmd)
-		
+
 		var setCmd *cobra.Command
 		for _, c := range concurrencyCmd.Commands() {
 			if c.Name() == "set" {
@@ -141,73 +245,159 @@ func TestApiKeyConcurrencySetCmd(t *testing.T) {
 				break
 			}
 		}
-		
+
 		assert.NotNil(t, setCmd)
 		assert.Equal(t, "set", setCmd.Use)
 		assert.Equal(t, "Set the concurrency limit for an API key", setCmd.Short)
 		assert.True(t, strings.Contains(setCmd.Long, "concurrent sessions"))
+		assert.True(t, strings.Contains(setCmd.Long, "--api-key"))
+		assert.True(t, strings.Contains(setCmd.Long, "--api-key-id"))
 	})
 
-	t.Run("set command has required flags", func(t *testing.T) {
-		var concurrencyCmd *cobra.Command
+	t.Run("set command has --api-key flag as recommended", func(t *testing.T) {
+		var setCmd *cobra.Command
 		for _, c := range cmd.ApiKeyCmd.Commands() {
 			if c.Name() == "concurrency" {
-				concurrencyCmd = c
+				for _, sc := range c.Commands() {
+					if sc.Name() == "set" {
+						setCmd = sc
+						break
+					}
+				}
 				break
 			}
 		}
-		
-		assert.NotNil(t, concurrencyCmd)
-		
-		var setCmd *cobra.Command
-		for _, c := range concurrencyCmd.Commands() {
-			if c.Name() == "set" {
-				setCmd = c
-				break
-			}
-		}
-		
+
 		assert.NotNil(t, setCmd)
-		
+
+		apiKeyFlag := setCmd.Flags().Lookup("api-key")
+		assert.NotNil(t, apiKeyFlag)
+		assert.Equal(t, "", apiKeyFlag.DefValue)
+		assert.True(t, strings.Contains(apiKeyFlag.Usage, "recommended"))
+	})
+
+	t.Run("set command has --api-key-id flag with prefer --api-key usage", func(t *testing.T) {
+		var setCmd *cobra.Command
+		for _, c := range cmd.ApiKeyCmd.Commands() {
+			if c.Name() == "concurrency" {
+				for _, sc := range c.Commands() {
+					if sc.Name() == "set" {
+						setCmd = sc
+						break
+					}
+				}
+				break
+			}
+		}
+
+		assert.NotNil(t, setCmd)
+
 		apiKeyIdFlag := setCmd.Flags().Lookup("api-key-id")
 		assert.NotNil(t, apiKeyIdFlag)
 		assert.Equal(t, "", apiKeyIdFlag.DefValue)
-		assert.True(t, strings.Contains(apiKeyIdFlag.Usage, "required"))
-		
+		assert.False(t, strings.Contains(apiKeyIdFlag.Usage, "required"))
+		assert.True(t, strings.Contains(apiKeyIdFlag.Usage, "--api-key"))
+	})
+
+	t.Run("set command has --concurrency as required flag", func(t *testing.T) {
+		var setCmd *cobra.Command
+		for _, c := range cmd.ApiKeyCmd.Commands() {
+			if c.Name() == "concurrency" {
+				for _, sc := range c.Commands() {
+					if sc.Name() == "set" {
+						setCmd = sc
+						break
+					}
+				}
+				break
+			}
+		}
+
+		assert.NotNil(t, setCmd)
+
 		concurrencyFlag := setCmd.Flags().Lookup("concurrency")
 		assert.NotNil(t, concurrencyFlag)
 		assert.Equal(t, "0", concurrencyFlag.DefValue)
 		assert.True(t, strings.Contains(concurrencyFlag.Usage, "required"))
 	})
+}
 
-	t.Run("set command fails without required flags", func(t *testing.T) {
-		var concurrencyCmd *cobra.Command
-		for _, c := range cmd.ApiKeyCmd.Commands() {
-			if c.Name() == "concurrency" {
-				concurrencyCmd = c
-				break
-			}
+func TestApikeyDeleteCmd(t *testing.T) {
+	var deleteCmd *cobra.Command
+	for _, c := range cmd.ApiKeyCmd.Commands() {
+		if c.Name() == "delete" {
+			deleteCmd = c
+			break
 		}
-		
-		assert.NotNil(t, concurrencyCmd)
-		
-		var setCmd *cobra.Command
-		for _, c := range concurrencyCmd.Commands() {
-			if c.Name() == "set" {
-				setCmd = c
-				break
-			}
-		}
-		
-		assert.NotNil(t, setCmd)
-		
-		// Verify flags are marked as required
-		apiKeyIdFlag := setCmd.Flags().Lookup("api-key-id")
+	}
+
+	t.Run("delete command exists", func(t *testing.T) {
+		assert.NotNil(t, deleteCmd)
+	})
+
+	t.Run("delete command has correct metadata", func(t *testing.T) {
+		assert.NotNil(t, deleteCmd)
+		assert.Equal(t, "delete", deleteCmd.Use)
+		assert.Equal(t, "Delete an API key", deleteCmd.Short)
+		assert.True(t, strings.Contains(deleteCmd.Long, "--api-key"))
+		assert.True(t, strings.Contains(deleteCmd.Long, "--api-key-id"))
+	})
+
+	t.Run("delete command has --api-key flag as recommended", func(t *testing.T) {
+		assert.NotNil(t, deleteCmd)
+
+		apiKeyFlag := deleteCmd.Flags().Lookup("api-key")
+		assert.NotNil(t, apiKeyFlag)
+		assert.Equal(t, "", apiKeyFlag.DefValue)
+		assert.True(t, strings.Contains(apiKeyFlag.Usage, "recommended"))
+	})
+
+	t.Run("delete command has --api-key-id flag with prefer --api-key usage", func(t *testing.T) {
+		assert.NotNil(t, deleteCmd)
+
+		apiKeyIdFlag := deleteCmd.Flags().Lookup("api-key-id")
 		assert.NotNil(t, apiKeyIdFlag)
 		assert.Equal(t, "", apiKeyIdFlag.DefValue)
-		
-		concurrencyFlag := setCmd.Flags().Lookup("concurrency")
-		assert.NotNil(t, concurrencyFlag)
-		assert.Equal(t, "0", concurrencyFlag.DefValue)
+		assert.True(t, strings.Contains(apiKeyIdFlag.Usage, "--api-key"))
+	})
+
+	t.Run("delete command has --yes flag", func(t *testing.T) {
+		assert.NotNil(t, deleteCmd)
+		yesFlag := deleteCmd.Flags().Lookup("yes")
+		assert.NotNil(t, yesFlag)
+		assert.Equal(t, "false", yesFlag.DefValue)
+		assert.Equal(t, "y", yesFlag.Shorthand)
+	})
+}
+
+func TestApiKeyDescribeKeyContentCmd(t *testing.T) {
+	var descCmd *cobra.Command
+	for _, c := range cmd.ApiKeyCmd.Commands() {
+		if c.Use == "describe-key-content" {
+			descCmd = c
+			break
+		}
+	}
+
+	t.Run("describe-key-content command exists", func(t *testing.T) {
+		assert.NotNil(t, descCmd, "describe-key-content command should be registered under apikey")
+	})
+
+	t.Run("describe-key-content command metadata", func(t *testing.T) {
+		assert.NotNil(t, descCmd)
+		assert.Equal(t, "describe-key-content", descCmd.Use)
+		assert.Equal(t, "Retrieve the plaintext API key by API key ID", descCmd.Short)
+		assert.True(t, strings.Contains(descCmd.Long, "--api-key-id"))
+	})
+
+	t.Run("describe-key-content command has --api-key-id flag as required", func(t *testing.T) {
+		assert.NotNil(t, descCmd)
+		apiKeyIdFlag := descCmd.Flags().Lookup("api-key-id")
+		assert.NotNil(t, apiKeyIdFlag)
+		assert.Equal(t, "", apiKeyIdFlag.DefValue)
+		// Check cobra required annotation
+		ann := apiKeyIdFlag.Annotations
+		_, isRequired := ann[cobra.BashCompOneRequiredFlag]
+		assert.True(t, isRequired, "--api-key-id should be marked as required")
 	})
 }

@@ -108,6 +108,26 @@ func (m *mockGetMcpImageInfoClient) BatchCreateHideResourceGroupsWithMaxSession(
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockGetMcpImageInfoClient) DescribeMcpApiKey(ctx context.Context, request *client.DescribeMcpApiKeyRequest) (*client.DescribeMcpApiKeyResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockGetMcpImageInfoClient) ModifyApiKeyStatus(ctx context.Context, request *client.ModifyApiKeyStatusRequest) (*client.ModifyApiKeyStatusResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockGetMcpImageInfoClient) DeleteApiKey(ctx context.Context, request *client.DeleteApiKeyRequest) (*client.DeleteApiKeyResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockGetMcpImageInfoClient) DescribeApiKeys(ctx context.Context, request *client.DescribeApiKeysRequest) (*client.DescribeApiKeysResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockGetMcpImageInfoClient) DescribeKeyContent(ctx context.Context, request *client.DescribeKeyContentRequest) (*client.DescribeKeyContentResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 func (m *mockGetMcpImageInfoClient) DescribeWarmUpStatusOpen(ctx context.Context, request *client.DescribeWarmUpStatusOpenRequest) (*client.DescribeWarmUpStatusOpenResponse, error) {
 	return nil, fmt.Errorf("not implemented")
 }
