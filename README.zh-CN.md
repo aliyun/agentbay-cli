@@ -44,6 +44,52 @@ STS、OAuth（不推荐使用）及环境变量详见 [认证与环境](docs/zh/
 
 ---
 
+## RAM 账号接口权限（仅 RAM 子账号需要配置）
+
+> 阿里云**主账号**无需任何额外权限配置。
+> 本节仅适用于使用 AK/SK 认证的 **RAM 子账号**。
+
+如果使用 RAM 子账号的 AK/SK，请在 [RAM 控制台](https://ram.console.aliyun.com/users) 为该账号授予所需接口权限。
+
+### `apikey` 命令分组
+
+| OpenAPI Action | 所需权限 | 调用命令 |
+|---|---|---|
+| `CreateApiKey` | `agentbay:CreateApiKey` | `apikey create` |
+| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` | `apikey enable`、`apikey disable`、`apikey delete`、`apikey list`、`apikey concurrency set` |
+| `DescribeApiKeys` | `agentbay:DescribeApiKeys` | `apikey delete`、`apikey list` |
+| `ModifyApiKeyStatus` | `agentbay:ModifyApiKeyStatus` | `apikey enable`、`apikey disable`、`apikey delete` |
+| `DeleteApiKey` | `agentbay:DeleteApiKey` | `apikey delete` |
+| `ModifyMcpApiKeyConfig` | `agentbay:ModifyMcpApiKeyConfig` | `apikey concurrency set` |
+| `DescribeKeyContent` | `agentbay:DescribeKeyContent` | `apikey describe-key-content` |
+
+**RAM Policy 示例（`apikey` 命令完整授权）：**
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "agentbay:CreateApiKey",
+        "agentbay:DescribeMcpApiKey",
+        "agentbay:DescribeApiKeys",
+        "agentbay:ModifyApiKeyStatus",
+        "agentbay:DeleteApiKey",
+        "agentbay:ModifyMcpApiKeyConfig",
+        "agentbay:DescribeKeyContent"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+> 如果只使用特定命令，请参考 [API Key 文档](docs/zh/apikey.md) 中各命令的**涉及接口**章节，仅授予所需的最小权限。
+
+---
+
 ## 命令概览
 
 | 分组 | 命令 | 说明 | 详情 |

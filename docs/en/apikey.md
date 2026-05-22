@@ -35,6 +35,20 @@ agentbay apikey create --name "my-api-key"
 
 **Output:** The command displays `ApiKeyId` (ak-xxx format) and `Name` of the newly created key.
 
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `CreateApiKey` | `agentbay:CreateApiKey` |
+
+```json
+{
+  "Action": [
+    "agentbay:CreateApiKey"
+  ]
+}
+```
+
 ---
 
 ### `apikey enable`
@@ -58,6 +72,22 @@ agentbay apikey enable --api-key-id ak-xxxxxxxxxxxxxxxx
 
 \* Either `--api-key` or `--api-key-id` must be specified, but not both.
 
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` |
+| `ModifyApiKeyStatus` | `agentbay:ModifyApiKeyStatus` |
+
+```json
+{
+  "Action": [
+    "agentbay:DescribeMcpApiKey",
+    "agentbay:ModifyApiKeyStatus"
+  ]
+}
+```
+
 ---
 
 ### `apikey disable`
@@ -80,6 +110,22 @@ agentbay apikey disable --api-key-id ak-xxxxxxxxxxxxxxxx
 | `--api-key-id` | string | Yes* | Internal API Key ID (ak-xxx). Prefer `--api-key` for normal usage |
 
 \* Either `--api-key` or `--api-key-id` must be specified, but not both.
+
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` |
+| `ModifyApiKeyStatus` | `agentbay:ModifyApiKeyStatus` |
+
+```json
+{
+  "Action": [
+    "agentbay:DescribeMcpApiKey",
+    "agentbay:ModifyApiKeyStatus"
+  ]
+}
+```
 
 ---
 
@@ -114,6 +160,26 @@ agentbay apikey delete --api-key-id ak-xxxxxxxxxxxxxxxx -y
 - If the key is `ENABLED`, the command will prompt you to disable it first before deletion.
 - In non-interactive environments, use `--yes` / `-y` to skip all prompts.
 
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` |
+| `DescribeApiKeys` | `agentbay:DescribeApiKeys` |
+| `ModifyApiKeyStatus` | `agentbay:ModifyApiKeyStatus` |
+| `DeleteApiKey` | `agentbay:DeleteApiKey` |
+
+```json
+{
+  "Action": [
+    "agentbay:DescribeMcpApiKey",
+    "agentbay:DescribeApiKeys",
+    "agentbay:ModifyApiKeyStatus",
+    "agentbay:DeleteApiKey"
+  ]
+}
+```
+
 ---
 
 ### `apikey list`
@@ -146,6 +212,22 @@ agentbay apikey list --next-token <token>
 | `--api-key-id` | string | No | Filter by internal API Key ID (ak-xxx). `--api-key` and `--api-key-id` are mutually exclusive |
 | `--next-token` | string | No | Pagination token for next page |
 
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` |
+| `DescribeApiKeys` | `agentbay:DescribeApiKeys` |
+
+```json
+{
+  "Action": [
+    "agentbay:DescribeMcpApiKey",
+    "agentbay:DescribeApiKeys"
+  ]
+}
+```
+
 ---
 
 ### `apikey concurrency set`
@@ -170,6 +252,22 @@ agentbay apikey concurrency set --api-key-id ak-xxx --concurrency 10
 
 \* Either `--api-key` or `--api-key-id` must be specified, but not both.
 
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` |
+| `ModifyMcpApiKeyConfig` | `agentbay:ModifyMcpApiKeyConfig` |
+
+```json
+{
+  "Action": [
+    "agentbay:DescribeMcpApiKey",
+    "agentbay:ModifyMcpApiKeyConfig"
+  ]
+}
+```
+
 ---
 
 ### `apikey describe-key-content`
@@ -188,3 +286,17 @@ agentbay apikey describe-key-content --api-key-id ak-xxxxxxxxxxxxxxxx
 | `--api-key-id` | string | Yes | Internal API key ID (ak-xxx format) |
 
 **Output:** The command displays the plaintext `ApiKey` (akm-xxx format) and the `ApiKeyId` used to query it.
+
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `DescribeKeyContent` | `agentbay:DescribeKeyContent` |
+
+```json
+{
+  "Action": [
+    "agentbay:DescribeKeyContent"
+  ]
+}
+```

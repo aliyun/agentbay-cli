@@ -44,6 +44,52 @@ See [Authentication & Environment](docs/en/authentication.md) for STS, OAuth (no
 
 ---
 
+## RAM Permissions (RAM Sub-accounts Only)
+
+> The main Alibaba Cloud account does **not** require any additional permission configuration.
+> This section applies only to **RAM sub-accounts** using AK/SK authentication.
+
+If you are using a RAM sub-account's AK/SK, grant the required permissions via the [RAM console](https://ram.console.aliyun.com/users).
+
+### `apikey` Command Group
+
+| OpenAPI Action | Required Permission | Used By |
+|---|---|---|
+| `CreateApiKey` | `agentbay:CreateApiKey` | `apikey create` |
+| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` | `apikey enable`, `apikey disable`, `apikey delete`, `apikey list`, `apikey concurrency set` |
+| `DescribeApiKeys` | `agentbay:DescribeApiKeys` | `apikey delete`, `apikey list` |
+| `ModifyApiKeyStatus` | `agentbay:ModifyApiKeyStatus` | `apikey enable`, `apikey disable`, `apikey delete` |
+| `DeleteApiKey` | `agentbay:DeleteApiKey` | `apikey delete` |
+| `ModifyMcpApiKeyConfig` | `agentbay:ModifyMcpApiKeyConfig` | `apikey concurrency set` |
+| `DescribeKeyContent` | `agentbay:DescribeKeyContent` | `apikey describe-key-content` |
+
+**RAM Policy example (full access to `apikey` commands):**
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "agentbay:CreateApiKey",
+        "agentbay:DescribeMcpApiKey",
+        "agentbay:DescribeApiKeys",
+        "agentbay:ModifyApiKeyStatus",
+        "agentbay:DeleteApiKey",
+        "agentbay:ModifyMcpApiKeyConfig",
+        "agentbay:DescribeKeyContent"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+> If you only use specific commands, refer to the **Involved APIs** section in [API Key docs](docs/en/apikey.md) and grant only the required subset.
+
+---
+
 ## Command Overview
 
 | Group | Commands | Description | Details |
