@@ -33,6 +33,22 @@ agentbay skills push ./my-skill.zip
 [RESULT] Skill ID: 35U2Ver2
 ```
 
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `GetMarketSkillCredential` | `agentbay:GetMarketSkillCredential` |
+| `CreateMarketSkill` | `agentbay:CreateMarketSkill` |
+
+```json
+{
+  "Action": [
+    "agentbay:GetMarketSkillCredential",
+    "agentbay:CreateMarketSkill"
+  ]
+}
+```
+
 ---
 
 ### `skills show`
@@ -48,6 +64,20 @@ agentbay skills show <skill-id>
 | Argument | Type | Required | Description |
 |----------|------|----------|-------------|
 | `<skill-id>` | string | Yes | Skill ID |
+
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` |
+
+```json
+{
+  "Action": [
+    "agentbay:DescribeMarketSkillDetail"
+  ]
+}
+```
 
 ---
 

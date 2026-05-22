@@ -36,6 +36,20 @@ Note: When tagging images, use: ai-container-pre-9543-registry.cn-hangzhou.cr.al
 - 凭证有效期约 1 小时，到期后重新执行 `agentbay docker login` 即可刷新。
 - 凭证会缓存到本地，供后续 `tag` 和 `push` 命令使用。
 
+**涉及接口：**
+
+| Action | 所需权限 |
+|---|---|
+| `GetACRRepoCredential` | `agentbay:GetACRRepoCredential` |
+
+```json
+{
+  "Action": [
+    "agentbay:GetACRRepoCredential"
+  ]
+}
+```
+
 **登录后即可执行 docker 构建和推送**（在执行 `agentbay image create-from-template` 创建自定义镜像前必须完成）：
 
 ```bash
@@ -67,6 +81,8 @@ agentbay docker tag myapp:latest v1.0
 
 > 必须先执行 `agentbay docker login`。
 
+> **注意**：`docker tag` 是本地 docker CLI 的封装命令，不调用任何 AgentBay OpenAPI 接口，无需配置额外的 RAM 权限。
+
 ---
 
 ### `docker push`
@@ -84,3 +100,5 @@ agentbay docker push <registry>/<namespace>/<repo>:v1.0
 | `<image>` | string | 是 | 完整的 ACR 镜像名 |
 
 > 必须先执行 `agentbay docker login`。
+
+> **注意**：`docker push` 是本地 docker CLI 的封装命令，不调用任何 AgentBay OpenAPI 接口，无需配置额外的 RAM 权限。

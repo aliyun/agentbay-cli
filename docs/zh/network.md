@@ -20,3 +20,17 @@ agentbay network package list --biz-region-id cn-shanghai  # 指定区域
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `--biz-region-id` | string | 否 | 区域 ID（默认：`cn-hangzhou`） |
+
+**涉及接口：**
+
+| Action | 所需权限 |
+|---|---|
+| `DescribeNetworkPackages` | `agentbay:DescribeNetworkPackages` |
+
+```json
+{
+  "Action": [
+    "agentbay:DescribeNetworkPackages"
+  ]
+}
+```

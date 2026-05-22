@@ -20,3 +20,17 @@ agentbay network package list --biz-region-id cn-shanghai  # Custom region
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--biz-region-id` | string | No | Region ID (default: `cn-hangzhou`) |
+
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `DescribeNetworkPackages` | `agentbay:DescribeNetworkPackages` |
+
+```json
+{
+  "Action": [
+    "agentbay:DescribeNetworkPackages"
+  ]
+}
+```

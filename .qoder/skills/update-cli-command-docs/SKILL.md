@@ -181,6 +181,128 @@ agentbay <group> <subcommand> [flags]
 
 ---
 
+### Phase 1.5: 更新 RAM 接口权限说明
+
+**目的**：当新增或删除 OpenAPI 调用时，同步维护各命令文档中的「涉及接口」章节，以及 README 中的 RAM 权限汇总表，并向用户输出权限变更摘要供人工核查。
+
+#### 1.5.1 识别接口变更
+
+基于 Phase 0 的变更分析，确认哪些命令新增/删除/修改了 OpenAPI 调用：
+
+- 读取相关 `cmd/*.go` 文件，统计调用的接口名（函数名即 Action）
+- 每个 Action 对应的权限字符串：`agentbay:<ActionName>`
+- 不统计本地 docker CLI 封装命令（`docker tag`、`docker push`）
+
+#### 1.5.2 在 docs/ 中维护「涉及接口」章节
+
+**位置**：每个子命令的参数表格之后（或注意事项之后）、`---` 分隔线之前。
+
+**英文版模板**：
+
+```markdown
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `XxxAction` | `agentbay:XxxAction` |
+
+```json
+{
+  "Action": [
+    "agentbay:XxxAction"
+  ]
+}
+```
+```
+
+**中文版模板**：
+
+```markdown
+**涉及接口：**
+
+| Action | 所需权限 |
+|---|---|
+| `XxxAction` | `agentbay:XxxAction` |
+
+```json
+{
+  "Action": [
+    "agentbay:XxxAction"
+  ]
+}
+```
+```
+
+**规则**：
+
+- 一个命令涉及多个接口时，表格按调用顺序列出所有 Action，JSON 数组同样全部列出
+- 无需区分分支条件，只要命令可能调用的接口均需列出
+- 本地 CLI 封装命令（无 AgentBay API 调用）不加「涉及接口」表格，改用提示：
+  - 英文：`> **Note**: This is a native docker CLI wrapper — no AgentBay API calls are made. No additional RAM permissions required.`
+  - 中文：`> **注意**：此命令是本地 docker CLI 的封装命令，不调用任何 AgentBay OpenAPI 接口，无需配置额外的 RAM 权限。`
+- `skills list`（占位命令）等尚无 API 调用的命令不加「涉及接口」章节
+
+#### 1.5.3 更新 README RAM 权限汇总表
+
+`README.md` 和 `README.zh-CN.md` 中的 `## RAM Permissions` / `## RAM 账号接口权限` 章节包含各命令组的权限汇总表和 Policy JSON 示例。
+
+**更新规则**：
+
+- 新增接口：在对应命令组的汇总表中追加行，并在 Policy JSON 的 `Action` 数组中追加权限字符串
+- 删除接口：从表格和 Policy JSON 中移除对应行/条目（需先确认该接口在该命令组的其他命令中已无引用）
+- 接口名变更：同步修改表格和 Policy JSON
+
+**Policy JSON 格式参考**（`README.md`）：
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "agentbay:XxxAction"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+#### 1.5.4 终端输出接口变更摘要
+
+**⚠️ 执行本 skill 时，必须在终端输出以下格式的权限变更摘要**，供用户核查是否有接口遗漏或误加：
+
+```
+========================================
+  RAM 接口权限变更摘要
+========================================
+
+受影响命令组：<group>
+受影响命令：<group> <subcommand>
+
+新增接口权限：
+  + agentbay:XxxAction     （<group> <subcommand>）
+
+删除接口权限：
+  - agentbay:YyyAction     （<group> <subcommand>）
+
+无变更：（如无新增/删除则显示此行）
+
+已同步位置：
+  - docs/en/<group>.md — <subcommand> 涉及接口章节
+  - docs/zh/<group>.md — <subcommand> 涉及接口章节
+  - README.md — RAM Permissions > <group> 命令组
+  - README.zh-CN.md — RAM 账号接口权限 > <group> 命令组
+
+请核查上述权限变更是否正确，如有遗漏请告知。
+========================================
+```
+
+**输出时机**：在完成所有文档更新后，统一输出一次摘要。如果本次变更无 OpenAPI 调用变化（纯参数修改、文档格式调整等），则输出「无接口权限变更」。
+
+---
+
 ### Phase 2: 更新 README Command Overview 表格
 
 **原则**：README 表格只做概要展示，不展示详细参数。更新时保持表格格式不变。
@@ -327,6 +449,13 @@ brew install git-cliff
 - [ ] `docs/zh/<group>.md` 已更新（与英文版结构一致）
 - [ ] 双语切换链接正确
 - [ ] 参数表格完整且类型/必填标注准确
+- [ ] 涉及接口章节已更新（新增/删除/修改 OpenAPI 调用时）
+
+### README RAM 权限汇总
+
+- [ ] `README.md` RAM Permissions 表格已更新（新增/删除接口时）
+- [ ] `README.zh-CN.md` RAM 账号接口权限表格已更新
+- [ ] Policy JSON 中的 Action 数组已同步
 
 ### README Command Overview
 
@@ -357,3 +486,5 @@ brew install git-cliff
 5. **README 表格格式**：不得改变表格列的顺序、宽度或格式风格
 6. **命令名一律英文**：文档中所有命令名、参数名均使用英文，不翻译
 7. **参考已有风格**：更新 docs/ 时参考同文件中已有命令的文档风格，保持一致
+8. **接口变更必须同步权限文档**：只要新增或删除了 OpenAPI 调用，涉及接口章节和 README RAM 权限汇总表必须同步更新，不得遗漏
+9. **必须输出权限变更摘要**：无论有无接口变更，都必须在终端输出 Phase 1.5.4 要求的摘要，方便用户人工核查

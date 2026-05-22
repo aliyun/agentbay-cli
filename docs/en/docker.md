@@ -36,6 +36,20 @@ Note: When tagging images, use: ai-container-pre-9543-registry.cn-hangzhou.cr.al
 - Credentials are valid for about 1 hour. Re-run `agentbay docker login` to refresh.
 - Credentials are cached locally for subsequent `tag` and `push` commands.
 
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `GetACRRepoCredential` | `agentbay:GetACRRepoCredential` |
+
+```json
+{
+  "Action": [
+    "agentbay:GetACRRepoCredential"
+  ]
+}
+```
+
 **After login you can build and push your docker image** (this must be done before running `agentbay image create-from-template`):
 
 ```bash
@@ -67,6 +81,8 @@ agentbay docker tag myapp:latest v1.0
 
 > Run `agentbay docker login` first.
 
+> `docker tag` is a wrapper around the native `docker tag` CLI and does not call any AgentBay API directly. No additional RAM permissions are required.
+
 ---
 
 ### `docker push`
@@ -84,3 +100,5 @@ agentbay docker push <registry>/<namespace>/<repo>:v1.0
 | `<image>` | string | Yes | Full image name matching the ACR path |
 
 > Run `agentbay docker login` first.
+
+> `docker push` is a wrapper around the native `docker push` CLI and does not call any AgentBay API directly. No additional RAM permissions are required.

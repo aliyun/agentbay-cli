@@ -33,6 +33,22 @@ agentbay skills push ./my-skill.zip
 [RESULT] Skill ID: 35U2Ver2
 ```
 
+**涉及接口：**
+
+| Action | 所需权限 |
+|---|---|
+| `GetMarketSkillCredential` | `agentbay:GetMarketSkillCredential` |
+| `CreateMarketSkill` | `agentbay:CreateMarketSkill` |
+
+```json
+{
+  "Action": [
+    "agentbay:GetMarketSkillCredential",
+    "agentbay:CreateMarketSkill"
+  ]
+}
+```
+
 ---
 
 ### `skills show`
@@ -48,6 +64,20 @@ agentbay skills show <skill-id>
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `<skill-id>` | string | 是 | 技能 ID |
+
+**涉及接口：**
+
+| Action | 所需权限 |
+|---|---|
+| `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` |
+
+```json
+{
+  "Action": [
+    "agentbay:DescribeMarketSkillDetail"
+  ]
+}
+```
 
 ---
 

@@ -50,6 +50,20 @@ mobile-use-android-14     Mobile Use Android 14          DedicatedDesktop     Av
 - **Status meanings**: Creating, Available, Activated, Create Failed
 - **Type meanings**: DockerBuilder (user-created), DedicatedDesktop (system)
 
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `ListMcpImages` | `agentbay:ListMcpImages` |
+
+```json
+{
+  "Action": [
+    "agentbay:ListMcpImages"
+  ]
+}
+```
+
 ---
 
 ### `image init`
@@ -88,6 +102,20 @@ Writing Dockerfile to /path/to/current/directory/Dockerfile... Done.
 
 - If a `Dockerfile` already exists, it will be overwritten.
 - The first N lines of the Dockerfile are system-defined and must not be modified. Only edit content after line N+1.
+
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `GetDockerfileTemplate` | `agentbay:GetDockerfileTemplate` |
+
+```json
+{
+  "Action": [
+    "agentbay:GetDockerfileTemplate"
+  ]
+}
+```
 
 ---
 
@@ -156,6 +184,20 @@ agentbay image create-from-template -s ai-container-registry.cn-hangzhou.cr.aliy
 
    Replace `%s` with the actual command to run.
 
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `CreateImageFromTemplate` | `agentbay:CreateImageFromTemplate` |
+
+```json
+{
+  "Action": [
+    "agentbay:CreateImageFromTemplate"
+  ]
+}
+```
+
 ---
 
 ### `image activate`
@@ -221,6 +263,34 @@ Waiting for activation to complete...
 [SUCCESS] Image activated successfully!
 ```
 
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `GetMcpImageInfo` | `agentbay:GetMcpImageInfo` |
+| `DescribeInstanceTypes` | `agentbay:DescribeInstanceTypes` |
+| `DescribeMcpPolicyData` | `agentbay:DescribeMcpPolicyData` |
+| `CreateMcpPolicyData` | `agentbay:CreateMcpPolicyData` |
+| `ModifyMcpPolicyData` | `agentbay:ModifyMcpPolicyData` |
+| `DescribeOfficeSites` | `agentbay:DescribeOfficeSites` |
+| `SaveMcpPolicyData` | `agentbay:SaveMcpPolicyData` |
+| `CreateResourceGroup` | `agentbay:CreateResourceGroup` |
+
+```json
+{
+  "Action": [
+    "agentbay:GetMcpImageInfo",
+    "agentbay:DescribeInstanceTypes",
+    "agentbay:DescribeMcpPolicyData",
+    "agentbay:CreateMcpPolicyData",
+    "agentbay:ModifyMcpPolicyData",
+    "agentbay:DescribeOfficeSites",
+    "agentbay:SaveMcpPolicyData",
+    "agentbay:CreateResourceGroup"
+  ]
+}
+```
+
 ---
 
 ### `image deactivate`
@@ -242,6 +312,24 @@ Waiting for deactivation to complete...
 ```
 
 Usually completes in seconds.
+
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `GetMcpImageInfo` | `agentbay:GetMcpImageInfo` |
+| `ListMcpImages` | `agentbay:ListMcpImages` |
+| `DeleteResourceGroup` | `agentbay:DeleteResourceGroup` |
+
+```json
+{
+  "Action": [
+    "agentbay:GetMcpImageInfo",
+    "agentbay:ListMcpImages",
+    "agentbay:DeleteResourceGroup"
+  ]
+}
+```
 
 ---
 
@@ -279,6 +367,22 @@ Deleting image... Done.
 [SUCCESS] Image 'imgc-xxxxx' has been permanently deleted.
 ```
 
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `GetMcpImageInfo` | `agentbay:GetMcpImageInfo` |
+| `DeleteMcpImage` | `agentbay:DeleteMcpImage` |
+
+```json
+{
+  "Action": [
+    "agentbay:GetMcpImageInfo",
+    "agentbay:DeleteMcpImage"
+  ]
+}
+```
+
 ---
 
 ### `image status`
@@ -302,6 +406,20 @@ agentbay image status imgc-xxxxxxxxxxxxxx
 | `RESOURCE_FAILED` | Activation or resource operation failed |
 | `RESOURCE_CEASED` | Resource ceased |
 
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `GetMcpImageInfo` | `agentbay:GetMcpImageInfo` |
+
+```json
+{
+  "Action": [
+    "agentbay:GetMcpImageInfo"
+  ]
+}
+```
+
 ---
 
 ### `image set-max-session`
@@ -321,6 +439,22 @@ agentbay image set-max-session --image-id imgc-xxxxxxxxxxxxxx --max-session-num 
 
 > The command polls until the resource group is ready (typically ~5 minutes).
 
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `GetMcpImageInfo` | `agentbay:GetMcpImageInfo` |
+| `BatchCreateHideResourceGroupsWithMaxSession` | `agentbay:BatchCreateHideResourceGroupsWithMaxSession` |
+
+```json
+{
+  "Action": [
+    "agentbay:GetMcpImageInfo",
+    "agentbay:BatchCreateHideResourceGroupsWithMaxSession"
+  ]
+}
+```
+
 ---
 
 ### `image warmup-status`
@@ -336,3 +470,17 @@ agentbay image warmup-status
 - **Session Quota** — max session limit, total used, and available sessions
 - **Image Quota** — max image count and current image count
 - **Warm-up Images** — table of image IDs, total max size, and group count
+
+**Involved APIs:**
+
+| Action | Required Permission |
+|---|---|
+| `DescribeWarmUpStatusOpen` | `agentbay:DescribeWarmUpStatusOpen` |
+
+```json
+{
+  "Action": [
+    "agentbay:DescribeWarmUpStatusOpen"
+  ]
+}
+```

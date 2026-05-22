@@ -50,6 +50,20 @@ mobile-use-android-14     Mobile Use Android 14          DedicatedDesktop     Av
 - **状态含义**：Creating（构建中）、Available（可激活）、Activated（已激活）、Create Failed（构建失败）
 - **类型含义**：DockerBuilder（用户创建）、DedicatedDesktop（系统镜像）
 
+**涉及接口：**
+
+| Action | 所需权限 |
+|---|---|
+| `ListMcpImages` | `agentbay:ListMcpImages` |
+
+```json
+{
+  "Action": [
+    "agentbay:ListMcpImages"
+  ]
+}
+```
+
 ---
 
 ### `image init`
@@ -156,6 +170,20 @@ agentbay image create-from-template -s ai-container-registry.cn-hangzhou.cr.aliy
 
    将 `%s` 替换为实际要执行的命令。
 
+**涉及接口：**
+
+| Action | 所需权限 |
+|---|---|
+| `CreateImageFromTemplate` | `agentbay:CreateImageFromTemplate` |
+
+```json
+{
+  "Action": [
+    "agentbay:CreateImageFromTemplate"
+  ]
+}
+```
+
 ---
 
 ### `image activate`
@@ -221,6 +249,34 @@ Waiting for activation to complete...
 [SUCCESS] Image activated successfully!
 ```
 
+**涉及接口：**
+
+| Action | 所需权限 |
+|---|---|
+| `GetMcpImageInfo` | `agentbay:GetMcpImageInfo` |
+| `DescribeInstanceTypes` | `agentbay:DescribeInstanceTypes` |
+| `DescribeMcpPolicyData` | `agentbay:DescribeMcpPolicyData` |
+| `CreateMcpPolicyData` | `agentbay:CreateMcpPolicyData` |
+| `ModifyMcpPolicyData` | `agentbay:ModifyMcpPolicyData` |
+| `DescribeOfficeSites` | `agentbay:DescribeOfficeSites` |
+| `SaveMcpPolicyData` | `agentbay:SaveMcpPolicyData` |
+| `CreateResourceGroup` | `agentbay:CreateResourceGroup` |
+
+```json
+{
+  "Action": [
+    "agentbay:GetMcpImageInfo",
+    "agentbay:DescribeInstanceTypes",
+    "agentbay:DescribeMcpPolicyData",
+    "agentbay:CreateMcpPolicyData",
+    "agentbay:ModifyMcpPolicyData",
+    "agentbay:DescribeOfficeSites",
+    "agentbay:SaveMcpPolicyData",
+    "agentbay:CreateResourceGroup"
+  ]
+}
+```
+
 ---
 
 ### `image deactivate`
@@ -242,6 +298,24 @@ Waiting for deactivation to complete...
 ```
 
 通常几秒内完成。
+
+**涉及接口：**
+
+| Action | 所需权限 |
+|---|---|
+| `GetMcpImageInfo` | `agentbay:GetMcpImageInfo` |
+| `ListMcpImages` | `agentbay:ListMcpImages` |
+| `DeleteResourceGroup` | `agentbay:DeleteResourceGroup` |
+
+```json
+{
+  "Action": [
+    "agentbay:GetMcpImageInfo",
+    "agentbay:ListMcpImages",
+    "agentbay:DeleteResourceGroup"
+  ]
+}
+```
 
 ---
 
@@ -279,6 +353,22 @@ Deleting image... Done.
 [SUCCESS] Image 'imgc-xxxxx' has been permanently deleted.
 ```
 
+**涉及接口：**
+
+| Action | 所需权限 |
+|---|---|
+| `GetMcpImageInfo` | `agentbay:GetMcpImageInfo` |
+| `DeleteMcpImage` | `agentbay:DeleteMcpImage` |
+
+```json
+{
+  "Action": [
+    "agentbay:GetMcpImageInfo",
+    "agentbay:DeleteMcpImage"
+  ]
+}
+```
+
 ---
 
 ### `image status`
@@ -302,6 +392,20 @@ agentbay image status imgc-xxxxxxxxxxxxxx
 | `RESOURCE_FAILED` | 激活或资源操作失败 |
 | `RESOURCE_CEASED` | 资源已释放 |
 
+**涉及接口：**
+
+| Action | 所需权限 |
+|---|---|
+| `GetMcpImageInfo` | `agentbay:GetMcpImageInfo` |
+
+```json
+{
+  "Action": [
+    "agentbay:GetMcpImageInfo"
+  ]
+}
+```
+
 ---
 
 ### `image set-max-session`
@@ -321,6 +425,22 @@ agentbay image set-max-session --image-id imgc-xxxxxxxxxxxxxx --max-session-num 
 
 > 该命令会轮询直到资源组就绪（通常约 5 分钟）。
 
+**涉及接口：**
+
+| Action | 所需权限 |
+|---|---|
+| `GetMcpImageInfo` | `agentbay:GetMcpImageInfo` |
+| `BatchCreateHideResourceGroupsWithMaxSession` | `agentbay:BatchCreateHideResourceGroupsWithMaxSession` |
+
+```json
+{
+  "Action": [
+    "agentbay:GetMcpImageInfo",
+    "agentbay:BatchCreateHideResourceGroupsWithMaxSession"
+  ]
+}
+```
+
 ---
 
 ### `image warmup-status`
@@ -336,3 +456,17 @@ agentbay image warmup-status
 - **会话配额** —— 最大会话数限制、已使用的会话数、可用的会话数
 - **镜像配额** —— 最大镜像数、当前镜像数
 - **预热镜像** —— 镜像 ID、总最大容量、资源组数量
+
+**涉及接口：**
+
+| Action | 所需权限 |
+|---|---|
+| `DescribeWarmUpStatusOpen` | `agentbay:DescribeWarmUpStatusOpen` |
+
+```json
+{
+  "Action": [
+    "agentbay:DescribeWarmUpStatusOpen"
+  ]
+}
+```
