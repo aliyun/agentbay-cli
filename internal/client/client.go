@@ -2058,6 +2058,93 @@ func (client *Client) DescribeApiKeysWithContext(ctx context.Context, request *D
 	return _result, _err
 }
 
+// DescribeKeyContentWithOptions retrieves the plaintext API key content by KeyId
+func (client *Client) DescribeKeyContentWithOptions(request *DescribeKeyContentRequest, runtime *dara.RuntimeOptions) (_result *DescribeKeyContentResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.KeyId) {
+		query["KeyId"] = request.KeyId
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("DescribeKeyContent"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &DescribeKeyContentResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseDescribeKeyContentResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) DescribeKeyContent(request *DescribeKeyContentRequest) (_result *DescribeKeyContentResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	return client.DescribeKeyContentWithOptions(request, runtime)
+}
+
+// DescribeKeyContentWithContext retrieves the plaintext API key content by KeyId, with context support
+func (client *Client) DescribeKeyContentWithContext(ctx context.Context, request *DescribeKeyContentRequest, runtime *dara.RuntimeOptions) (_result *DescribeKeyContentResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.KeyId) {
+		query["KeyId"] = request.KeyId
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("DescribeKeyContent"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &DescribeKeyContentResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseDescribeKeyContentResponse(_body)
+	return _result, _err
+}
+
 // DescribeWarmUpStatusOpenWithOptions queries warm-up status for the current account
 func (client *Client) DescribeWarmUpStatusOpenWithOptions(request *DescribeWarmUpStatusOpenRequest, runtime *dara.RuntimeOptions) (_result *DescribeWarmUpStatusOpenResponse, _err error) {
 	_err = request.Validate()

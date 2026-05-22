@@ -50,7 +50,7 @@ STS、OAuth（不推荐使用）及环境变量详见 [认证与环境](docs/zh/
 |------|------|------|------|
 | 核心 | `version`, `login`, `logout` | 版本与认证 | [→](docs/zh/core.md) |
 | 镜像 | `list`, `init`, `create`, `create-from-template`, `activate`, `deactivate`, `delete`, `status`, `set-max-session`, `warmup-status` | 镜像生命周期 | [→](docs/zh/image.md) |
-| API Key | `create`, `enable`, `disable`, `delete`, `list`, `concurrency set` | 密钥管理 | [→](docs/zh/apikey.md) |
+| API Key | `create`, `enable`, `disable`, `delete`, `list`, `concurrency set`, `describe-key-content` | 密钥管理 | [→](docs/zh/apikey.md) |
 | 网络 | `package list` | 网络配置 | [→](docs/zh/network.md) |
 | 技能 | `push`, `show`, `list` | 技能管理 | [→](docs/zh/skills.md) |
 | Docker | `login`, `tag`, `push` | Docker 仓库 | [→](docs/zh/docker.md) |

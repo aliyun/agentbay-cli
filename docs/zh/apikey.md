@@ -169,3 +169,22 @@ agentbay apikey concurrency set --api-key-id ak-xxx --concurrency 10
 | `--concurrency` | int | 是 | 最大并发会话数（必须 >= 1） |
 
 \* 必须指定 `--api-key` 或 `--api-key-id` 其中之一，不可同时指定。
+
+---
+
+### `apikey describe-key-content`
+
+根据 API Key ID（ak-xxx）查询对应的明文 API Key（akm-xxx 格式）。
+
+```bash
+# 根据内部 API Key ID 查询明文 API Key
+agentbay apikey describe-key-content --api-key-id ak-xxxxxxxxxxxxxxxx
+```
+
+**参数：**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `--api-key-id` | string | 是 | 内部 API Key ID（ak-xxx 格式） |
+
+**输出：** 命令显示对应的明文 `ApiKey`（akm-xxx 格式）及查询时使用的 `ApiKeyId`。

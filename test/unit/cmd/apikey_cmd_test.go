@@ -369,3 +369,35 @@ func TestApikeyDeleteCmd(t *testing.T) {
 		assert.Equal(t, "y", yesFlag.Shorthand)
 	})
 }
+
+func TestApiKeyDescribeKeyContentCmd(t *testing.T) {
+	var descCmd *cobra.Command
+	for _, c := range cmd.ApiKeyCmd.Commands() {
+		if c.Use == "describe-key-content" {
+			descCmd = c
+			break
+		}
+	}
+
+	t.Run("describe-key-content command exists", func(t *testing.T) {
+		assert.NotNil(t, descCmd, "describe-key-content command should be registered under apikey")
+	})
+
+	t.Run("describe-key-content command metadata", func(t *testing.T) {
+		assert.NotNil(t, descCmd)
+		assert.Equal(t, "describe-key-content", descCmd.Use)
+		assert.Equal(t, "Retrieve the plaintext API key by API key ID", descCmd.Short)
+		assert.True(t, strings.Contains(descCmd.Long, "--api-key-id"))
+	})
+
+	t.Run("describe-key-content command has --api-key-id flag as required", func(t *testing.T) {
+		assert.NotNil(t, descCmd)
+		apiKeyIdFlag := descCmd.Flags().Lookup("api-key-id")
+		assert.NotNil(t, apiKeyIdFlag)
+		assert.Equal(t, "", apiKeyIdFlag.DefValue)
+		// Check cobra required annotation
+		ann := apiKeyIdFlag.Annotations
+		_, isRequired := ann[cobra.BashCompOneRequiredFlag]
+		assert.True(t, isRequired, "--api-key-id should be marked as required")
+	})
+}

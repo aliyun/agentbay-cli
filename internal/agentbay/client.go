@@ -38,6 +38,7 @@ type Client interface {
 	ModifyApiKeyStatus(ctx context.Context, request *client.ModifyApiKeyStatusRequest) (*client.ModifyApiKeyStatusResponse, error)
 	DeleteApiKey(ctx context.Context, request *client.DeleteApiKeyRequest) (*client.DeleteApiKeyResponse, error)
 	DescribeApiKeys(ctx context.Context, request *client.DescribeApiKeysRequest) (*client.DescribeApiKeysResponse, error)
+	DescribeKeyContent(ctx context.Context, request *client.DescribeKeyContentRequest) (*client.DescribeKeyContentResponse, error)
 	// Advanced Network
 	DescribeInstanceTypes(ctx context.Context, request *client.DescribeInstanceTypesRequest) (*client.DescribeInstanceTypesResponse, error)
 	DescribeMcpPolicyData(ctx context.Context, request *client.DescribeMcpPolicyDataRequest) (*client.DescribeMcpPolicyDataResponse, error)
@@ -360,6 +361,15 @@ func (cw *clientWrapper) DescribeApiKeys(ctx context.Context, request *client.De
 		return nil, err
 	}
 	return sdkClient.DescribeApiKeysWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// DescribeKeyContent wraps the SDK client method
+func (cw *clientWrapper) DescribeKeyContent(ctx context.Context, request *client.DescribeKeyContentRequest) (*client.DescribeKeyContentResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.DescribeKeyContentWithContext(ctx, request, cw.getRuntimeOptions())
 }
 
 // DescribeWarmUpStatusOpen wraps the SDK client method

@@ -7,18 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🚀 Features
 
-- Support `--api-key-id` (ak-xxx) parameter for apikey enable/disable/delete/list commands
-- Change apikey enable/disable/delete from positional arg to `--api-key`/`--api-key-id` dual flag mode
-- Rename `KeyId` to `ApiKeyId` in apikey create output
+- Enhance apikey commands with --api-key-id param and update CHANGELOG
 
 ### 📖 Documentation
 
-- Add Terminology section to apikey docs explaining API Key (akm-xxx) vs API Key ID (ak-xxx)
-- Update all apikey command docs with `--api-key-id` flag and dual flag mode
 - Reorganize documentation into en/zh structure
 - Soften 'agentbay login' wording from deprecated to not recommended
 - Fix bilingual switch links and add docs governance spec
 - Update CHANGELOG.md for v0.2.10
+- Enrich docker login & image create-from-template usage notes
+
+
+* * *
+
+### 🚀 新功能
+
+- **apikey**：扩展 apikey 命令组，新增 `--api-key-id` 参数支持及 `describe-key-content` 子命令，可通过 API Key ID 查询明文 API Key
+
+### 📖 文档
+
+- 将文档重组为英中双语（`docs/en/` / `docs/zh/`）目录结构
+- 将 `agentbay login` 的文案从"已废弃"降级为"不推荐使用"
+- 修复双语切换链接，新增文档治理规范
+- 更新 v0.2.10 版本 CHANGELOG
+- 丰富 `docker login` 和 `image create-from-template` 使用说明
 
 
 * * *

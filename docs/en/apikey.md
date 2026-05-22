@@ -169,3 +169,22 @@ agentbay apikey concurrency set --api-key-id ak-xxx --concurrency 10
 | `--concurrency` | int | Yes | Maximum concurrent sessions (must be >= 1) |
 
 \* Either `--api-key` or `--api-key-id` must be specified, but not both.
+
+---
+
+### `apikey describe-key-content`
+
+Retrieve the plaintext API key (akm-xxx format) for a given API key ID (ak-xxx).
+
+```bash
+# Retrieve the plaintext API key for a given API key ID
+agentbay apikey describe-key-content --api-key-id ak-xxxxxxxxxxxxxxxx
+```
+
+**Flags:**
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--api-key-id` | string | Yes | Internal API key ID (ak-xxx format) |
+
+**Output:** The command displays the plaintext `ApiKey` (akm-xxx format) and the `ApiKeyId` used to query it.

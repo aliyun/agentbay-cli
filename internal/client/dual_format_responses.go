@@ -1422,3 +1422,107 @@ func parseDescribeApiKeysResponse(res map[string]interface{}) (*DescribeApiKeysR
 	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
 	return out, nil
 }
+
+// --- DescribeKeyContent ---
+
+// describeKeyContentJSONWire handles the outer-wrapped response format:
+// {"code":"200","data":{"ApiKey":"akm-xxx","RequestId":"..."},"httpStatusCode":"200","requestId":"...","successResponse":true}
+type describeKeyContentJSONWire struct {
+	Code           *string         `json:"code"`
+	Data           json.RawMessage `json:"data"`
+	HttpStatusCode json.RawMessage `json:"httpStatusCode"`
+	Message        *string         `json:"message"`
+	RequestId      *string         `json:"requestId"`
+	Success        *bool           `json:"successResponse"`
+}
+
+// describeKeyContentDataJSONWire is the inner data payload
+type describeKeyContentDataJSONWire struct {
+	ApiKey    *string `json:"ApiKey"`
+	RequestId *string `json:"RequestId"`
+}
+
+type xmlDescribeKeyContentResponse struct {
+	XMLName        xml.Name `xml:"DescribeKeyContentResponse"`
+	RequestId      string   `xml:"RequestId"`
+	HttpStatusCode string   `xml:"HttpStatusCode"`
+	Code           string   `xml:"Code"`
+	Success        bool     `xml:"Success"`
+	Message        string   `xml:"Message"`
+	Data           struct {
+		ApiKey    string `xml:"ApiKey"`
+		RequestId string `xml:"RequestId"`
+	} `xml:"Data"`
+}
+
+func parseDescribeKeyContentResponse(res map[string]interface{}) (*DescribeKeyContentResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &DescribeKeyContentResponse{Headers: make(map[string]*string)}
+	parsed := &DescribeKeyContentResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			// XML branch
+			var xr xmlDescribeKeyContentResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = dara.String(xr.Code)
+			parsed.RequestId = dara.String(xr.RequestId)
+			parsed.Success = dara.Bool(xr.Success)
+			parsed.Message = dara.String(xr.Message)
+			if s := strings.TrimSpace(xr.HttpStatusCode); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					parsed.HttpStatusCode = dara.Int32(int32(n))
+				}
+			}
+			parsed.Data = &DescribeKeyContentResponseBodyData{
+				ApiKey:    dara.String(xr.Data.ApiKey),
+				RequestId: dara.String(xr.Data.RequestId),
+			}
+		} else {
+			// JSON branch: try outer-wrapped format first
+			var wire describeKeyContentJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			if len(wire.Data) > 0 && string(wire.Data) != "null" {
+				// Outer-wrapped format: body has code, data, httpStatusCode, etc.
+				parsed.Code = wire.Code
+				parsed.Message = wire.Message
+				parsed.RequestId = wire.RequestId
+				parsed.Success = wire.Success
+				n, derr := int32FromFlexibleJSON(wire.HttpStatusCode)
+				if derr != nil {
+					return nil, &ErrWithRequestID{Err: fmt.Errorf("HttpStatusCode: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+				}
+				parsed.HttpStatusCode = n
+				var dataWire describeKeyContentDataJSONWire
+				if err := json.Unmarshal(wire.Data, &dataWire); err != nil {
+					return nil, &ErrWithRequestID{Err: fmt.Errorf("Data: %w", err), RequestID: extractRequestIDFromResponse(res)}
+				}
+				parsed.Data = &DescribeKeyContentResponseBodyData{
+					ApiKey:    dataWire.ApiKey,
+					RequestId: dataWire.RequestId,
+				}
+			} else {
+				// Direct data payload: body IS the data object
+				var dataWire describeKeyContentDataJSONWire
+				if err := json.Unmarshal([]byte(bodyStr), &dataWire); err != nil {
+					return nil, &ErrWithRequestID{Err: fmt.Errorf("Data: %w", err), RequestID: extractRequestIDFromResponse(res)}
+				}
+				parsed.Data = &DescribeKeyContentResponseBodyData{
+					ApiKey:    dataWire.ApiKey,
+					RequestId: dataWire.RequestId,
+				}
+				parsed.RequestId = dataWire.RequestId
+			}
+		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
