@@ -59,6 +59,23 @@ func TestApiKeyListCmd(t *testing.T) {
 		apiKeyFlag := listCmd.Flags().Lookup("api-key")
 		assert.NotNil(t, apiKeyFlag)
 		assert.Equal(t, "", apiKeyFlag.DefValue)
+		assert.True(t, strings.Contains(apiKeyFlag.Usage, "akm-"))
+	})
+
+	t.Run("list command has --api-key-id flag", func(t *testing.T) {
+		var listCmd *cobra.Command
+		for _, c := range cmd.ApiKeyCmd.Commands() {
+			if c.Name() == "list" {
+				listCmd = c
+				break
+			}
+		}
+
+		assert.NotNil(t, listCmd)
+		apiKeyIdFlag := listCmd.Flags().Lookup("api-key-id")
+		assert.NotNil(t, apiKeyIdFlag)
+		assert.Equal(t, "", apiKeyIdFlag.DefValue)
+		assert.True(t, strings.Contains(apiKeyIdFlag.Usage, "--api-key"))
 	})
 
 	t.Run("list command has --next-token flag", func(t *testing.T) {

@@ -327,49 +327,16 @@ Test<子命令>Cmd           // 测试子命令
 
 ### Phase 5: 文档生成与同步
 
-#### 5.1 更新 docs/ 命令文档（必须）
+**本阶段委托 `update-cli-command-docs` skill 执行**，不在本 skill 内展开。
 
-根据新命令所属的命令组，更新对应的双语文档文件：
+加载并执行 `.qoder/skills/update-cli-command-docs/SKILL.md`，该 skill 将完成：
+- 更新 `docs/en/<group>.md` 和 `docs/zh/<group>.md`
+- 更新 `README.md` 和 `README.zh-CN.md` Command Overview 表格
+- 更新 `CHANGELOG.md`（git-cliff 生成 + 中文翻译）
 
-| 命令组 | 文件路径 |
-|--------|----------|
-| core（version/login/logout） | `docs/en/core.md` / `docs/zh/core.md` |
-| image | `docs/en/image.md` / `docs/zh/image.md` |
-| apikey | `docs/en/apikey.md` / `docs/zh/apikey.md` |
-| network | `docs/en/network.md` / `docs/zh/network.md` |
-| skills | `docs/en/skills.md` / `docs/zh/skills.md` |
-| docker | `docs/en/docker.md` / `docs/zh/docker.md` |
+> ⚠️ 不得在本 Phase 中内联执行文档操作，必须遵循 `update-cli-command-docs` 的 Phase 0-3 完整流程。
 
-**更新内容**：
-- 添加命令语法（`agentbay <group> <subcommand> [flags]`）
-- 参数说明表格（参数名、类型、必填、说明）
-- 使用示例（至少 1 个基本示例）
-- 输出说明
-- 注意事项（如有）
-
-**要求**：
-- 中英文文档**必须同步更新**，结构保持一致
-- 命令示例保持英文（如 `agentbay image list`）
-- 参考同文件中已有命令的文档风格
-
-#### 5.2 更新 README（必须）
-
-更新 `README.md` 和 `README.zh-CN.md` 的 Command Overview 表格：
-- 新增命令：在对应命令组行添加新子命令的简短说明
-- 修改命令：更新对应行的描述
-- 保持中英文表格内容一致
-
-#### 5.3 更新对客文档
-
-创建对客功能文档（放在 `cli-analysis/` 目录）：
-
-**文档要求**:
-
-- 面向客户，不包含代码实现细节
-- 包含完整的使用示例
-- 参数说明表格
-- 错误处理和 FAQ
-- 认证方式和环境配置
+对客文档（`cli-analysis/` 目录、钉钉文档）不在此 skill 范围内，需手动同步。
 
 ### Phase 6: 代码提交（需用户确认）
 

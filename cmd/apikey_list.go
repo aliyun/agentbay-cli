@@ -20,6 +20,9 @@ var apikeyListCmd = &cobra.Command{
 	Short: "List API keys",
 	Long: `List API keys with optional filtering and pagination.
 
+You can filter by either the user-visible API Key (--api-key, akm-xxx) or
+the internal API Key ID (--api-key-id, ak-xxx). These flags are mutually exclusive.
+
 Examples:
   # List up to 10 API keys (default)
   agentbay apikey list
@@ -27,8 +30,11 @@ Examples:
   # List up to 20 API keys
   agentbay apikey list --max-results 20
 
-  # Query a specific API key by its user-visible value
+  # Query a specific API key by its user-visible value (recommended)
   agentbay apikey list --api-key akm-xxxxxxxxxxxxxxxx
+
+  # Query a specific API key by its internal ID
+  agentbay apikey list --api-key-id ak-xxxxxxxxxxxxxxxx
 
   # Fetch the next page of results
   agentbay apikey list --next-token AAAAAV3MpHK1AP0pfERHZN5pu6mUZcGrgQ3JzaYuUyH0MyLn`,
@@ -38,20 +44,28 @@ Examples:
 var (
 	apikeyListMaxResults int32
 	apikeyListApiKey     string
+	apikeyListApiKeyId   string
 	apikeyListNextToken  string
 )
 
 func init() {
 	apikeyListCmd.Flags().Int32Var(&apikeyListMaxResults, "max-results", 10, "Number of results per query")
-	apikeyListCmd.Flags().StringVar(&apikeyListApiKey, "api-key", "", "User-visible API key (akm-xxx format) to filter")
+	apikeyListCmd.Flags().StringVar(&apikeyListApiKey, "api-key", "", "User-visible API key (akm-xxx format, recommended) to filter")
+	apikeyListCmd.Flags().StringVar(&apikeyListApiKeyId, "api-key-id", "", "Internal API Key ID (ak-xxx) to filter. Prefer --api-key for normal usage")
 	apikeyListCmd.Flags().StringVar(&apikeyListNextToken, "next-token", "", "Pagination token from previous query")
 
 	ApiKeyCmd.AddCommand(apikeyListCmd)
 }
 
 func runApikeyList(cmd *cobra.Command, args []string) error {
+	// Validate mutual exclusivity: --api-key and --api-key-id
+	if apikeyListApiKey != "" && apikeyListApiKeyId != "" {
+		return fmt.Errorf("[ERROR] --api-key and --api-key-id are mutually exclusive; please specify only one")
+	}
+
 	maxResults := apikeyListMaxResults
 	apiKey := apikeyListApiKey
+	apiKeyIdFlag := apikeyListApiKeyId
 	nextToken := apikeyListNextToken
 
 	cfg, err := config.GetConfig()
@@ -105,6 +119,9 @@ func runApikeyList(cmd *cobra.Command, args []string) error {
 		}
 
 		fmt.Printf("  ApiKeyId: %s\n", apiKeyId)
+	} else if apiKeyIdFlag != "" {
+		// --api-key-id path: use the ID directly, no lookup needed
+		apiKeyId = apiKeyIdFlag
 	}
 
 	// Call DescribeApiKeys

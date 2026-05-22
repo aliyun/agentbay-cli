@@ -99,12 +99,12 @@ func runApikeyCreate(cmd *cobra.Command, args []string) error {
 	
 	keyId := resp.Body.GetData()
 	if keyId == "" {
-		return fmt.Errorf("[ERROR] Invalid response: missing KeyId")
+		return fmt.Errorf("[ERROR] Invalid response: missing ApiKeyId")
 	}
-	
+
 	fmt.Println()
 	fmt.Printf("[SUCCESS] ✅ API key created successfully!\n")
-	fmt.Printf("%-*s %s\n", apikeyDetailLabelW, "KeyId:", keyId)
+	fmt.Printf("%-*s %s\n", apikeyDetailLabelW, "ApiKeyId:", keyId)
 	fmt.Printf("%-*s %s\n", apikeyDetailLabelW, "Name:", name)
 	
 	return nil

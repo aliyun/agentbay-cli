@@ -12,7 +12,8 @@ trigger: always_on
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
 | 新增 / 修改 CLI 命令、参数、子命令，或将前端 API 封装为命令 | **create-cli-command**                                                                           | `.qoder/skills/create-cli-command/SKILL.md`           |
 | 涉及分支管理、commit、push、PR、变更档案（Quest/CR 目录）   | **feature-development-workflow**                                                                 | `.qoder/skills/feature-development-workflow/SKILL.md` |
-| 新增 CLI 命令类需求（同时触发上述两条）                     | **两者组合使用**：先 workflow 拉分支/建档 → 再 create-cli-command 实现 → 回到 workflow 提交/推送 | 同上                                                  |
+| 更新/同步 CLI 命令文档（README、docs/、CHANGELOG）          | **update-cli-command-docs**                                                                      | `.qoder/skills/update-cli-command-docs/SKILL.md`      |
+| 新增 CLI 命令类需求（同时触发上述三条）                     | **三者组合使用**：先 workflow 拉分支/建档 → 再 create-cli-command 实现 → 再 update-cli-command-docs 同步文档 → 回到 workflow 提交/推送 | 同上                                                  |
 
 **执行铁律**:
 
@@ -20,6 +21,7 @@ trigger: always_on
 2. **前置检查**：进入实现阶段前，必须确认 `feature-development-workflow` 的 Phase 0（变更档案）和分支创建已完成，否则先引导用户补齐。
 3. **Quest 场景**：Quest 生成 spec 后的 Execute 阶段，等同于"对话入口"，本规则照常生效，无需 spec 里额外声明。
 4. **Execute Directly 场景**：即便跳过 Design 阶段，AI 也必须在动手前主动加载匹配的 skill。
+5. **文档同步**：`create-cli-command` 的 Phase 5 已委托 `update-cli-command-docs` skill，文档操作不得在 `create-cli-command` 中内联执行。
 
 **目的**：让 Skill 指南在所有入口（slash command / Quest spec / 直接对话 / Execute Directly）下统一自动生效，避免重复约定。
 
@@ -347,6 +349,8 @@ assert.Equal(t, "y", yesFlag.Shorthand)
 
 ### 新增或修改命令必须同步更新文档和测试用例
 
+> 文档更新的具体操作流程参见 `update-cli-command-docs` skill。以下为规则概要和检查清单。
+
 **规则**: 每次**新增或修改** CLI 命令（包括新增参数、修改默认值、调整输出格式等）时，**必须**同步完成以下工作：
 
 1. **更新 `README.md` 和 `README.zh-CN.md`**
@@ -386,6 +390,7 @@ assert.Equal(t, "y", yesFlag.Shorthand)
 - [ ] mock 类已同步更新（如有接口变更）
 - [ ] `go build -o agentbay .` 构建出可执行二进制并通过
 - [ ] `go test ./... -count=1` 全部通过
+- [ ] `update-cli-command-docs` skill 已执行（或已完成等效的手动文档同步）
 
 ---
 

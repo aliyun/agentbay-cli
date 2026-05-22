@@ -131,12 +131,14 @@ func TestApiKeyEnableCmd(t *testing.T) {
 		}
 
 		assert.NotNil(t, enableCmd)
-		assert.Equal(t, "enable <api-key>", enableCmd.Use)
+		assert.Equal(t, "enable", enableCmd.Use)
 		assert.Equal(t, "Enable an API key", enableCmd.Short)
+		assert.True(t, strings.Contains(enableCmd.Long, "--api-key"))
+		assert.True(t, strings.Contains(enableCmd.Long, "--api-key-id"))
 		assert.True(t, strings.Contains(enableCmd.Long, "akm-"))
 	})
 
-	t.Run("enable command uses positional argument", func(t *testing.T) {
+	t.Run("enable command has --api-key flag as recommended", func(t *testing.T) {
 		var enableCmd *cobra.Command
 		for _, c := range cmd.ApiKeyCmd.Commands() {
 			if c.Name() == "enable" {
@@ -146,10 +148,28 @@ func TestApiKeyEnableCmd(t *testing.T) {
 		}
 
 		assert.NotNil(t, enableCmd)
-		assert.Contains(t, enableCmd.Use, "<api-key>")
-		// No --api-key flag; the key is a positional argument
+
 		apiKeyFlag := enableCmd.Flags().Lookup("api-key")
-		assert.Nil(t, apiKeyFlag)
+		assert.NotNil(t, apiKeyFlag)
+		assert.Equal(t, "", apiKeyFlag.DefValue)
+		assert.True(t, strings.Contains(apiKeyFlag.Usage, "recommended"))
+	})
+
+	t.Run("enable command has --api-key-id flag with prefer --api-key usage", func(t *testing.T) {
+		var enableCmd *cobra.Command
+		for _, c := range cmd.ApiKeyCmd.Commands() {
+			if c.Name() == "enable" {
+				enableCmd = c
+				break
+			}
+		}
+
+		assert.NotNil(t, enableCmd)
+
+		apiKeyIdFlag := enableCmd.Flags().Lookup("api-key-id")
+		assert.NotNil(t, apiKeyIdFlag)
+		assert.Equal(t, "", apiKeyIdFlag.DefValue)
+		assert.True(t, strings.Contains(apiKeyIdFlag.Usage, "--api-key"))
 	})
 }
 
@@ -164,12 +184,14 @@ func TestApiKeyDisableCmd(t *testing.T) {
 		}
 
 		assert.NotNil(t, disableCmd)
-		assert.Equal(t, "disable <api-key>", disableCmd.Use)
+		assert.Equal(t, "disable", disableCmd.Use)
 		assert.Equal(t, "Disable an API key", disableCmd.Short)
+		assert.True(t, strings.Contains(disableCmd.Long, "--api-key"))
+		assert.True(t, strings.Contains(disableCmd.Long, "--api-key-id"))
 		assert.True(t, strings.Contains(disableCmd.Long, "akm-"))
 	})
 
-	t.Run("disable command uses positional argument", func(t *testing.T) {
+	t.Run("disable command has --api-key flag as recommended", func(t *testing.T) {
 		var disableCmd *cobra.Command
 		for _, c := range cmd.ApiKeyCmd.Commands() {
 			if c.Name() == "disable" {
@@ -179,10 +201,28 @@ func TestApiKeyDisableCmd(t *testing.T) {
 		}
 
 		assert.NotNil(t, disableCmd)
-		assert.Contains(t, disableCmd.Use, "<api-key>")
-		// No --api-key flag; the key is a positional argument
+
 		apiKeyFlag := disableCmd.Flags().Lookup("api-key")
-		assert.Nil(t, apiKeyFlag)
+		assert.NotNil(t, apiKeyFlag)
+		assert.Equal(t, "", apiKeyFlag.DefValue)
+		assert.True(t, strings.Contains(apiKeyFlag.Usage, "recommended"))
+	})
+
+	t.Run("disable command has --api-key-id flag with prefer --api-key usage", func(t *testing.T) {
+		var disableCmd *cobra.Command
+		for _, c := range cmd.ApiKeyCmd.Commands() {
+			if c.Name() == "disable" {
+				disableCmd = c
+				break
+			}
+		}
+
+		assert.NotNil(t, disableCmd)
+
+		apiKeyIdFlag := disableCmd.Flags().Lookup("api-key-id")
+		assert.NotNil(t, apiKeyIdFlag)
+		assert.Equal(t, "", apiKeyIdFlag.DefValue)
+		assert.True(t, strings.Contains(apiKeyIdFlag.Usage, "--api-key"))
 	})
 }
 
@@ -297,17 +337,28 @@ func TestApikeyDeleteCmd(t *testing.T) {
 
 	t.Run("delete command has correct metadata", func(t *testing.T) {
 		assert.NotNil(t, deleteCmd)
-		assert.Equal(t, "delete <api-key>", deleteCmd.Use)
+		assert.Equal(t, "delete", deleteCmd.Use)
 		assert.Equal(t, "Delete an API key", deleteCmd.Short)
-		assert.True(t, strings.Contains(deleteCmd.Long, "akm-"))
+		assert.True(t, strings.Contains(deleteCmd.Long, "--api-key"))
+		assert.True(t, strings.Contains(deleteCmd.Long, "--api-key-id"))
 	})
 
-	t.Run("delete command uses positional argument", func(t *testing.T) {
+	t.Run("delete command has --api-key flag as recommended", func(t *testing.T) {
 		assert.NotNil(t, deleteCmd)
-		assert.Contains(t, deleteCmd.Use, "<api-key>")
-		// No --api-key flag; the key is a positional argument
+
 		apiKeyFlag := deleteCmd.Flags().Lookup("api-key")
-		assert.Nil(t, apiKeyFlag)
+		assert.NotNil(t, apiKeyFlag)
+		assert.Equal(t, "", apiKeyFlag.DefValue)
+		assert.True(t, strings.Contains(apiKeyFlag.Usage, "recommended"))
+	})
+
+	t.Run("delete command has --api-key-id flag with prefer --api-key usage", func(t *testing.T) {
+		assert.NotNil(t, deleteCmd)
+
+		apiKeyIdFlag := deleteCmd.Flags().Lookup("api-key-id")
+		assert.NotNil(t, apiKeyIdFlag)
+		assert.Equal(t, "", apiKeyIdFlag.DefValue)
+		assert.True(t, strings.Contains(apiKeyIdFlag.Usage, "--api-key"))
 	})
 
 	t.Run("delete command has --yes flag", func(t *testing.T) {

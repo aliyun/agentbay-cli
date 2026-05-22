@@ -67,18 +67,20 @@ export AGENTBAY_ACCESS_KEY_SECRET="your-access-key-secret"
 # 2. Create an API key (account real-name verification is required)
 agentbay apikey create "my-api-key"
 
-# 3. List your API keys and find the API Key ID (akm-xxxxxxxxxxxxxxxx) from the output
+# 3. List your API keys and find the API Key (akm-xxxxxxxxxxxxxxxx) from the output
 agentbay apikey list
 
 # 4. Disable the API key when temporarily not needed
-agentbay apikey disable akm-xxxxxxxxxxxxxxxx
+agentbay apikey disable --api-key akm-xxxxxxxxxxxxxxxx
 
 # 5. Re-enable it later
-agentbay apikey enable akm-xxxxxxxxxxxxxxxx
+agentbay apikey enable --api-key akm-xxxxxxxxxxxxxxxx
 
 # 6. Delete the API key permanently (must be DISABLED first; --yes skips prompts)
-agentbay apikey delete akm-xxxxxxxxxxxxxxxx --yes
+agentbay apikey delete --api-key akm-xxxxxxxxxxxxxxxx --yes
 ```
+
+> **Tip:** For automation scripts, you can use `--api-key-id ak-xxxxxxxxxxxxxxxx` (returned by `apikey create`) instead of `--api-key`. See [API Key docs](docs/en/apikey.md#terminology) for details.
 
 For full command details, see the [Command Reference](docs/en/README.md).
 

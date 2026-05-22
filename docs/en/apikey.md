@@ -6,6 +6,13 @@ Manage API keys: create, list, enable, disable, delete, and set per-key concurre
 
 > API key creation requires account real-name verification. Each API key must have a unique name.
 
+## Terminology
+
+- **API Key** (`akm-xxx`): The user-visible key value displayed in the management console and returned by `apikey list`. Used with the `--api-key` flag.
+- **API Key ID** (`ak-xxx`): The internal key identifier returned by `apikey create` and shown in `apikey list` output. Used with the `--api-key-id` flag.
+
+> The `--api-key` flag is recommended for interactive use. The `--api-key-id` flag is useful for automation scripts that start from `apikey create` output.
+
 ## Commands
 
 ### `apikey create`
@@ -26,6 +33,8 @@ agentbay apikey create --name "my-api-key"
 |------|------|----------|-------------|
 | `--name` | string | Yes | API key name (must be unique) |
 
+**Output:** The command displays `ApiKeyId` (ak-xxx format) and `Name` of the newly created key.
+
 ---
 
 ### `apikey enable`
@@ -33,14 +42,21 @@ agentbay apikey create --name "my-api-key"
 Re-enable a disabled API key.
 
 ```bash
-agentbay apikey enable akm-xxxxxxxxxxxxxxxx
+# Enable using the user-visible API Key (recommended)
+agentbay apikey enable --api-key akm-xxxxxxxxxxxxxxxx
+
+# Enable using the internal API Key ID
+agentbay apikey enable --api-key-id ak-xxxxxxxxxxxxxxxx
 ```
 
-**Arguments:**
+**Flags:**
 
-| Argument | Type | Required | Description |
-|----------|------|----------|-------------|
-| `<api-key-id>` | string | Yes | API key ID (e.g., `akm-xxxxxxxxxxxxxxxx`) |
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--api-key` | string | Yes* | User-visible API Key (akm-xxx format, recommended) |
+| `--api-key-id` | string | Yes* | Internal API Key ID (ak-xxx). Prefer `--api-key` for normal usage |
+
+\* Either `--api-key` or `--api-key-id` must be specified, but not both.
 
 ---
 
@@ -49,14 +65,21 @@ agentbay apikey enable akm-xxxxxxxxxxxxxxxx
 Disable an API key (it can no longer authenticate requests).
 
 ```bash
-agentbay apikey disable akm-xxxxxxxxxxxxxxxx
+# Disable using the user-visible API Key (recommended)
+agentbay apikey disable --api-key akm-xxxxxxxxxxxxxxxx
+
+# Disable using the internal API Key ID
+agentbay apikey disable --api-key-id ak-xxxxxxxxxxxxxxxx
 ```
 
-**Arguments:**
+**Flags:**
 
-| Argument | Type | Required | Description |
-|----------|------|----------|-------------|
-| `<api-key-id>` | string | Yes | API key ID |
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--api-key` | string | Yes* | User-visible API Key (akm-xxx format, recommended) |
+| `--api-key-id` | string | Yes* | Internal API Key ID (ak-xxx). Prefer `--api-key` for normal usage |
+
+\* Either `--api-key` or `--api-key-id` must be specified, but not both.
 
 ---
 
@@ -65,15 +88,26 @@ agentbay apikey disable akm-xxxxxxxxxxxxxxxx
 Delete an API key permanently. Only `DISABLED` keys can be deleted directly; if the key is `ENABLED` you will be prompted to disable it first.
 
 ```bash
-agentbay apikey delete akm-xxxxxxxxxxxxxxxx          # Interactive (with confirmation)
-agentbay apikey delete akm-xxxxxxxxxxxxxxxx --yes    # Skip all prompts (CI / scripts)
+# Delete using the user-visible API Key (interactive, with confirmation)
+agentbay apikey delete --api-key akm-xxxxxxxxxxxxxxxx
+
+# Delete using the internal API Key ID
+agentbay apikey delete --api-key-id ak-xxxxxxxxxxxxxxxx
+
+# Skip all prompts (CI / scripts)
+agentbay apikey delete --api-key akm-xxxxxxxxxxxxxxxx --yes
+agentbay apikey delete --api-key-id ak-xxxxxxxxxxxxxxxx -y
 ```
 
 **Flags:**
 
 | Flag | Short | Type | Required | Description |
 |------|-------|------|----------|-------------|
+| `--api-key` | | string | Yes* | User-visible API Key (akm-xxx format, recommended) |
+| `--api-key-id` | | string | Yes* | Internal API Key ID (ak-xxx). Prefer `--api-key` for normal usage |
 | `--yes` | `-y` | | No | Skip all confirmation prompts (for non-interactive use) |
+
+\* Either `--api-key` or `--api-key-id` must be specified, but not both.
 
 **Notes:**
 
@@ -87,10 +121,20 @@ agentbay apikey delete akm-xxxxxxxxxxxxxxxx --yes    # Skip all prompts (CI / sc
 List API keys with optional filtering and pagination.
 
 ```bash
-agentbay apikey list                                        # List up to 10 API keys
-agentbay apikey list --max-results 20                       # List up to 20 API keys
-agentbay apikey list --api-key akm-xxxxxxxxxxxxxxxx         # Query a specific API key
-agentbay apikey list --next-token <token>                   # Fetch the next page
+# List up to 10 API keys (default)
+agentbay apikey list
+
+# List up to 20 API keys
+agentbay apikey list --max-results 20
+
+# Query a specific API key by its user-visible value (recommended)
+agentbay apikey list --api-key akm-xxxxxxxxxxxxxxxx
+
+# Query a specific API key by its internal ID
+agentbay apikey list --api-key-id ak-xxxxxxxxxxxxxxxx
+
+# Fetch the next page
+agentbay apikey list --next-token <token>
 ```
 
 **Flags:**
@@ -98,7 +142,8 @@ agentbay apikey list --next-token <token>                   # Fetch the next pag
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--max-results` | int | No | Maximum number of results (default: 10) |
-| `--api-key` | string | No | Query a specific API key by ID |
+| `--api-key` | string | No | Filter by user-visible API Key (akm-xxx format) |
+| `--api-key-id` | string | No | Filter by internal API Key ID (ak-xxx). `--api-key` and `--api-key-id` are mutually exclusive |
 | `--next-token` | string | No | Pagination token for next page |
 
 ---
@@ -108,12 +153,19 @@ agentbay apikey list --next-token <token>                   # Fetch the next pag
 Set the maximum concurrent session limit for an API key.
 
 ```bash
+# Set concurrency using the user-visible API Key (recommended)
 agentbay apikey concurrency set --api-key akm-xxx --concurrency 10
+
+# Set concurrency using the internal API Key ID
+agentbay apikey concurrency set --api-key-id ak-xxx --concurrency 10
 ```
 
 **Flags:**
 
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
-| `--api-key` | string | Yes | API key ID |
-| `--concurrency` | int | Yes | Maximum concurrent sessions |
+| `--api-key` | string | Yes* | User-visible API Key (akm-xxx format, recommended) |
+| `--api-key-id` | string | Yes* | Internal API Key ID (ak-xxx). Prefer `--api-key` for normal usage |
+| `--concurrency` | int | Yes | Maximum concurrent sessions (must be >= 1) |
+
+\* Either `--api-key` or `--api-key-id` must be specified, but not both.

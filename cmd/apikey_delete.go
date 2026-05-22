@@ -16,13 +16,18 @@ import (
 	"github.com/agentbay/agentbay-cli/internal/config"
 )
 
+var (
+	apikeyDeleteApiKey    string
+	apikeyDeleteApiKeyId string
+)
+
 var apikeyDeleteCmd = &cobra.Command{
-	Use:   "delete <api-key>",
+	Use:   "delete",
 	Short: "Delete an API key",
 	Long: `Delete an API key permanently.
 
-The command looks up the API key by its user-visible value (akm-xxx),
-checks its current status, and deletes it.
+You can identify the API key either by its user-visible value (--api-key, akm-xxx)
+or by its internal ID (--api-key-id, ak-xxx). Using --api-key is recommended.
 
 Rules:
   - Only DISABLED API keys can be deleted directly.
@@ -31,24 +36,36 @@ Rules:
   - Use --yes to skip all confirmation prompts (for scripts/CI).
 
 Examples:
-  # Delete an API key (interactive, with confirmation prompts)
-  agentbay apikey delete akm-xxxxxxxxxxxxxxxx
+  # Delete an API key using the user-visible API Key (interactive, with confirmation prompts)
+  agentbay apikey delete --api-key akm-xxxxxxxxxxxxxxxx
+
+  # Delete an API key using the internal API Key ID
+  agentbay apikey delete --api-key-id ak-xxxxxxxxxxxxxxxx
 
   # Delete without confirmation prompts (for scripts/CI)
-  agentbay apikey delete akm-xxxxxxxxxxxxxxxx --yes
-  agentbay apikey delete akm-xxxxxxxxxxxxxxxx -y`,
-	Args: cobra.ExactArgs(1),
+  agentbay apikey delete --api-key akm-xxxxxxxxxxxxxxxx --yes
+  agentbay apikey delete --api-key-id ak-xxxxxxxxxxxxxxxx -y`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runApiKeyDelete(cmd, args[0])
+		return runApiKeyDelete(cmd)
 	},
 }
 
 func init() {
+	apikeyDeleteCmd.Flags().StringVar(&apikeyDeleteApiKey, "api-key", "", "User-visible API Key (akm-xxx format, recommended)")
+	apikeyDeleteCmd.Flags().StringVar(&apikeyDeleteApiKeyId, "api-key-id", "", "Internal API Key ID (ak-xxx). Prefer --api-key for normal usage")
 	apikeyDeleteCmd.Flags().BoolP("yes", "y", false, "Skip all confirmation prompts (for non-interactive use)")
 	ApiKeyCmd.AddCommand(apikeyDeleteCmd)
 }
 
-func runApiKeyDelete(cmd *cobra.Command, apiKey string) error {
+func runApiKeyDelete(cmd *cobra.Command) error {
+	// Validate mutual exclusivity: --api-key and --api-key-id
+	if apikeyDeleteApiKey == "" && apikeyDeleteApiKeyId == "" {
+		return fmt.Errorf("[ERROR] Either --api-key or --api-key-id must be specified. Using --api-key is recommended")
+	}
+	if apikeyDeleteApiKey != "" && apikeyDeleteApiKeyId != "" {
+		return fmt.Errorf("[ERROR] --api-key and --api-key-id are mutually exclusive; please specify only one")
+	}
+
 	autoYes, _ := cmd.Flags().GetBool("yes")
 
 	cfg, err := config.GetConfig()
@@ -58,46 +75,92 @@ func runApiKeyDelete(cmd *cobra.Command, apiKey string) error {
 	apiClient := agentbay.NewClientFromConfig(cfg)
 	ctx := context.Background()
 
-	// Step 1/3: Look up API key info
-	fmt.Printf("[STEP 1/3] Looking up API key...\n")
+	var apiKeyId string
+	var keyName string
+	var currentStatus string
 
-	descResp, err := apiClient.DescribeMcpApiKey(ctx, &client.DescribeMcpApiKeyRequest{
-		ApiKey: &apiKey,
-	})
-	if err != nil {
-		printReqIDFromErr(err)
-		return fmt.Errorf("[ERROR] Failed to look up API key: %w", err)
-	}
+	if apikeyDeleteApiKey != "" {
+		// --api-key path: lookup via DescribeMcpApiKey
+		fmt.Printf("[STEP 1/3] Looking up API key...\n")
 
-	if descResp.Body == nil {
-		return fmt.Errorf("[ERROR] Invalid response: missing body")
-	}
-
-	if reqID := descResp.Body.GetRequestId(); reqID != "" {
-		fmt.Printf("[INFO] DescribeMcpApiKey Request ID: %s\n", reqID)
-	}
-
-	if !descResp.Body.GetSuccess() {
-		code := descResp.Body.GetCode()
-		msg := ""
-		if descResp.Body.Message != nil {
-			msg = *descResp.Body.Message
+		descResp, err := apiClient.DescribeMcpApiKey(ctx, &client.DescribeMcpApiKeyRequest{
+			ApiKey: &apikeyDeleteApiKey,
+		})
+		if err != nil {
+			printReqIDFromErr(err)
+			return fmt.Errorf("[ERROR] Failed to look up API key: %w", err)
 		}
-		return fmt.Errorf("[ERROR] Failed to look up API key: Code=%s, Message=%s", code, msg)
-	}
 
-	data := descResp.Body.GetData()
-	if data == nil {
-		return fmt.Errorf("[ERROR] Invalid response: missing data")
-	}
+		if descResp.Body == nil {
+			return fmt.Errorf("[ERROR] Invalid response: missing body")
+		}
 
-	apiKeyId := data.GetApiKeyId()
-	if apiKeyId == "" {
-		return fmt.Errorf("[ERROR] Invalid response: missing ApiKeyId")
-	}
+		if reqID := descResp.Body.GetRequestId(); reqID != "" {
+			fmt.Printf("[INFO] DescribeMcpApiKey Request ID: %s\n", reqID)
+		}
 
-	currentStatus := data.GetStatus()
-	keyName := data.GetName()
+		if !descResp.Body.GetSuccess() {
+			code := descResp.Body.GetCode()
+			msg := ""
+			if descResp.Body.Message != nil {
+				msg = *descResp.Body.Message
+			}
+			return fmt.Errorf("[ERROR] Failed to look up API key: Code=%s, Message=%s", code, msg)
+		}
+
+		data := descResp.Body.GetData()
+		if data == nil {
+			return fmt.Errorf("[ERROR] Invalid response: missing data")
+		}
+
+		apiKeyId = data.GetApiKeyId()
+		if apiKeyId == "" {
+			return fmt.Errorf("[ERROR] Invalid response: missing ApiKeyId")
+		}
+
+		currentStatus = data.GetStatus()
+		keyName = data.GetName()
+	} else {
+		// --api-key-id path: lookup via DescribeApiKeys
+		fmt.Printf("[STEP 1/3] Looking up API key...\n")
+
+		listResp, err := apiClient.DescribeApiKeys(ctx, &client.DescribeApiKeysRequest{
+			KeyIds: []string{apikeyDeleteApiKeyId},
+		})
+		if err != nil {
+			printReqIDFromErr(err)
+			return fmt.Errorf("[ERROR] Failed to look up API key: %w", err)
+		}
+
+		if listResp.Body == nil {
+			return fmt.Errorf("[ERROR] Invalid response: missing body")
+		}
+
+		if reqID := listResp.Body.GetRequestId(); reqID != "" {
+			fmt.Printf("[INFO] DescribeApiKeys Request ID: %s\n", reqID)
+		}
+
+		code := listResp.Body.GetCode()
+		successPtr := listResp.Body.Success
+		if (successPtr != nil && !*successPtr) || (code != "" && !isSuccessCode(code)) {
+			msg := listResp.Body.GetMessage()
+			return fmt.Errorf("[ERROR] Failed to look up API key: Code=%s, Message=%s", code, msg)
+		}
+
+		listData := listResp.Body.GetData()
+		if listData == nil || len(listData.GetApiKeys()) == 0 {
+			return fmt.Errorf("[ERROR] API key not found for the given API Key ID: %s", apikeyDeleteApiKeyId)
+		}
+
+		keyInfo := listData.GetApiKeys()[0]
+		if keyInfo == nil {
+			return fmt.Errorf("[ERROR] Invalid response: missing key info")
+		}
+
+		apiKeyId = keyInfo.GetKeyId()
+		currentStatus = keyInfo.GetStatus()
+		keyName = keyInfo.GetName()
+	}
 
 	fmt.Printf("  ApiKeyId: %s\n", apiKeyId)
 	if keyName != "" {
