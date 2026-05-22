@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Features
 
+- Add AvailableInstanceSize field to warmup-status image output
+
+### Documentation
+
+- Update CHANGELOG.md for v0.2.9
+
+## [0.2.9] - 2026-05-20
+
+### Features
+
 - Add image warmup-status command
 - Integrate git-cliff for automated changelog generation
 
