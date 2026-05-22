@@ -32,6 +32,13 @@ The installation script will:
 agentbay version
 ```
 
+### Update
+
+```powershell
+# Re-run the install command to upgrade in place
+powershell -Command "irm https://aliyun.github.io/agentbay-cli/windows | iex"
+```
+
 ### Uninstallation
 
 ```powershell
@@ -63,7 +70,7 @@ agentbay version
 ### Update
 
 ```bash
-brew upgrade agentbay
+brew update && brew upgrade agentbay
 ```
 
 ### Uninstall

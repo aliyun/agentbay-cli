@@ -27,7 +27,34 @@ powershell -Command "irm https://aliyun.github.io/agentbay-cli/windows | iex"
 agentbay version
 ```
 
-See [Installation Guide](docs/en/installation.md) for details.
+### Update
+
+```bash
+# macOS / Linux (Homebrew)
+brew update && brew upgrade agentbay
+
+# Windows (PowerShell): re-run the install command to upgrade in place
+powershell -Command "irm https://aliyun.github.io/agentbay-cli/windows | iex"
+```
+
+### Uninstall
+
+```bash
+# macOS / Linux (Homebrew)
+brew uninstall agentbay
+brew untap aliyun/agentbay   # optional
+```
+
+```powershell
+# Windows (PowerShell)
+Remove-Item -Path "$env:LOCALAPPDATA\agentbay" -Recurse -Force
+$agentbayPath = "$env:LOCALAPPDATA\agentbay"
+$currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+$newPath = ($currentPath.Split(';') | Where-Object { $_ -ne $agentbayPath }) -join ';'
+[Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+```
+
+See [Installation Guide](docs/en/installation.md) for details (including pre-built binaries and troubleshooting).
 
 ---
 

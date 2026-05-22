@@ -32,6 +32,13 @@ powershell -Command "irm https://aliyun.github.io/agentbay-cli/windows | iex"
 agentbay version
 ```
 
+### 更新
+
+```powershell
+# 重新执行安装命令即可原地升级
+powershell -Command "irm https://aliyun.github.io/agentbay-cli/windows | iex"
+```
+
 ### 卸载
 
 ```powershell
@@ -63,7 +70,7 @@ agentbay version
 ### 更新
 
 ```bash
-brew upgrade agentbay
+brew update && brew upgrade agentbay
 ```
 
 ### 卸载
