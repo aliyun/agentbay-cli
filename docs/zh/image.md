@@ -106,25 +106,55 @@ agentbay image create myapp -f ./Dockerfile -i code-space-debian-12
 
 ### `image create-from-template`
 
-基于系统镜像模板创建自定义镜像（调用 `CreateImageFromTemplate` 接口）。
+基于系统镜像模板 + 用户自有的 Docker 物理镜像创建自定义镜像（调用 `CreateImageFromTemplate` 接口）。
+
+> **前置依赖**：执行该命令前，需要先准备好可用的 Docker 物理镜像，并已推送到 AgentBay ACR 仓库。完整流程：
+>
+> 1. `agentbay image init -i <system-image-id>` —— 下载基础 Dockerfile 模板，根据需要在模板可编辑区域修改。
+> 2. `agentbay docker login` —— 自动登录本地 docker 并获取镜像上传地址（有效期约 1 小时）。
+> 3. `docker build -t <registry-path>:<your-tag> -f Dockerfile .` —— 本地构建。
+> 4. `docker push <registry-path>:<your-tag>` —— 推送到 ACR。
+> 5. `agentbay image create-from-template ...` —— 基于上述镜像创建自定义镜像（即本命令）。
 
 ```bash
 agentbay image create-from-template \
-  --source-image registry.cn-hangzhou.aliyuncs.com/myrepo/myimage:v1.0 \
-  --name my-custom-image \
-  --imageId <system-image-id>
+  --source-image ai-container-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/1160165251879674:<your-tag> \
+  --name imageName \
+  --imageId code-space-debian-12
 
 # 短参数形式
-agentbay image create-from-template -s registry.cn-hangzhou.aliyuncs.com/myrepo/myimage:v1.0 -n my-custom-image -i <system-image-id>
+agentbay image create-from-template -s ai-container-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/1160165251879674:<your-tag> -n imageName -i code-space-debian-12
 ```
 
 **参数：**
 
 | 参数 | 短参数 | 类型 | 必填 | 说明 |
 |------|--------|------|------|------|
-| `--source-image` | `-s` | string | 是 | 源镜像仓库路径 |
+| `--source-image` | `-s` | string | 是 | 已推送到 ACR 的源 Docker 镜像仓库路径（含 tag） |
 | `--name` | `-n` | string | 是 | 自定义镜像名称 |
-| `--imageId` | `-i` | string | 是 | 基础系统镜像 ID |
+| `--imageId` | `-i` | string | 是 | 基础系统镜像 ID（如 `code-space-debian-12`） |
+
+**创建流程（服务端）：**
+
+1. 依据传入的 `--source-image` 锁定 Docker 物理镜像。
+2. 参考传入的 `--imageId`（系统镜像 ID）对应的配置参数。
+3. 创建一个 Docker 自定义镜像。
+
+**对传入的 Docker 镜像注意事项：**
+
+1. **不要包含 `CMD` 指令**。
+2. **不要修改 `FROM` 指令**（保持 `agentbay image init` 模板中的 `FROM`）。
+3. Dockerfile 末尾**必须**包含 `USER root`，或者全程未指定 `USER`。
+4. 目前**仅支持 Linux x86 架构**。
+5. 如需指定 EntryPoint，请按以下规则改写为 supervisor 配置：
+
+   ```dockerfile
+   RUN echo '[program:user-define]' > /etc/supervisor/conf.d/user-define.conf && \
+       echo 'command=%s' >> /etc/supervisor/conf.d/user-define.conf && \
+       echo 'priority=33' >> /etc/supervisor/conf.d/user-define.conf
+   ```
+
+   将 `%s` 替换为实际要执行的命令。
 
 ---
 

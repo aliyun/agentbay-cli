@@ -106,25 +106,55 @@ agentbay image create myapp -f ./Dockerfile -i code-space-debian-12
 
 ### `image create-from-template`
 
-Create a custom image from a system image template (calls the `CreateImageFromTemplate` API).
+Create a custom image from a system image template + your own Docker image (calls the `CreateImageFromTemplate` API).
+
+> **Prerequisites**: Before running this command, you need a Docker image already pushed to the AgentBay ACR registry. The full workflow is:
+>
+> 1. `agentbay image init -i <system-image-id>` — download the base Dockerfile template and edit the editable section as needed.
+> 2. `agentbay docker login` — automatically log in to local docker and obtain the image registry path (valid for ~1 hour).
+> 3. `docker build -t <registry-path>:<your-tag> -f Dockerfile .` — build locally.
+> 4. `docker push <registry-path>:<your-tag>` — push to ACR.
+> 5. `agentbay image create-from-template ...` — create the custom image based on the pushed Docker image (this command).
 
 ```bash
 agentbay image create-from-template \
-  --source-image registry.cn-hangzhou.aliyuncs.com/myrepo/myimage:v1.0 \
-  --name my-custom-image \
-  --imageId <system-image-id>
+  --source-image ai-container-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/1160165251879674:<your-tag> \
+  --name imageName \
+  --imageId code-space-debian-12
 
 # Short form
-agentbay image create-from-template -s registry.cn-hangzhou.aliyuncs.com/myrepo/myimage:v1.0 -n my-custom-image -i <system-image-id>
+agentbay image create-from-template -s ai-container-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/1160165251879674:<your-tag> -n imageName -i code-space-debian-12
 ```
 
 **Flags:**
 
 | Flag | Short | Type | Required | Description |
 |------|-------|------|----------|-------------|
-| `--source-image` | `-s` | string | Yes | Source image registry path |
+| `--source-image` | `-s` | string | Yes | Source Docker image registry path (with tag) already pushed to ACR |
 | `--name` | `-n` | string | Yes | Custom image name |
-| `--imageId` | `-i` | string | Yes | Base system image ID |
+| `--imageId` | `-i` | string | Yes | Base system image ID (e.g. `code-space-debian-12`) |
+
+**Creation flow (server-side):**
+
+1. Locate the Docker image specified by `--source-image`.
+2. Apply the configuration parameters from the system image identified by `--imageId`.
+3. Create a Docker custom image.
+
+**Notes for the supplied Docker image:**
+
+1. **Do NOT include any `CMD` instruction.**
+2. **Do NOT modify the `FROM` instruction** (keep the `FROM` from the `agentbay image init` template).
+3. The Dockerfile **must** end with `USER root`, or never specify a `USER` at all.
+4. Currently **only Linux x86 architecture is supported**.
+5. If you need an EntryPoint, rewrite it as a supervisor program entry:
+
+   ```dockerfile
+   RUN echo '[program:user-define]' > /etc/supervisor/conf.d/user-define.conf && \
+       echo 'command=%s' >> /etc/supervisor/conf.d/user-define.conf && \
+       echo 'priority=33' >> /etc/supervisor/conf.d/user-define.conf
+   ```
+
+   Replace `%s` with the actual command to run.
 
 ---
 
