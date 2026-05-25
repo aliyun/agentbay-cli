@@ -77,6 +77,20 @@ func TestSkillsCmd(t *testing.T) {
 		assert.NoError(t, showCmd.Args(showCmd, []string{"skill-123"}))
 		assert.Error(t, showCmd.Args(showCmd, []string{"a", "b"}))
 	})
+
+	t.Run("skills push has --tag flag", func(t *testing.T) {
+		var push *cobra.Command
+		for _, c := range cmd.SkillsCmd.Commands() {
+			if c.Name() == "push" {
+				push = c
+				break
+			}
+		}
+		requireNotNil(t, push)
+		tagFlag := push.Flags().Lookup("tag")
+		assert.NotNil(t, tagFlag)
+		assert.Equal(t, "[]", tagFlag.DefValue)
+	})
 }
 
 // requireNotNil helps avoid importing cmd package twice for *cobra.Command type.

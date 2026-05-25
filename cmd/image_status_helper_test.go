@@ -132,6 +132,14 @@ func (m *mockGetMcpImageInfoClient) DescribeWarmUpStatusOpen(ctx context.Context
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockGetMcpImageInfoClient) ListTag(ctx context.Context) (*client.ListTagResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockGetMcpImageInfoClient) CreateTag(ctx context.Context, request *client.CreateTagRequest) (*client.CreateTagResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 var _ agentbay.Client = (*mockGetMcpImageInfoClient)(nil)
 
 func TestInferImageTypeFromImageID(t *testing.T) {

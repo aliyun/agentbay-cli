@@ -407,18 +407,22 @@ func (client *Client) CreateMarketSkillWithOptions(request *CreateMarketSkillReq
 	if _err != nil {
 		return _result, _err
 	}
-	query := map[string]interface{}{}
+	body := map[string]interface{}{}
 	if !dara.IsNil(request.OssBucket) {
-		query["OssBucket"] = request.OssBucket
+		body["OssBucket"] = request.OssBucket
 	}
 	if !dara.IsNil(request.OssFilePath) {
-		query["OssFilePath"] = request.OssFilePath
+		body["OssFilePath"] = request.OssFilePath
+	}
+	if len(request.Tags) > 0 {
+		b, _ := json.Marshal(request.Tags)
+		body["Tags"] = string(b)
 	}
 
 	req := &openapiutil.OpenApiRequest{
-		Query: openapiutil.Query(query),
+		Body: openapiutil.ParseToMap(body),
 		Headers: map[string]*string{
-			"Accept": dara.String("application/xml"),
+			"Accept": dara.String("application/json"),
 		},
 	}
 	params := &openapiutil.Params{
@@ -426,7 +430,7 @@ func (client *Client) CreateMarketSkillWithOptions(request *CreateMarketSkillReq
 		Version:     dara.String("2025-05-01"),
 		Protocol:    dara.String("HTTPS"),
 		Pathname:    dara.String("/"),
-		Method:      dara.String("GET"),
+		Method:      dara.String("POST"),
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
@@ -449,6 +453,101 @@ func (client *Client) CreateMarketSkill(request *CreateMarketSkillRequest) (_res
 	runtime := &dara.RuntimeOptions{}
 	_result = &CreateMarketSkillResponse{}
 	_body, _err := client.CreateMarketSkillWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+// ListTag 查询所有标签
+func (client *Client) ListTagWithOptions(runtime *dara.RuntimeOptions) (_result *ListTagResponse, _err error) {
+	query := map[string]interface{}{}
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("ListTag"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("GET"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &ListTagResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseListTagResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) ListTag() (_result *ListTagResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &ListTagResponse{}
+	_body, _err := client.ListTagWithOptions(runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+// CreateTag 批量创建标签
+// TagNameList is sent as a JSON array string in the body, not using xxx.1 format.
+func (client *Client) CreateTagWithOptions(request *CreateTagRequest, runtime *dara.RuntimeOptions) (_result *CreateTagResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	body := map[string]interface{}{}
+	if len(request.TagNameList) > 0 {
+		b, _ := json.Marshal(request.TagNameList)
+		body["TagNameList"] = string(b)
+	}
+	req := &openapiutil.OpenApiRequest{
+		Body:    openapiutil.ParseToMap(body),
+		Headers: map[string]*string{"Accept": dara.String("application/json")},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("CreateTag"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &CreateTagResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseCreateTagResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) CreateTag(request *CreateTagRequest) (_result *CreateTagResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &CreateTagResponse{}
+	_body, _err := client.CreateTagWithOptions(request, runtime)
 	if _err != nil {
 		return _result, _err
 	}

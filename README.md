@@ -220,6 +220,8 @@ If you are using a RAM sub-account's AK/SK, grant the required permissions via t
 
 | OpenAPI Action | Required Permission | Used By |
 |---|---|---|
+| `ListTag` | `agentbay:ListTag` | `skills push` |
+| `CreateTag` | `agentbay:CreateTag` | `skills push` |
 | `GetMarketSkillCredential` | `agentbay:GetMarketSkillCredential` | `skills push` |
 | `CreateMarketSkill` | `agentbay:CreateMarketSkill` | `skills push` |
 | `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` | `skills show` |
@@ -233,6 +235,8 @@ If you are using a RAM sub-account's AK/SK, grant the required permissions via t
     {
       "Effect": "Allow",
       "Action": [
+        "agentbay:ListTag",
+        "agentbay:CreateTag",
         "agentbay:GetMarketSkillCredential",
         "agentbay:CreateMarketSkill",
         "agentbay:DescribeMarketSkillDetail"

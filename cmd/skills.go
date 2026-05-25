@@ -64,6 +64,8 @@ func init() {
 	SkillsCmd.AddCommand(skillsPushCmd)
 	SkillsCmd.AddCommand(skillsListCmd)
 	SkillsCmd.AddCommand(skillsShowCmd)
+
+	skillsPushCmd.Flags().StringArray("tag", nil, "Tag name for the skill (can be specified multiple times, e.g. --tag \"tag1\" --tag \"tag2\")")
 }
 
 // parseSkillFrontmatter parses --- name: x description: y --- from SKILL.md content.
@@ -140,6 +142,16 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 		zipPath = pathInput
 	}
 
+	// Parse tags flag
+	tagsFlag, _ := cmd.Flags().GetStringArray("tag")
+	var tags []string
+	for _, t := range tagsFlag {
+		trimmed := strings.TrimSpace(t)
+		if trimmed != "" {
+			tags = append(tags, trimmed)
+		}
+	}
+
 	cfg, err := config.GetConfig()
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
@@ -147,7 +159,63 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 	apiClient := agentbay.NewClientFromConfig(cfg)
 	ctx := context.Background()
 
-	fmt.Printf("[STEP 1/3] Getting upload credential...\n")
+	// Dynamic step numbering
+	stepIdx := 1
+	totalSteps := 3
+	if len(tags) > 0 {
+		totalSteps = 4
+	}
+
+	// Step 1 (optional): Process tags before getting credential to avoid expiry
+	if len(tags) > 0 {
+		fmt.Printf("[STEP %d/%d] Processing tags...\n", stepIdx, totalSteps)
+		stepIdx++
+
+		listResp, err := apiClient.ListTag(ctx)
+		if err != nil {
+			printRequestIDFromErrIfVerbose(cmd, err)
+			return fmt.Errorf("[ERROR] Failed to list tags: %w", err)
+		}
+		if listResp.Body != nil && listResp.Body.GetRequestId() != "" {
+			fmt.Printf("[INFO] ListTag RequestId: %s\n", listResp.Body.GetRequestId())
+		}
+
+		existingTagNames := map[string]bool{}
+		if listResp.Body != nil && listResp.Body.Data != nil {
+			for _, item := range listResp.Body.Data {
+				if item.TagName != nil {
+					existingTagNames[*item.TagName] = true
+				}
+			}
+		}
+
+		var missingTags []string
+		for _, tagName := range tags {
+			if !existingTagNames[tagName] {
+				missingTags = append(missingTags, tagName)
+			}
+		}
+
+		if len(missingTags) > 0 {
+			fmt.Printf("[INFO] Tags not found: %s, creating...\n", strings.Join(missingTags, ", "))
+			createReq := &client.CreateTagRequest{TagNameList: missingTags}
+			createTagResp, err := apiClient.CreateTag(ctx, createReq)
+			if err != nil {
+				printRequestIDFromErrIfVerbose(cmd, err)
+				return fmt.Errorf("[ERROR] Failed to create tags: %w", err)
+			}
+			if createTagResp.Body != nil && createTagResp.Body.GetRequestId() != "" {
+				fmt.Printf("[INFO] CreateTag RequestId: %s\n", createTagResp.Body.GetRequestId())
+			}
+			fmt.Printf("[INFO] Tags created successfully.\n")
+		} else {
+			fmt.Printf("[INFO] All tags already exist.\n")
+		}
+	}
+
+	// Next step: Get upload credential
+	fmt.Printf("[STEP %d/%d] Getting upload credential...\n", stepIdx, totalSteps)
+	stepIdx++
 	credReq := &client.GetMarketSkillCredentialRequest{FileName: &skillZipName}
 	var credResp *client.GetMarketSkillCredentialResponse
 	err = withTransientRetry(client.DefaultRetryConfig(), "GetMarketSkillCredential", func() error {
@@ -161,6 +229,9 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 	}
 	if credResp.Body == nil || credResp.Body.Data == nil {
 		return fmt.Errorf("invalid response: missing credential data")
+	}
+	if credResp.Body != nil && credResp.Body.RequestId != nil && *credResp.Body.RequestId != "" {
+		fmt.Printf("[INFO] GetMarketSkillCredential RequestId: %s\n", *credResp.Body.RequestId)
 	}
 	uploadURLStr := ""
 	if u := credResp.Body.Data.GetOssUrl(); u != nil && *u != "" {
@@ -186,7 +257,7 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 
 	if zipPath != "" {
 		// Direct zip file: upload as-is
-		fmt.Printf("[STEP 2/3] Uploading skill zip...\n")
+		fmt.Printf("[STEP %d/%d] Uploading skill zip...\n", stepIdx, totalSteps)
 		if verbose, _ := cmd.Flags().GetBool("verbose"); verbose {
 			if fi, err := os.Stat(zipPath); err == nil {
 				fmt.Fprintf(os.Stderr, "[DEBUG] Upload size: %d bytes, file: %s\n", fi.Size(), zipPath)
@@ -197,7 +268,7 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 		}
 	} else {
 		// Directory: pack then upload
-		fmt.Printf("[STEP 2/3] Packing and uploading skill...\n")
+		fmt.Printf("[STEP %d/%d] Packing and uploading skill...\n", stepIdx, totalSteps)
 		zipBuf, err := zipSkillDir(pathInput)
 		if err != nil {
 			return fmt.Errorf("pack skill: %w", err)
@@ -222,8 +293,9 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("[ERROR] Failed to upload: %w", err)
 		}
 	}
+	stepIdx++
 
-	fmt.Printf("[STEP 3/3] Creating skill...\n")
+	fmt.Printf("[STEP %d/%d] Creating skill...\n", stepIdx, totalSteps)
 	// Pre-release credential URL path is often "null/<id>"; some backends reject "null" in OssFilePath.
 	// Pass only the suffix for CreateMarketSkill when path is exactly "null/<suffix>" so backend receives a valid path.
 	createOssPath := createOssFilePath
@@ -233,6 +305,9 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 	createReq := &client.CreateMarketSkillRequest{
 		OssBucket:   &createBucket,
 		OssFilePath: &createOssPath,
+	}
+	if len(tags) > 0 {
+		createReq.Tags = tags
 	}
 	var createResp *client.CreateMarketSkillResponse
 	err = withTransientRetry(client.DefaultRetryConfig(), "CreateMarketSkill", func() error {
@@ -246,6 +321,9 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 		}
 		printRequestIDFromErrIfVerbose(cmd, err)
 		return fmt.Errorf("[ERROR] Failed to create skill: %w", err)
+	}
+	if createResp.Body != nil && createResp.Body.RequestId != nil && *createResp.Body.RequestId != "" {
+		fmt.Printf("[INFO] CreateMarketSkill RequestId: %s\n", *createResp.Body.RequestId)
 	}
 	var skillId string
 	if createResp.Body != nil && createResp.Body.Data != nil && createResp.Body.Data.SkillId != nil {

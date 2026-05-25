@@ -168,6 +168,14 @@ func (m *mockImageListClient) DescribeWarmUpStatusOpen(ctx context.Context, requ
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockImageListClient) ListTag(ctx context.Context) (*client.ListTagResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockImageListClient) CreateTag(ctx context.Context, request *client.CreateTagRequest) (*client.CreateTagResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 // Helper functions for testing
 func boolPtr(b bool) *bool {
 	return &b

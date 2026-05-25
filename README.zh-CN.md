@@ -220,6 +220,8 @@ STS、OAuth（不推荐使用）及环境变量详见 [认证与环境](docs/zh/
 
 | OpenAPI Action | 所需权限 | 调用命令 |
 |---|---|---|
+| `ListTag` | `agentbay:ListTag` | `skills push` |
+| `CreateTag` | `agentbay:CreateTag` | `skills push` |
 | `GetMarketSkillCredential` | `agentbay:GetMarketSkillCredential` | `skills push` |
 | `CreateMarketSkill` | `agentbay:CreateMarketSkill` | `skills push` |
 | `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` | `skills show` |
@@ -233,6 +235,8 @@ STS、OAuth（不推荐使用）及环境变量详见 [认证与环境](docs/zh/
     {
       "Effect": "Allow",
       "Action": [
+        "agentbay:ListTag",
+        "agentbay:CreateTag",
         "agentbay:GetMarketSkillCredential",
         "agentbay:CreateMarketSkill",
         "agentbay:DescribeMarketSkillDetail"

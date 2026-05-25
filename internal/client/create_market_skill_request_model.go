@@ -15,11 +15,14 @@ type iCreateMarketSkillRequest interface {
 	GetOssBucket() *string
 	SetOssFilePath(v string) *CreateMarketSkillRequest
 	GetOssFilePath() *string
+	SetTags(v []string) *CreateMarketSkillRequest
+	GetTags() []string
 }
 
 type CreateMarketSkillRequest struct {
-	OssBucket   *string `json:"OssBucket,omitempty" xml:"OssBucket,omitempty"`
-	OssFilePath *string `json:"OssFilePath,omitempty" xml:"OssFilePath,omitempty"`
+	OssBucket   *string  `json:"OssBucket,omitempty" xml:"OssBucket,omitempty"`
+	OssFilePath *string  `json:"OssFilePath,omitempty" xml:"OssFilePath,omitempty"`
+	Tags        []string `json:"Tags,omitempty" xml:"Tags,omitempty"`
 }
 
 func (s CreateMarketSkillRequest) String() string {
@@ -38,6 +41,11 @@ func (s *CreateMarketSkillRequest) SetOssBucket(v string) *CreateMarketSkillRequ
 func (s *CreateMarketSkillRequest) GetOssFilePath() *string { return s.OssFilePath }
 func (s *CreateMarketSkillRequest) SetOssFilePath(v string) *CreateMarketSkillRequest {
 	s.OssFilePath = &v
+	return s
+}
+func (s *CreateMarketSkillRequest) GetTags() []string { return s.Tags }
+func (s *CreateMarketSkillRequest) SetTags(v []string) *CreateMarketSkillRequest {
+	s.Tags = v
 	return s
 }
 func (s *CreateMarketSkillRequest) Validate() error {

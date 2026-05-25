@@ -13,6 +13,7 @@ Push a local skill (directory or `.zip`) to the cloud. A directory must contain 
 ```bash
 agentbay skills push ./my-skill
 agentbay skills push ./my-skill.zip
+agentbay skills push ./my-skill --tag "tag1" --tag "tag2"
 ```
 
 **Arguments:**
@@ -21,28 +22,47 @@ agentbay skills push ./my-skill.zip
 | -------- | ------ | -------- | -------------------------------------- |
 | `<path>` | string | Yes      | Path to skill directory or `.zip` file |
 
+**Flags:**
+
+| Flag   | Short | Type        | Required | Description                                                                                   |
+| ------ | ----- | ----------- | -------- | --------------------------------------------------------------------------------------------- |
+| `--tag` |       | stringArray | No       | Tag name for the skill (can be specified multiple times, e.g. `--tag "tag1" --tag "tag2"`) |
+
 **Notes:**
 
 - Directory must contain `SKILL.md` with `name` and `description` in YAML frontmatter.
 - Directory is automatically packed into a `.zip` before upload.
+- When `--tag` is specified, the CLI first checks whether each tag already exists; missing tags are created automatically before the skill is uploaded.
+- Tags are processed before obtaining the upload credential to avoid credential expiry during tag creation.
 
 **Output:**
 
 ```
+[STEP 1/4] Processing tags...
+[INFO] All tags already exist.
+[STEP 2/4] Getting upload credential...
+[STEP 3/4] Uploading skill package...
+[STEP 4/4] Creating skill...
 [SUCCESS] Skill created successfully!
 [RESULT] Skill ID: 35U2Ver2
 ```
+
+> Without `--tag`, the step count is 3 (no tag processing step).
 
 **Involved APIs:**
 
 | Action                     | Required Permission                 |
 | -------------------------- | ----------------------------------- |
+| `ListTag`                  | `agentbay:ListTag`                  |
+| `CreateTag`                | `agentbay:CreateTag`                |
 | `GetMarketSkillCredential` | `agentbay:GetMarketSkillCredential` |
 | `CreateMarketSkill`        | `agentbay:CreateMarketSkill`        |
 
+> `ListTag` and `CreateTag` are only called when `--tag` is specified.
+
 ```json
 {
-  "Action": ["agentbay:GetMarketSkillCredential", "agentbay:CreateMarketSkill"]
+  "Action": ["agentbay:ListTag", "agentbay:CreateTag", "agentbay:GetMarketSkillCredential", "agentbay:CreateMarketSkill"]
 }
 ```
 

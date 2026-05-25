@@ -31,6 +31,9 @@ type Client interface {
 	GetMarketSkillCredential(ctx context.Context, request *client.GetMarketSkillCredentialRequest) (*client.GetMarketSkillCredentialResponse, error)
 	CreateMarketSkill(ctx context.Context, request *client.CreateMarketSkillRequest) (*client.CreateMarketSkillResponse, error)
 	DescribeMarketSkillDetail(ctx context.Context, request *client.DescribeMarketSkillDetailRequest) (*client.DescribeMarketSkillDetailResponse, error)
+	// Tags
+	ListTag(ctx context.Context) (*client.ListTagResponse, error)
+	CreateTag(ctx context.Context, request *client.CreateTagRequest) (*client.CreateTagResponse, error)
 	// API Key
 	CreateApiKey(ctx context.Context, request *client.CreateApiKeyRequest) (*client.CreateApiKeyResponse, error)
 	ModifyMcpApiKeyConfig(ctx context.Context, request *client.ModifyMcpApiKeyConfigRequest) (*client.ModifyMcpApiKeyConfigResponse, error)
@@ -163,6 +166,24 @@ func (cw *clientWrapper) DescribeMarketSkillDetail(ctx context.Context, request 
 		return nil, err
 	}
 	return sdkClient.DescribeMarketSkillDetailWithOptions(request, cw.getRuntimeOptions())
+}
+
+// ListTag wraps the SDK client method
+func (cw *clientWrapper) ListTag(ctx context.Context) (*client.ListTagResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.ListTagWithOptions(cw.getRuntimeOptions())
+}
+
+// CreateTag wraps the SDK client method
+func (cw *clientWrapper) CreateTag(ctx context.Context, request *client.CreateTagRequest) (*client.CreateTagResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.CreateTagWithContext(ctx, request, cw.getRuntimeOptions())
 }
 
 // CreateDockerImageTask wraps the SDK client method

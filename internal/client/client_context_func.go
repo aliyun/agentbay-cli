@@ -3,6 +3,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 
 	openapiutil "github.com/alibabacloud-go/darabonba-openapi/v2/utils"
 	"github.com/alibabacloud-go/tea/dara"
@@ -27,24 +28,28 @@ func (client *Client) GetMarketSkillCredentialWithContext(ctx context.Context, r
 }
 
 // CreateMarketSkillWithContext 通过 OSS 创建 Skill
-// Uses BodyType "string" and parseCreateMarketSkillResponse (backend may return XML).
+// Uses POST+Body with json.Marshal for Tags array.
 func (client *Client) CreateMarketSkillWithContext(ctx context.Context, request *CreateMarketSkillRequest, runtime *dara.RuntimeOptions) (_result *CreateMarketSkillResponse, _err error) {
 	_err = request.Validate()
 	if _err != nil {
 		return _result, _err
 	}
-	query := map[string]interface{}{}
+	body := map[string]interface{}{}
 	if !dara.IsNil(request.OssBucket) {
-		query["OssBucket"] = request.OssBucket
+		body["OssBucket"] = request.OssBucket
 	}
 	if !dara.IsNil(request.OssFilePath) {
-		query["OssFilePath"] = request.OssFilePath
+		body["OssFilePath"] = request.OssFilePath
+	}
+	if len(request.Tags) > 0 {
+		b, _ := json.Marshal(request.Tags)
+		body["Tags"] = string(b)
 	}
 
 	req := &openapiutil.OpenApiRequest{
-		Query: openapiutil.Query(query),
+		Body: openapiutil.ParseToMap(body),
 		Headers: map[string]*string{
-			"Accept": dara.String("application/xml"),
+			"Accept": dara.String("application/json"),
 		},
 	}
 	params := &openapiutil.Params{
@@ -52,7 +57,7 @@ func (client *Client) CreateMarketSkillWithContext(ctx context.Context, request 
 		Version:     dara.String("2025-05-01"),
 		Protocol:    dara.String("HTTPS"),
 		Pathname:    dara.String("/"),
-		Method:      dara.String("GET"),
+		Method:      dara.String("POST"),
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
@@ -65,6 +70,16 @@ func (client *Client) CreateMarketSkillWithContext(ctx context.Context, request 
 	}
 	_result, _err = parseCreateMarketSkillResponse(_body)
 	return _result, _err
+}
+
+// ListTagWithContext 查询所有标签，支持 context
+func (client *Client) ListTagWithContext(ctx context.Context, runtime *dara.RuntimeOptions) (_result *ListTagResponse, _err error) {
+	return client.ListTagWithOptions(runtime)
+}
+
+// CreateTagWithContext 批量创建标签，支持 context
+func (client *Client) CreateTagWithContext(ctx context.Context, request *CreateTagRequest, runtime *dara.RuntimeOptions) (_result *CreateTagResponse, _err error) {
+	return client.CreateTagWithOptions(request, runtime)
 }
 
 // DescribeMarketSkillDetailWithContext 查询 Skill 详情
