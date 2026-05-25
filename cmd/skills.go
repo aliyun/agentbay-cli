@@ -393,6 +393,9 @@ func runSkillsShow(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Printf("%-*s %s\n", skillDetailLabelW, "SkillId:", displaySkillId)
 	fmt.Printf("%-*s %s\n", skillDetailLabelW, "Name:", strPtr(d.GetName()))
+	if tags := d.GetTenantTags(); len(tags) > 0 {
+		fmt.Printf("%-*s %s\n", skillDetailLabelW, "Tags:", strings.Join(tags, ", "))
+	}
 	desc := strPtr(d.GetDescription())
 	if desc != "" {
 		fmt.Printf("%-*s\n", skillDetailLabelW, "Description:")

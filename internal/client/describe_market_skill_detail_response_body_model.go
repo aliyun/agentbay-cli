@@ -17,12 +17,15 @@ type iDescribeMarketSkillDetailResponseBodyData interface {
 	SetName(v string) *DescribeMarketSkillDetailResponseBodyData
 	GetDescription() *string
 	SetDescription(v string) *DescribeMarketSkillDetailResponseBodyData
+	GetTenantTags() []string
+	SetTenantTags(v []string) *DescribeMarketSkillDetailResponseBodyData
 }
 
 type DescribeMarketSkillDetailResponseBodyData struct {
-	SkillId     *string `json:"SkillId,omitempty" xml:"SkillId,omitempty"`
-	Name        *string `json:"Name,omitempty" xml:"Name,omitempty"`
-	Description *string `json:"Description,omitempty" xml:"Description,omitempty"`
+	SkillId     *string  `json:"SkillId,omitempty" xml:"SkillId,omitempty"`
+	Name        *string  `json:"Name,omitempty" xml:"Name,omitempty"`
+	Description *string  `json:"Description,omitempty" xml:"Description,omitempty"`
+	TenantTags  []string `json:"TenantTags,omitempty" xml:"TenantTags,omitempty"`
 }
 
 func (s DescribeMarketSkillDetailResponseBodyData) String() string {
@@ -46,6 +49,11 @@ func (s *DescribeMarketSkillDetailResponseBodyData) SetName(v string) *DescribeM
 func (s *DescribeMarketSkillDetailResponseBodyData) GetDescription() *string { return s.Description }
 func (s *DescribeMarketSkillDetailResponseBodyData) SetDescription(v string) *DescribeMarketSkillDetailResponseBodyData {
 	s.Description = &v
+	return s
+}
+func (s *DescribeMarketSkillDetailResponseBodyData) GetTenantTags() []string { return s.TenantTags }
+func (s *DescribeMarketSkillDetailResponseBodyData) SetTenantTags(v []string) *DescribeMarketSkillDetailResponseBodyData {
+	s.TenantTags = v
 	return s
 }
 func (s *DescribeMarketSkillDetailResponseBodyData) Validate() error {

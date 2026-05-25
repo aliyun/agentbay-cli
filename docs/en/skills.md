@@ -17,9 +17,9 @@ agentbay skills push ./my-skill.zip
 
 **Arguments:**
 
-| Argument | Type | Required | Description |
-|----------|------|----------|-------------|
-| `<path>` | string | Yes | Path to skill directory or `.zip` file |
+| Argument | Type   | Required | Description                            |
+| -------- | ------ | -------- | -------------------------------------- |
+| `<path>` | string | Yes      | Path to skill directory or `.zip` file |
 
 **Notes:**
 
@@ -35,17 +35,14 @@ agentbay skills push ./my-skill.zip
 
 **Involved APIs:**
 
-| Action | Required Permission |
-|---|---|
+| Action                     | Required Permission                 |
+| -------------------------- | ----------------------------------- |
 | `GetMarketSkillCredential` | `agentbay:GetMarketSkillCredential` |
-| `CreateMarketSkill` | `agentbay:CreateMarketSkill` |
+| `CreateMarketSkill`        | `agentbay:CreateMarketSkill`        |
 
 ```json
 {
-  "Action": [
-    "agentbay:GetMarketSkillCredential",
-    "agentbay:CreateMarketSkill"
-  ]
+  "Action": ["agentbay:GetMarketSkillCredential", "agentbay:CreateMarketSkill"]
 }
 ```
 
@@ -61,21 +58,31 @@ agentbay skills show <skill-id>
 
 **Arguments:**
 
-| Argument | Type | Required | Description |
-|----------|------|----------|-------------|
-| `<skill-id>` | string | Yes | Skill ID |
+| Argument     | Type   | Required | Description |
+| ------------ | ------ | -------- | ----------- |
+| `<skill-id>` | string | Yes      | Skill ID    |
+
+**Output:**
+
+```
+SkillId:       <skill-id>
+Name:          <skill-name>
+Tags:          tag1, tag2
+Description:
+  <description text>
+```
+
+> `Tags` is only displayed when the skill has user-defined tenant tags.
 
 **Involved APIs:**
 
-| Action | Required Permission |
-|---|---|
+| Action                      | Required Permission                  |
+| --------------------------- | ------------------------------------ |
 | `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` |
 
 ```json
 {
-  "Action": [
-    "agentbay:DescribeMarketSkillDetail"
-  ]
+  "Action": ["agentbay:DescribeMarketSkillDetail"]
 }
 ```
 

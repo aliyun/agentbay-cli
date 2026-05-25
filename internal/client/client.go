@@ -462,10 +462,11 @@ type describeMarketSkillDetailResponseXML struct {
 	XMLName        xml.Name `xml:"DescribeMarketSkillDetailResponse"`
 	HttpStatusCode *int32   `xml:"HttpStatusCode"`
 	Data           *struct {
-		SkillId     *string `xml:"SkillId"`
-		SkillID     *string `xml:"SkillID"`
-		Name        *string `xml:"Name"`
-		Description *string `xml:"Description"`
+		SkillId     *string  `xml:"SkillId"`
+		SkillID     *string  `xml:"SkillID"`
+		Name        *string  `xml:"Name"`
+		Description *string  `xml:"Description"`
+		TenantTags  []string `xml:"TenantTags"`
 	} `xml:"Data"`
 	RequestId *string `xml:"RequestId"`
 	Code      *string `xml:"Code"`
@@ -505,6 +506,7 @@ func parseDescribeMarketSkillDetailResponse(res map[string]interface{}) (*Descri
 					SkillId:     skillIdVal,
 					Name:        xmlResp.Data.Name,
 					Description: xmlResp.Data.Description,
+					TenantTags:  xmlResp.Data.TenantTags,
 				}
 			}
 		} else {

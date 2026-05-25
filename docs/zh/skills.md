@@ -17,9 +17,9 @@ agentbay skills push ./my-skill.zip
 
 **参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `<path>` | string | 是 | 技能目录或 `.zip` 文件路径 |
+| 参数     | 类型   | 必填 | 说明                       |
+| -------- | ------ | ---- | -------------------------- |
+| `<path>` | string | 是   | 技能目录或 `.zip` 文件路径 |
 
 **注意事项：**
 
@@ -35,17 +35,14 @@ agentbay skills push ./my-skill.zip
 
 **涉及接口：**
 
-| Action | 所需权限 |
-|---|---|
+| Action                     | 所需权限                            |
+| -------------------------- | ----------------------------------- |
 | `GetMarketSkillCredential` | `agentbay:GetMarketSkillCredential` |
-| `CreateMarketSkill` | `agentbay:CreateMarketSkill` |
+| `CreateMarketSkill`        | `agentbay:CreateMarketSkill`        |
 
 ```json
 {
-  "Action": [
-    "agentbay:GetMarketSkillCredential",
-    "agentbay:CreateMarketSkill"
-  ]
+  "Action": ["agentbay:GetMarketSkillCredential", "agentbay:CreateMarketSkill"]
 }
 ```
 
@@ -61,21 +58,31 @@ agentbay skills show <skill-id>
 
 **参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `<skill-id>` | string | 是 | 技能 ID |
+| 参数         | 类型   | 必填 | 说明    |
+| ------------ | ------ | ---- | ------- |
+| `<skill-id>` | string | 是   | 技能 ID |
+
+**输出：**
+
+```
+SkillId:       <技能ID>
+Name:          <技能名称>
+Tags:          标签1, 标签2
+Description:
+  <描述文本>
+```
+
+> `Tags` 仅在技能存在用户自定义租户标签时显示。
 
 **涉及接口：**
 
-| Action | 所需权限 |
-|---|---|
+| Action                      | 所需权限                             |
+| --------------------------- | ------------------------------------ |
 | `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` |
 
 ```json
 {
-  "Action": [
-    "agentbay:DescribeMarketSkillDetail"
-  ]
+  "Action": ["agentbay:DescribeMarketSkillDetail"]
 }
 ```
 

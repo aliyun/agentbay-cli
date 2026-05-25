@@ -8,11 +8,11 @@ trigger: always_on
 
 **凡符合下列任一特征的任务，AI 必须主动加载并遵循对应的 `.qoder/skills/` 指南**（包括但不限于 Quest Design/Execute 阶段、直接对话、Execute Directly 模式）：
 
-| 任务特征                                                    | 必须加载的 Skill                                                                                 | Skill 路径                                            |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| 新增 / 修改 CLI 命令、参数、子命令，或将前端 API 封装为命令 | **create-cli-command**                                                                           | `.qoder/skills/create-cli-command/SKILL.md`           |
-| 涉及分支管理、commit、push、PR、变更档案（Quest/CR 目录）   | **feature-development-workflow**                                                                 | `.qoder/skills/feature-development-workflow/SKILL.md` |
-| 更新/同步 CLI 命令文档（README、docs/、CHANGELOG）          | **update-cli-command-docs**                                                                      | `.qoder/skills/update-cli-command-docs/SKILL.md`      |
+| 任务特征                                                    | 必须加载的 Skill                                                                                                                       | Skill 路径                                            |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| 新增 / 修改 CLI 命令、参数、子命令，或将前端 API 封装为命令 | **create-cli-command**                                                                                                                 | `.qoder/skills/create-cli-command/SKILL.md`           |
+| 涉及分支管理、commit、push、PR、变更档案（Quest/CR 目录）   | **feature-development-workflow**                                                                                                       | `.qoder/skills/feature-development-workflow/SKILL.md` |
+| 更新/同步 CLI 命令文档（README、docs/、CHANGELOG）          | **update-cli-command-docs**                                                                                                            | `.qoder/skills/update-cli-command-docs/SKILL.md`      |
 | 新增 CLI 命令类需求（同时触发上述三条）                     | **三者组合使用**：先 workflow 拉分支/建档 → 再 create-cli-command 实现 → 再 update-cli-command-docs 同步文档 → 回到 workflow 提交/推送 | 同上                                                  |
 
 **执行铁律**:
@@ -347,11 +347,31 @@ assert.Equal(t, "y", yesFlag.Shorthand)
 - `cmd/image.go` `runImageDelete` —— 单步骤确认
 - `cmd/confirm.go` `ConfirmPrompt` —— 可复用的确认函数
 
-### 新增或修改命令必须同步更新文档和测试用例
+### 新增、修改或删除命令必须同步更新文档和测试用例
 
 > 文档更新的具体操作流程参见 `update-cli-command-docs` skill。以下为规则概要和检查清单。
 
-**规则**: 每次**新增或修改** CLI 命令（包括新增参数、修改默认值、调整输出格式等）时，**必须**同步完成以下工作：
+> ⚡ **强制前置动作**：任何涉及 CLI 命令的需求（新增 / 修改 / 删除，包括仅调整输出字段、参数名称、默认值等细微改动），
+> **必须在创建 todo 列表时就把以下两条文档任务纳入**，不得等到代码写完后才想起来：
+>
+> ```
+> - [ ] 更新 docs/en/<command-group>.md 和 docs/zh/<command-group>.md
+> - [ ] 视需要更新 README.md 和 README.zh-CN.md Command Overview 表格
+> ```
+>
+> **禁止在文档任务完成前宣告需求开发完成。**
+
+**规则**: 每次**新增、修改或删除** CLI 命令（包括新增参数、修改默认值、调整输出格式、删除命令/子命令等）时，**必须**同步完成以下工作：
+
+**各场景文档更新范围速查**：
+
+| 变更类型                           | README 命令表格 | docs/<group>.md 输出/参数说明 |
+| ---------------------------------- | :-------------: | :---------------------------: |
+| 新增命令 / 子命令                  |   ✅ 必须更新   |      ✅ 必须新增完整说明      |
+| 修改参数名 / 默认值 / 必填性       |     视情况      |        ✅ 必须同步修改        |
+| 调整命令输出（新增/删除/改名字段） |  ❌ 通常不需要  |    ✅ 必须更新 Output 示例    |
+| 删除命令 / 子命令                  | ✅ 必须删除条目 |      ✅ 必须删除对应章节      |
+| 仅修改内部实现，用户无感知         |    ❌ 不需要    |           ❌ 不需要           |
 
 1. **更新 `README.md` 和 `README.zh-CN.md`**
    - 更新 Command Overview 表格，添加或修改对应命令的说明
@@ -378,13 +398,13 @@ assert.Equal(t, "y", yesFlag.Shorthand)
    - 测试内容必须覆盖：命令元数据、必填参数校验、子命令结构
    - 运行 `go test ./... -count=1` 确保全部通过
 
-**检查清单**:
+**检查清单（任务结束前逐项核对，全部完成才能宣告需求完成）**:
 
-- [ ] 命令代码已完成（新增或修改）
-- [ ] `README.md` Command Overview 表格已更新
-- [ ] `README.zh-CN.md` Command Overview 表格已更新
-- [ ] `docs/en/<command-group>.md` 详细文档已更新
-- [ ] `docs/zh/<command-group>.md` 详细文档已更新
+- [ ] 命令代码已完成（新增、修改或删除）
+- [ ] `docs/en/<command-group>.md` 已更新（输出字段 / 参数 / 示例）
+- [ ] `docs/zh/<command-group>.md` 已更新（与英文版保持结构一致）
+- [ ] `README.md` Command Overview 表格已更新（仅命令结构变化时）
+- [ ] `README.zh-CN.md` Command Overview 表格已更新（仅命令结构变化时）
 - [ ] 对外文档已同步（钉钉文档 / cli 使用手册）
 - [ ] 单元测试已编写或更新并通过
 - [ ] mock 类已同步更新（如有接口变更）
