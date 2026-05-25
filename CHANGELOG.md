@@ -5,6 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
+### 📖 Documentation
+
+- Update CHANGELOG.md for v0.3.0
+
+
+* * *
+
+<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.3.0] - 2026-05-22
+
 ### 🚀 Features
 
 - Enhance apikey commands with --api-key-id param and update CHANGELOG
