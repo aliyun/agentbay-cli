@@ -26,7 +26,7 @@ Before installing Agentbay CLI, please ensure:
 Install Agentbay CLI with a single PowerShell command:
 
 ```powershell
-powershell -Command "irm https://agentbay.github.io/agentbay-cli/windows | iex"
+powershell -Command "irm https://aliyun.github.io/agentbay-cli/windows | iex"
 ```
 
 ### Installation Process
@@ -239,10 +239,10 @@ agentbay --version
 - **Default**: `%LOCALAPPDATA%\agentbay\agentbay.exe`
 
 ### Links
-- **GitHub Repository**: https://github.com/agentbay/agentbay-cli
-- **Releases**: https://github.com/agentbay/agentbay-cli/releases
-- **Documentation**: https://github.com/agentbay/agentbay-cli/blob/main/docs/USER_GUIDE.md
-- **Issues**: https://github.com/agentbay/agentbay-cli/issues
+- **GitHub Repository**: https://github.com/aliyun/agentbay-cli
+- **Releases**: https://github.com/aliyun/agentbay-cli/releases
+- **Documentation**: https://github.com/aliyun/agentbay-cli/blob/master/docs/en/README.md
+- **Issues**: https://github.com/aliyun/agentbay-cli/issues
 
 ---
 

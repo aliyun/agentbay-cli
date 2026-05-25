@@ -12,10 +12,10 @@ if ($Help) {
     Write-Host "Agentbay CLI Installation Script"
     Write-Host ""
     Write-Host "Usage:"
-    Write-Host "  powershell -Command `"irm https://agentbay.github.io/agentbay-cli/windows | iex`""
+    Write-Host "  powershell -Command `"irm https://aliyun.github.io/agentbay-cli/windows | iex`""
     Write-Host ""
     Write-Host "Options:"
-    Write-Host "  -Version <version>      Specify version to install (e.g., 'v1.0.0', 'v1.2.3', 'latest')"
+    Write-Host "  -Version <version>      Specify version to install (e.g., 'v0.3.0', 'v1.2.3', 'latest')"
     Write-Host "  -Architecture <arch>    Specify architecture ('amd64' or 'arm64')"
     Write-Host "  -InstallPath <path>     Specify custom installation directory"
     Write-Host "  -Help                   Show this help message"
@@ -25,8 +25,8 @@ if ($Help) {
     Write-Host "  AGENTBAY_PATH           Default installation directory"
     Write-Host ""
     Write-Host "Examples:"
-    Write-Host "  # Install default version (v1.0.0)"
-    Write-Host "  powershell -Command `"irm https://agentbay.github.io/agentbay-cli/windows | iex`""
+    Write-Host "  # Install latest version"
+    Write-Host "  powershell -Command `"irm https://aliyun.github.io/agentbay-cli/windows | iex`""
     Write-Host ""
     exit 0
 }
@@ -43,7 +43,7 @@ if (-not $Architecture) {
 }
 
 # GitHub repository information
-$repoOwner = "agentbay"
+$repoOwner = "aliyun"
 $repoName = "agentbay-cli"
 $githubApiUrl = "https://api.github.com/repos/$repoOwner/$repoName"
 
@@ -71,25 +71,54 @@ $version = if ($Version) {
 # Get latest version if needed
 if ($version -eq "latest") {
     Write-Host "[INFO] Fetching latest version..."
-    
-    # Try using git to get latest tag (no API calls, no 403 errors)
+
+    # Method 1: Use GitHub Releases redirect (no auth needed, no rate limit)
+    # HEAD request to /releases/latest redirects to /releases/tag/vX.Y.Z
+    $resolved = $false
     try {
-        Write-Host "[INFO] Getting latest tag using git..."
-        $gitVersion = git ls-remote --tags --sort=-version:refname "https://github.com/$repoOwner/$repoName.git" | Select-Object -First 1 | ForEach-Object { ($_ -split '\s+')[1] -replace 'refs/tags/', '' }
-        if ($gitVersion -and $gitVersion -match '^v?\d+\.\d+\.\d+') {
-            $version = $gitVersion
-            Write-Host "[SUCCESS] Found latest version: $version"
-        } else {
-            throw "Git method failed or returned invalid version"
-        }
+        Write-Host "[INFO] Querying GitHub Releases..."
+        $response = Invoke-WebRequest -Uri "https://github.com/$repoOwner/$repoName/releases/latest" -MaximumRedirection 0 -ErrorAction SilentlyContinue -UseBasicParsing 2>$null
     } catch {
-        Write-Host "[WARN] Git method failed: $($_.Exception.Message)"
-        Write-Host "[INFO] Using fallback version v1.0.0"
+        $response = $_.Exception.Response
+    }
+    if ($response -and $response.Headers -and $response.Headers.Location) {
+        $location = $response.Headers.Location
+        if ($location -is [System.Array]) { $location = $location[0] }
+        if ($location -match '/tag/(v[\d\.]+)') {
+            $version = $matches[1]
+            Write-Host "[SUCCESS] Found latest version: $version"
+            $resolved = $true
+        }
+    }
+
+    # Method 2: Fallback to git ls-remote (if git is available)
+    if (-not $resolved) {
+        try {
+            $gitCmd = Get-Command git -ErrorAction SilentlyContinue
+            if ($gitCmd) {
+                Write-Host "[INFO] Trying git ls-remote..."
+                $tagLines = git ls-remote --tags "https://github.com/$repoOwner/$repoName.git" 2>$null
+                $tags = $tagLines | ForEach-Object {
+                    if ($_ -match 'refs/tags/(v\d+\.\d+\.\d+)$') { $matches[1] }
+                } | Sort-Object { [version]($_ -replace '^v','') } -Descending
+                if ($tags -and $tags.Count -gt 0) {
+                    $version = $tags[0]
+                    Write-Host "[SUCCESS] Found latest version: $version"
+                    $resolved = $true
+                }
+            }
+        } catch {}
+    }
+
+    # Method 3: Hardcoded fallback
+    if (-not $resolved) {
+        $version = "v0.3.0"
+        Write-Host "[WARN] Could not detect latest version automatically"
+        Write-Host "[INFO] Using fallback version $version"
         Write-Host "[TIP] You can specify a version manually using: -Version v1.2.3"
         Write-Host "[TIP] Check available versions at: https://github.com/$repoOwner/$repoName/releases"
-        $version = "v1.0.0"
     }
-    
+
 } else {
     Write-Host "[INFO] Installing specified version: $version"
 }

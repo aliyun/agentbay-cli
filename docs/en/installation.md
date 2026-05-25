@@ -41,6 +41,8 @@ powershell -Command "irm https://aliyun.github.io/agentbay-cli/windows | iex"
 
 ### Uninstallation
 
+> If you installed with a custom `-InstallPath` or `$env:AGENTBAY_PATH`, replace `$env:LOCALAPPDATA\agentbay` below with your actual install directory.
+
 ```powershell
 # Remove installation directory
 Remove-Item -Path "$env:LOCALAPPDATA\agentbay" -Recurse -Force
@@ -50,6 +52,8 @@ $agentbayPath = "$env:LOCALAPPDATA\agentbay"
 $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
 $newPath = ($currentPath.Split(';') | Where-Object { $_ -ne $agentbayPath }) -join ';'
 [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+
+# Restart PowerShell so the PATH change takes effect.
 ```
 
 ---
@@ -66,6 +70,8 @@ brew install agentbay
 # 3. Verify
 agentbay version
 ```
+
+> The first install builds from source and will automatically pull Go as a build dependency, so it may take a few minutes. Subsequent upgrades reuse the cache.
 
 ### Update
 
@@ -91,7 +97,7 @@ brew reinstall agentbay
 
 ## Pre-built Binaries
 
-Pre-built binaries are also available under `bin/` and `packages/` in the repository. Download the appropriate binary for your platform, make it executable, and place it in your PATH.
+Pre-built binaries for every platform are published on [GitHub Releases](https://github.com/aliyun/agentbay-cli/releases). Download the binary that matches your OS/architecture, make it executable, and place it in your PATH.
 
 ```bash
 chmod +x agentbay

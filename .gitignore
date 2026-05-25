@@ -21,6 +21,7 @@ go.work
 # IDE files
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 *~
@@ -41,6 +42,7 @@ dist/
 build/
 bin/
 packages/
+bottles/
 
 # OSS tool (auto-downloaded by release script)
 .ossutil_bin/
