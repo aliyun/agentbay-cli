@@ -47,12 +47,17 @@ brew untap aliyun/agentbay   # optional
 
 ```powershell
 # Windows (PowerShell)
+# Note: if you installed with a custom -InstallPath or $env:AGENTBAY_PATH,
+# replace "$env:LOCALAPPDATA\agentbay" below with your actual install directory.
 Remove-Item -Path "$env:LOCALAPPDATA\agentbay" -Recurse -Force
 $agentbayPath = "$env:LOCALAPPDATA\agentbay"
 $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
 $newPath = ($currentPath.Split(';') | Where-Object { $_ -ne $agentbayPath }) -join ';'
 [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+# Restart PowerShell for the PATH change to take effect.
 ```
+
+> **Note (Homebrew):** The first `brew install agentbay` builds from source and will automatically install Go as a build dependency, so it may take a few minutes. Subsequent upgrades reuse the cache.
 
 See [Installation Guide](docs/en/installation.md) for details (including pre-built binaries and troubleshooting).
 

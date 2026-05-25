@@ -41,6 +41,8 @@ powershell -Command "irm https://aliyun.github.io/agentbay-cli/windows | iex"
 
 ### 卸载
 
+> 如果安装时指定了 `-InstallPath` 或设置了 `$env:AGENTBAY_PATH`，请把下面的 `$env:LOCALAPPDATA\agentbay` 替换成实际安装目录。
+
 ```powershell
 # 删除安装目录
 Remove-Item -Path "$env:LOCALAPPDATA\agentbay" -Recurse -Force
@@ -50,6 +52,8 @@ $agentbayPath = "$env:LOCALAPPDATA\agentbay"
 $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
 $newPath = ($currentPath.Split(';') | Where-Object { $_ -ne $agentbayPath }) -join ';'
 [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+
+# 请重启 PowerShell 让 PATH 变更生效。
 ```
 
 ---
@@ -66,6 +70,8 @@ brew install agentbay
 # 3. 验证
 agentbay version
 ```
+
+> 首次安装会从源码编译，并自动安装 Go 作为构建依赖，整个过程可能需要几分钟。后续升级会复用缓存。
 
 ### 更新
 
@@ -91,7 +97,7 @@ brew reinstall agentbay
 
 ## 预编译二进制
 
-预编译的二进制文件也可在仓库的 `bin/` 和 `packages/` 目录下获取。下载适合您平台的二进制文件，添加执行权限并放入 PATH 中。
+各平台的预编译二进制发布在 [GitHub Releases](https://github.com/aliyun/agentbay-cli/releases) 页面。下载与您操作系统/架构匹配的二进制，添加执行权限并放入 PATH 中。
 
 ```bash
 chmod +x agentbay

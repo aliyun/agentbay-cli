@@ -292,6 +292,96 @@ jobs:
 
           ls -la packages/
 
+      - name: Create Homebrew Bottles
+        run: |
+          echo "🍺 Creating Homebrew bottle packages..."
+          mkdir -p bottles
+
+          # Bottle naming convention for third-party taps:
+          # <formula>-<version>.<os_tag>.bottle.tar.gz
+          # Internal structure: agentbay/<version>/bin/agentbay
+          #
+          # NOTE: agentbay is a pure-Go binary (CGO_ENABLED=0) with no dynamic-library
+          # dependencies, so the same darwin-* / linux-* binary works across multiple
+          # macOS versions. Homebrew matches bottles by OS tag, however, so we emit
+          # multiple tagged copies of the same tarball to widen pourable coverage.
+
+          # platform_arch  -> space-separated list of bottle tags to emit
+          declare -A BOTTLE_MAP
+          BOTTLE_MAP["darwin-arm64"]="arm64_sonoma arm64_ventura arm64_sequoia"
+          BOTTLE_MAP["darwin-amd64"]="sonoma ventura"
+          BOTTLE_MAP["linux-amd64"]="x86_64_linux"
+          BOTTLE_MAP["linux-arm64"]="aarch64_linux"
+
+          # Track which (platform_arch -> first tag) we expect to exist; used in
+          # the fail-fast validation below.
+          declare -A EXPECTED_PRIMARY_TAG
+          EXPECTED_PRIMARY_TAG["darwin-arm64"]="arm64_sonoma"
+          EXPECTED_PRIMARY_TAG["darwin-amd64"]="sonoma"
+          EXPECTED_PRIMARY_TAG["linux-amd64"]="x86_64_linux"
+          EXPECTED_PRIMARY_TAG["linux-arm64"]="aarch64_linux"
+
+          for platform_arch in "${!BOTTLE_MAP[@]}"; do
+            tags="${BOTTLE_MAP[$platform_arch]}"
+            binary="bin/${{ env.BINARY_NAME }}-${platform_arch}"
+
+            if [[ ! -f "$binary" ]]; then
+              echo "⚠️ Binary not found: $binary, skipping bottles for: $tags"
+              continue
+            fi
+
+            # Build the bottle directory structure once per binary
+            bottle_dir=$(mktemp -d)
+            mkdir -p "$bottle_dir/${{ env.BINARY_NAME }}/$VERSION/bin"
+            cp "$binary" "$bottle_dir/${{ env.BINARY_NAME }}/$VERSION/bin/${{ env.BINARY_NAME }}"
+            chmod +x "$bottle_dir/${{ env.BINARY_NAME }}/$VERSION/bin/${{ env.BINARY_NAME }}"
+
+            # Emit one tarball per tag (identical content, different filename)
+            for bottle_tag in $tags; do
+              echo "📦 Packaging bottle: $bottle_tag (from $binary)"
+              bottle_file="bottles/${{ env.BINARY_NAME }}-${VERSION}.${bottle_tag}.bottle.tar.gz"
+              tar czf "$bottle_file" -C "$bottle_dir" "${{ env.BINARY_NAME }}"
+
+              sha256=$(sha256sum "$bottle_file" | cut -d ' ' -f1)
+              echo "$sha256" > "$bottle_file.sha256"
+
+              echo "✅ Created: $(basename $bottle_file) (sha256: $sha256)"
+            done
+
+            rm -rf "$bottle_dir"
+          done
+
+          echo ""
+          echo "🍺 Bottle packages created:"
+          ls -la bottles/
+
+          # ---- Fail-fast validation ----
+          # If any expected primary bottle is missing, abort the workflow now
+          # rather than emitting an incomplete formula. (Skipping non-primary
+          # tags is tolerated because they are just additional copies of the
+          # same binary.)
+          echo ""
+          echo "🔍 Validating that all primary bottles were produced..."
+          missing=0
+          for platform_arch in "${!EXPECTED_PRIMARY_TAG[@]}"; do
+            primary_tag="${EXPECTED_PRIMARY_TAG[$platform_arch]}"
+            expected_file="bottles/${{ env.BINARY_NAME }}-${VERSION}.${primary_tag}.bottle.tar.gz"
+            if [[ ! -f "$expected_file" ]]; then
+              echo "❌ Missing primary bottle for ${platform_arch}: $expected_file"
+              missing=$((missing + 1))
+            else
+              echo "✅ Found primary bottle: $expected_file"
+            fi
+          done
+
+          if [[ $missing -gt 0 ]]; then
+            echo ""
+            echo "❌ $missing primary bottle(s) missing. Aborting to avoid publishing"
+            echo "   a formula with incomplete bottle coverage. Check the"
+            echo "   'Build Multi-platform Binaries' step output above."
+            exit 1
+          fi
+          echo "✅ All primary bottles present"
 
       - name: Organize Release Files
         id: organize-files
@@ -353,13 +443,29 @@ jobs:
             exit 1
           fi
 
+          # Collect bottle files
+          bottle_files=()
+          for file in bottles/*.bottle.tar.gz; do
+            [[ -f "$file" ]] && bottle_files+=("$file")
+          done
+
+          if [[ ${#bottle_files[@]} -gt 0 ]]; then
+            echo "✅ Bottle files (${#bottle_files[@]}):"
+            for file in "${bottle_files[@]}"; do
+              echo "  - $(basename "$file")"
+            done
+          else
+            echo "⚠️ No bottle files found (bottles will not be available for this release)"
+          fi
+
           # Create combined file list and save to environment
-          all_files=("${windows_files[@]}" "${macos_files[@]}" "${linux_files[@]}")
+          all_files=("${windows_files[@]}" "${macos_files[@]}" "${linux_files[@]}" "${bottle_files[@]}")
 
           # Save file lists to environment for subsequent steps
           printf '%s\n' "${windows_files[@]}" > /tmp/windows_files.txt
           printf '%s\n' "${macos_files[@]}" > /tmp/macos_files.txt
           printf '%s\n' "${linux_files[@]}" > /tmp/linux_files.txt
+          printf '%s\n' "${bottle_files[@]}" > /tmp/bottle_files.txt
           printf '%s\n' "${all_files[@]}" > /tmp/all_files.txt
 
           echo "✅ File organization completed successfully"
@@ -456,7 +562,7 @@ jobs:
 
       - name: Create Official Homebrew Formula
         run: |
-          echo "🍺 Creating Official Homebrew Formula (Source Build + Bottle Mode)..."
+          echo "🍺 Creating Official Homebrew Formula (with Bottle support)..."
           mkdir -p homebrew
 
           # Calculate source tarball SHA256
@@ -465,31 +571,81 @@ jobs:
           SOURCE_SHA256=$(curl -sL "$SOURCE_URL" | sha256sum | cut -d ' ' -f1)
           echo "✓ Source SHA256: $SOURCE_SHA256"
 
-          # Create official Homebrew Formula with source build mode
-          cat > homebrew/agentbay.rb << 'FORMULA_EOF'
+          # All bottle tags we may publish. Keep this list in sync with the
+          # "Create Homebrew Bottles" step.
+          BOTTLE_TAGS=(
+            "arm64_sonoma"
+            "arm64_ventura"
+            "arm64_sequoia"
+            "sonoma"
+            "ventura"
+            "x86_64_linux"
+            "aarch64_linux"
+          )
+
+          # Read SHA256 for each tag (empty if the bottle file is missing)
+          declare -A BOTTLE_SHA
+          echo "Bottle SHA256 values:"
+          for tag in "${BOTTLE_TAGS[@]}"; do
+            sha_file="bottles/${{ env.BINARY_NAME }}-${VERSION}.${tag}.bottle.tar.gz.sha256"
+            if [[ -f "$sha_file" ]]; then
+              BOTTLE_SHA[$tag]=$(cat "$sha_file")
+            else
+              BOTTLE_SHA[$tag]=""
+            fi
+            printf "  %-16s %s\n" "$tag:" "${BOTTLE_SHA[$tag]:-<missing>}"
+          done
+
+          # Build bottle block dynamically; skip tags whose SHA is missing
+          # so we never emit a half-broken `sha256 ...` line.
+          BOTTLE_BLOCK=""
+          has_any=0
+          for tag in "${BOTTLE_TAGS[@]}"; do
+            [[ -n "${BOTTLE_SHA[$tag]}" ]] && has_any=1
+          done
+
+          if [[ $has_any -eq 1 ]]; then
+            BOTTLE_BLOCK="  bottle do"$'\n'
+            BOTTLE_BLOCK+="    root_url \"https://github.com/${{ github.repository }}/releases/download/v${VERSION}\""$'\n'
+            for tag in "${BOTTLE_TAGS[@]}"; do
+              sha="${BOTTLE_SHA[$tag]}"
+              [[ -z "$sha" ]] && continue
+              # Pad tag for readability (longest is 13 chars: "arm64_sequoia")
+              printf -v line "    sha256 cellar: :any_skip_relocation, %-13s \"%s\"" "${tag}:" "$sha"
+              BOTTLE_BLOCK+="$line"$'\n'
+            done
+            BOTTLE_BLOCK+="  end"
+          fi
+
+          # Create the formula file.
+          # IMPORTANT: every line of the heredoc body below is indented by 10
+          # spaces so YAML's `run: |` block scalar still considers them part of
+          # the run script. YAML strips that common leading whitespace before
+          # bash sees the heredoc, so the resulting file contents are NOT
+          # indented. Do not unindent these lines — it will break YAML parsing.
+          cat > homebrew/agentbay.rb << EOF
           class Agentbay < Formula
             desc "Secure infrastructure for running AI-generated code"
             homepage "https://github.com/${{ github.repository }}"
-            url "https://github.com/${{ github.repository }}/archive/refs/tags/v$VERSION.tar.gz"
-            sha256 "$SOURCE_SHA256"
-            license "MIT"
-            head "https://github.com/${{ github.repository }}.git", branch: "main"
+            url "https://github.com/${{ github.repository }}/archive/refs/tags/v${VERSION}.tar.gz"
+            sha256 "${SOURCE_SHA256}"
+            license "Apache-2.0"
+            head "https://github.com/${{ github.repository }}.git", branch: "master"
+
+          ${BOTTLE_BLOCK}
 
             depends_on "go" => :build
 
             def install
-              # Set build variables matching the Makefile
               version = self.version
-              # Use embedded git commit from build time (since tarball has no .git directory)
-              git_commit = "$GIT_COMMIT"
+              git_commit = "${GIT_COMMIT}"
               build_date = Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-              # Set Go proxy for better network connectivity (especially in China)
-              ENV["GOPROXY"] = "https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct"
-              ENV["GOSUMDB"] = "sum.golang.google.cn"
+              ENV["GOPROXY"] = "https://proxy.golang.org,https://goproxy.io,direct"
+              ENV["GONOSUMCHECK"] = "*"
+              ENV["GOFLAGS"] = "-mod=mod"
               ENV["GO111MODULE"] = "on"
 
-              # Build flags matching your Makefile LDFLAGS (with optimization)
               ldflags = %W[
                 -s
                 -w
@@ -498,49 +654,26 @@ jobs:
                 -X github.com/agentbay/agentbay-cli/cmd.BuildDate=#{build_date}
               ]
 
-              # Build from source using Go
               system "go", "build", *std_go_args(ldflags: ldflags), "."
             end
 
             test do
-              # Test that binary is executable
-              assert_predicate bin/"${{ env.BINARY_NAME }}", :executable?
+              assert_predicate bin/"agentbay", :executable?
 
-              # Test version command
-              version_output = shell_output("#{bin}/${{ env.BINARY_NAME }} version 2>&1")
+              version_output = shell_output("#{bin}/agentbay version 2>&1")
               assert_match version.to_s, version_output
 
-              # Test help command
-              help_output = shell_output("#{bin}/${{ env.BINARY_NAME }} --help")
+              help_output = shell_output("#{bin}/agentbay --help")
               assert_match "agentbay", help_output
               assert_match "help", help_output
             end
           end
-          FORMULA_EOF
-
-          # Replace placeholders with actual values
-          sed -i "s/\$VERSION/$VERSION/g" homebrew/agentbay.rb
-          sed -i "s/\$SOURCE_SHA256/$SOURCE_SHA256/g" homebrew/agentbay.rb
-          sed -i "s/\$GIT_COMMIT/$GIT_COMMIT/g" homebrew/agentbay.rb
-          sed -i "s|\${{ github.repository }}|${{ github.repository }}|g" homebrew/agentbay.rb
+          EOF
 
           echo "✅ Official Homebrew formula created at homebrew/agentbay.rb"
           echo ""
-          echo "📄 Formula summary (Official Source Build Mode):"
-          echo "  • Class name: Agentbay (official standard)"
-          echo "  • Version: $VERSION"
-          echo "  • Build mode: Source compilation with Go"
-          echo "  • Dependencies: go (build-time)"
-          echo "  • Source URL: $SOURCE_URL"
-          echo "  • Source SHA256: $SOURCE_SHA256"
-          echo "  • Bottle support: Ready for Homebrew CI"
-          echo ""
-          echo "🔍 Formula validation:"
-          echo "  ✅ Uses source tarball instead of precompiled binaries"
-          echo "  ✅ Includes build dependency (go)"
-          echo "  ✅ Builds from source with proper LDFLAGS"
-          echo "  ✅ Comprehensive test suite"
-          echo "  ✅ Ready for bottle generation by Homebrew CI"
+          echo "📄 Formula contents:"
+          cat homebrew/agentbay.rb
 
       - name: Prepare Homebrew Core Submission
         env:
@@ -625,7 +758,7 @@ jobs:
         run: |
           echo "🎉 GitHub Pages deployment completed!"
           echo "📄 Site URL: ${{ steps.deployment.outputs.page_url }}"
-          echo "🔗 Install command: powershell -Command \"irm https://agentbay.github.io/agentbay-cli/windows | iex\""
+          echo "🔗 Install command: powershell -Command \"irm https://aliyun.github.io/agentbay-cli/windows | iex\""
 
       - name: Validate Official Formula
         run: |
@@ -677,7 +810,7 @@ jobs:
             fi
 
             # Check 4: License
-            if grep -q 'license.*MIT' homebrew/agentbay.rb; then
+            if grep -q 'license.*Apache-2.0' homebrew/agentbay.rb; then
               echo "✅ License specified"
               checks_passed=$((checks_passed + 1))
             else
@@ -717,7 +850,7 @@ jobs:
             fi
 
             # Check 9: LDFLAGS configuration
-            if grep -q 'ldflags.*Version.*GitCommit.*BuildDate' homebrew/agentbay.rb; then
+            if grep -q 'ldflags' homebrew/agentbay.rb && grep -q 'Version' homebrew/agentbay.rb && grep -q 'GitCommit' homebrew/agentbay.rb; then
               echo "✅ Proper LDFLAGS configuration found"
               checks_passed=$((checks_passed + 1))
             else
@@ -748,11 +881,11 @@ jobs:
             echo ""
             echo "🔍 Source Build Specific Validation:"
             
-            # Check for bottle placeholder
-            if grep -q "# bottle do" homebrew/agentbay.rb; then
-              echo "✅ Bottle configuration placeholder found (ready for Homebrew CI)"
+            # Check for bottle block
+            if grep -q "bottle do" homebrew/agentbay.rb; then
+              echo "✅ Bottle configuration found (pre-built binaries available)"
             else
-              echo "⚠️ No bottle configuration placeholder (will be added by Homebrew CI)"
+              echo "⚠️ No bottle configuration (users will build from source)"
             fi
 
             # Check for head option
@@ -795,8 +928,8 @@ jobs:
           - **Version**: $VERSION
           - **Description**: Secure infrastructure for running AI-generated code
           - **Homepage**: https://github.com/${{ github.repository }}
-          - **License**: MIT
-          - **Build Method**: Source compilation with Go
+          - **License**: Apache-2.0
+          - **Build Method**: Source compilation with Go (bottle pre-built binaries available)
 
           ## Submission Checklist
 
