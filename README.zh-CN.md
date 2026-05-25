@@ -29,11 +29,25 @@ agentbay version
 
 ### 更新
 
-```bash
-# macOS / Linux（Homebrew）
-brew update && brew upgrade agentbay
+**macOS / Linux（Homebrew）—— 快速通道（推荐用于日常升级）：**
 
-# Windows（PowerShell）：重新执行安装命令即可原地升级
+```bash
+git -C "$(brew --repository aliyun/agentbay)" pull --ff-only && brew upgrade agentbay
+```
+
+只刷新 `aliyun/agentbay` 这一个 tap，然后升级 agentbay。跳过 Homebrew 的全量元数据同步（`formula.jws.json` / `cask.jws.json` 等几十 MB 的 JSON 下载，以及 brew 自身的升级），通常几秒钟就能完成。
+
+**macOS / Linux（Homebrew）—— `brew` 本身报错时的回退方案：**
+
+```bash
+brew update && brew upgrade agentbay
+```
+
+会刷新 Homebrew 自身、所有已安装的 tap，以及 core formula 元数据，然后再升级 agentbay。更慢但更彻底 —— 在快速通道失败时使用（例如长时间没刷新 brew 之后，或者 Homebrew 出现破坏性更新时）。
+
+**Windows（PowerShell）：** 重新执行安装命令即可原地升级。
+
+```powershell
 powershell -Command "irm https://aliyun.github.io/agentbay-cli/windows | iex"
 ```
 

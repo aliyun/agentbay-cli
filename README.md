@@ -29,11 +29,25 @@ agentbay version
 
 ### Update
 
-```bash
-# macOS / Linux (Homebrew)
-brew update && brew upgrade agentbay
+**macOS / Linux (Homebrew) — fast path (recommended for routine updates):**
 
-# Windows (PowerShell): re-run the install command to upgrade in place
+```bash
+git -C "$(brew --repository aliyun/agentbay)" pull --ff-only && brew upgrade agentbay
+```
+
+Refreshes only the `aliyun/agentbay` tap and then upgrades agentbay. Skips Homebrew's full metadata sync (large `formula.jws.json` / `cask.jws.json` downloads and brew self-update), so it usually finishes in seconds.
+
+**macOS / Linux (Homebrew) — fallback if `brew` itself reports errors:**
+
+```bash
+brew update && brew upgrade agentbay
+```
+
+Refreshes Homebrew itself, all taps, and the core formula metadata before upgrading agentbay. Slower but more thorough — use this if the fast path fails (e.g., after a long time without a brew refresh, or after a Homebrew breaking change).
+
+**Windows (PowerShell):** re-run the install command to upgrade in place.
+
+```powershell
 powershell -Command "irm https://aliyun.github.io/agentbay-cli/windows | iex"
 ```
 

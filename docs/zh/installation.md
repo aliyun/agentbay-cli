@@ -75,9 +75,21 @@ agentbay version
 
 ### 更新
 
+日常升级推荐只刷新 `aliyun/agentbay` 这一个 tap，通常几秒钟即可完成：
+
+```bash
+git -C "$(brew --repository aliyun/agentbay)" pull --ff-only && brew upgrade agentbay
+```
+
+这条命令会跳过 Homebrew 的全量元数据同步（`formula.jws.json` / `cask.jws.json` 等几十 MB 的 JSON 下载，以及 brew 自身升级），只从 tap 拉取最新的 `agentbay` formula，然后直接 pour 新版 bottle。
+
+如果 `brew` 本身开始报错（例如长时间没刷新 brew 之后，或者 Homebrew 出现破坏性更新），改用完整更新作为回退方案：
+
 ```bash
 brew update && brew upgrade agentbay
 ```
+
+这条命令会刷新 Homebrew 自身、所有已安装的 tap，以及 core formula 元数据，然后再升级 agentbay。更慢但更彻底。
 
 ### 卸载
 
