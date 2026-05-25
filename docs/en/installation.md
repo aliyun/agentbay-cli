@@ -75,9 +75,21 @@ agentbay version
 
 ### Update
 
+For routine updates, refresh only the `aliyun/agentbay` tap — usually completes in seconds:
+
+```bash
+git -C "$(brew --repository aliyun/agentbay)" pull --ff-only && brew upgrade agentbay
+```
+
+This skips Homebrew's full metadata sync (large `formula.jws.json` / `cask.jws.json` downloads and brew self-update) and only pulls the latest `agentbay` formula from the tap before pouring the new bottle.
+
+If `brew` itself starts reporting errors (e.g., after a long time without a refresh, or after a Homebrew breaking change), fall back to the full update:
+
 ```bash
 brew update && brew upgrade agentbay
 ```
+
+This refreshes Homebrew itself, all installed taps, and the core formula metadata before upgrading. Slower but more thorough.
 
 ### Uninstall
 
