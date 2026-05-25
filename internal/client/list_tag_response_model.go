@@ -20,8 +20,8 @@ type iListTagResponse interface {
 }
 
 type ListTagResponse struct {
-	Headers    map[string]*string `json:"headers,omitempty" xml:"headers,omitempty"`
-	StatusCode *int32             `json:"statusCode,omitempty" xml:"statusCode,omitempty"`
+	Headers    map[string]*string   `json:"headers,omitempty" xml:"headers,omitempty"`
+	StatusCode *int32               `json:"statusCode,omitempty" xml:"statusCode,omitempty"`
 	Body       *ListTagResponseBody `json:"body,omitempty" xml:"body,omitempty"`
 	// RawBody is the raw response body string; printed on error for debugging.
 	RawBody string `json:"-"`

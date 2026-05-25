@@ -24,8 +24,8 @@ agentbay skills push ./my-skill --tag "tag1" --tag "tag2"
 
 **Flags:**
 
-| Flag   | Short | Type        | Required | Description                                                                                   |
-| ------ | ----- | ----------- | -------- | --------------------------------------------------------------------------------------------- |
+| Flag    | Short | Type        | Required | Description                                                                                |
+| ------- | ----- | ----------- | -------- | ------------------------------------------------------------------------------------------ |
 | `--tag` |       | stringArray | No       | Tag name for the skill (can be specified multiple times, e.g. `--tag "tag1" --tag "tag2"`) |
 
 **Notes:**
@@ -62,7 +62,12 @@ agentbay skills push ./my-skill --tag "tag1" --tag "tag2"
 
 ```json
 {
-  "Action": ["agentbay:ListTag", "agentbay:CreateTag", "agentbay:GetMarketSkillCredential", "agentbay:CreateMarketSkill"]
+  "Action": [
+    "agentbay:ListTag",
+    "agentbay:CreateTag",
+    "agentbay:GetMarketSkillCredential",
+    "agentbay:CreateMarketSkill"
+  ]
 }
 ```
 

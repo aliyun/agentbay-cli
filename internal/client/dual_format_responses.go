@@ -280,17 +280,17 @@ type describeWarmUpStatusOpenJSONWireDataImage struct {
 }
 
 type describeWarmUpStatusOpenJSONWire struct {
-	Code           *string `json:"Code"`
-	Message        *string `json:"Message"`
-	RequestId      *string `json:"RequestId"`
+	Code           *string         `json:"Code"`
+	Message        *string         `json:"Message"`
+	RequestId      *string         `json:"RequestId"`
 	HttpStatusCode json.RawMessage `json:"HttpStatusCode"`
-	Success        *bool   `json:"Success"`
+	Success        *bool           `json:"Success"`
 	Data           *struct {
-		MaxSessionNumLimit    json.RawMessage `json:"MaxSessionNumLimit"`
-		TotalUsedSessionQuota json.RawMessage `json:"TotalUsedSessionQuota"`
-		AvailableSessionQuota json.RawMessage `json:"AvailableSessionQuota"`
-		MaxImageCount         json.RawMessage `json:"MaxImageCount"`
-		CurrentImageCount     json.RawMessage `json:"CurrentImageCount"`
+		MaxSessionNumLimit    json.RawMessage                             `json:"MaxSessionNumLimit"`
+		TotalUsedSessionQuota json.RawMessage                             `json:"TotalUsedSessionQuota"`
+		AvailableSessionQuota json.RawMessage                             `json:"AvailableSessionQuota"`
+		MaxImageCount         json.RawMessage                             `json:"MaxImageCount"`
+		CurrentImageCount     json.RawMessage                             `json:"CurrentImageCount"`
 		Images                []describeWarmUpStatusOpenJSONWireDataImage `json:"Images"`
 	} `json:"Data"`
 }
@@ -1400,14 +1400,14 @@ func parseDescribeApiKeysResponse(res map[string]interface{}) (*DescribeApiKeysR
 					json.Unmarshal(keyWire.BoundPolicy, &boundPolicy)
 				}
 				apiKeys = append(apiKeys, &DescribeApiKeysResponseBodyDataApiKey{
-					Status:        keyWire.Status,
-					GmtCreate:     keyWire.GmtCreate,
-					LastUseDate:   keyWire.LastUseDate,
-					ApiKey:        keyWire.ApiKey,
-					Concurrency:   c,
-					KeyId:         keyWire.KeyId,
-					Name:          keyWire.Name,
-					BoundPolicy:   boundPolicy,
+					Status:      keyWire.Status,
+					GmtCreate:   keyWire.GmtCreate,
+					LastUseDate: keyWire.LastUseDate,
+					ApiKey:      keyWire.ApiKey,
+					Concurrency: c,
+					KeyId:       keyWire.KeyId,
+					Name:        keyWire.Name,
+					BoundPolicy: boundPolicy,
 				})
 			}
 			parsed.Data = &DescribeApiKeysResponseBodyData{

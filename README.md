@@ -99,15 +99,15 @@ If you are using a RAM sub-account's AK/SK, grant the required permissions via t
 
 ### `apikey` Command Group
 
-| OpenAPI Action | Required Permission | Used By |
-|---|---|---|
-| `CreateApiKey` | `agentbay:CreateApiKey` | `apikey create` |
-| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` | `apikey enable`, `apikey disable`, `apikey delete`, `apikey list`, `apikey concurrency set` |
-| `DescribeApiKeys` | `agentbay:DescribeApiKeys` | `apikey delete`, `apikey list` |
-| `ModifyApiKeyStatus` | `agentbay:ModifyApiKeyStatus` | `apikey enable`, `apikey disable`, `apikey delete` |
-| `DeleteApiKey` | `agentbay:DeleteApiKey` | `apikey delete` |
-| `ModifyMcpApiKeyConfig` | `agentbay:ModifyMcpApiKeyConfig` | `apikey concurrency set` |
-| `DescribeKeyContent` | `agentbay:DescribeKeyContent` | `apikey describe-key-content` |
+| OpenAPI Action          | Required Permission              | Used By                                                                                     |
+| ----------------------- | -------------------------------- | ------------------------------------------------------------------------------------------- |
+| `CreateApiKey`          | `agentbay:CreateApiKey`          | `apikey create`                                                                             |
+| `DescribeMcpApiKey`     | `agentbay:DescribeMcpApiKey`     | `apikey enable`, `apikey disable`, `apikey delete`, `apikey list`, `apikey concurrency set` |
+| `DescribeApiKeys`       | `agentbay:DescribeApiKeys`       | `apikey delete`, `apikey list`                                                              |
+| `ModifyApiKeyStatus`    | `agentbay:ModifyApiKeyStatus`    | `apikey enable`, `apikey disable`, `apikey delete`                                          |
+| `DeleteApiKey`          | `agentbay:DeleteApiKey`          | `apikey delete`                                                                             |
+| `ModifyMcpApiKeyConfig` | `agentbay:ModifyMcpApiKeyConfig` | `apikey concurrency set`                                                                    |
+| `DescribeKeyContent`    | `agentbay:DescribeKeyContent`    | `apikey describe-key-content`                                                               |
 
 **RAM Policy example (full access to `apikey` commands):**
 
@@ -136,26 +136,26 @@ If you are using a RAM sub-account's AK/SK, grant the required permissions via t
 
 ### `image` Command Group
 
-| OpenAPI Action | Required Permission | Used By |
-|---|---|---|
-| `ListMcpImages` | `agentbay:ListMcpImages` | `image list`, `image deactivate` |
-| `GetMcpImageInfo` | `agentbay:GetMcpImageInfo` | `image create`, `image activate`, `image deactivate`, `image delete`, `image status`, `image set-max-session` |
-| `GetDockerFileStoreCredential` | `agentbay:GetDockerFileStoreCredential` | `image create` |
-| `CreateDockerImageTask` | `agentbay:CreateDockerImageTask` | `image create` |
-| `GetDockerImageTask` | `agentbay:GetDockerImageTask` | `image create` |
-| `CreateImageFromTemplate` | `agentbay:CreateImageFromTemplate` | `image create-from-template` |
-| `DescribeInstanceTypes` | `agentbay:DescribeInstanceTypes` | `image activate` |
-| `DescribeMcpPolicyData` | `agentbay:DescribeMcpPolicyData` | `image activate` |
-| `CreateMcpPolicyData` | `agentbay:CreateMcpPolicyData` | `image activate` |
-| `ModifyMcpPolicyData` | `agentbay:ModifyMcpPolicyData` | `image activate` |
-| `DescribeOfficeSites` | `agentbay:DescribeOfficeSites` | `image activate` |
-| `SaveMcpPolicyData` | `agentbay:SaveMcpPolicyData` | `image activate` |
-| `CreateResourceGroup` | `agentbay:CreateResourceGroup` | `image activate` |
-| `DeleteResourceGroup` | `agentbay:DeleteResourceGroup` | `image deactivate` |
-| `DeleteMcpImage` | `agentbay:DeleteMcpImage` | `image delete` |
-| `GetDockerfileTemplate` | `agentbay:GetDockerfileTemplate` | `image init` |
-| `BatchCreateHideResourceGroupsWithMaxSession` | `agentbay:BatchCreateHideResourceGroupsWithMaxSession` | `image set-max-session` |
-| `DescribeWarmUpStatusOpen` | `agentbay:DescribeWarmUpStatusOpen` | `image warmup-status` |
+| OpenAPI Action                                | Required Permission                                    | Used By                                                                                                       |
+| --------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `ListMcpImages`                               | `agentbay:ListMcpImages`                               | `image list`, `image deactivate`                                                                              |
+| `GetMcpImageInfo`                             | `agentbay:GetMcpImageInfo`                             | `image create`, `image activate`, `image deactivate`, `image delete`, `image status`, `image set-max-session` |
+| `GetDockerFileStoreCredential`                | `agentbay:GetDockerFileStoreCredential`                | `image create`                                                                                                |
+| `CreateDockerImageTask`                       | `agentbay:CreateDockerImageTask`                       | `image create`                                                                                                |
+| `GetDockerImageTask`                          | `agentbay:GetDockerImageTask`                          | `image create`                                                                                                |
+| `CreateImageFromTemplate`                     | `agentbay:CreateImageFromTemplate`                     | `image create-from-template`                                                                                  |
+| `DescribeInstanceTypes`                       | `agentbay:DescribeInstanceTypes`                       | `image activate`                                                                                              |
+| `DescribeMcpPolicyData`                       | `agentbay:DescribeMcpPolicyData`                       | `image activate`                                                                                              |
+| `CreateMcpPolicyData`                         | `agentbay:CreateMcpPolicyData`                         | `image activate`                                                                                              |
+| `ModifyMcpPolicyData`                         | `agentbay:ModifyMcpPolicyData`                         | `image activate`                                                                                              |
+| `DescribeOfficeSites`                         | `agentbay:DescribeOfficeSites`                         | `image activate`                                                                                              |
+| `SaveMcpPolicyData`                           | `agentbay:SaveMcpPolicyData`                           | `image activate`                                                                                              |
+| `CreateResourceGroup`                         | `agentbay:CreateResourceGroup`                         | `image activate`                                                                                              |
+| `DeleteResourceGroup`                         | `agentbay:DeleteResourceGroup`                         | `image deactivate`                                                                                            |
+| `DeleteMcpImage`                              | `agentbay:DeleteMcpImage`                              | `image delete`                                                                                                |
+| `GetDockerfileTemplate`                       | `agentbay:GetDockerfileTemplate`                       | `image init`                                                                                                  |
+| `BatchCreateHideResourceGroupsWithMaxSession` | `agentbay:BatchCreateHideResourceGroupsWithMaxSession` | `image set-max-session`                                                                                       |
+| `DescribeWarmUpStatusOpen`                    | `agentbay:DescribeWarmUpStatusOpen`                    | `image warmup-status`                                                                                         |
 
 **RAM Policy example (full access to `image` commands):**
 
@@ -195,8 +195,8 @@ If you are using a RAM sub-account's AK/SK, grant the required permissions via t
 
 ### `network` Command Group
 
-| OpenAPI Action | Required Permission | Used By |
-|---|---|---|
+| OpenAPI Action            | Required Permission                | Used By                |
+| ------------------------- | ---------------------------------- | ---------------------- |
 | `DescribeNetworkPackages` | `agentbay:DescribeNetworkPackages` | `network package list` |
 
 **RAM Policy example:**
@@ -207,9 +207,7 @@ If you are using a RAM sub-account's AK/SK, grant the required permissions via t
   "Statement": [
     {
       "Effect": "Allow",
-      "Action": [
-        "agentbay:DescribeNetworkPackages"
-      ],
+      "Action": ["agentbay:DescribeNetworkPackages"],
       "Resource": "*"
     }
   ]
@@ -218,12 +216,12 @@ If you are using a RAM sub-account's AK/SK, grant the required permissions via t
 
 ### `skills` Command Group
 
-| OpenAPI Action | Required Permission | Used By |
-|---|---|---|
-| `ListTag` | `agentbay:ListTag` | `skills push` |
-| `CreateTag` | `agentbay:CreateTag` | `skills push` |
-| `GetMarketSkillCredential` | `agentbay:GetMarketSkillCredential` | `skills push` |
-| `CreateMarketSkill` | `agentbay:CreateMarketSkill` | `skills push` |
+| OpenAPI Action              | Required Permission                  | Used By       |
+| --------------------------- | ------------------------------------ | ------------- |
+| `ListTag`                   | `agentbay:ListTag`                   | `skills push` |
+| `CreateTag`                 | `agentbay:CreateTag`                 | `skills push` |
+| `GetMarketSkillCredential`  | `agentbay:GetMarketSkillCredential`  | `skills push` |
+| `CreateMarketSkill`         | `agentbay:CreateMarketSkill`         | `skills push` |
 | `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` | `skills show` |
 
 **RAM Policy example:**
@@ -249,8 +247,8 @@ If you are using a RAM sub-account's AK/SK, grant the required permissions via t
 
 ### `docker` Command Group
 
-| OpenAPI Action | Required Permission | Used By |
-|---|---|---|
+| OpenAPI Action         | Required Permission             | Used By        |
+| ---------------------- | ------------------------------- | -------------- |
 | `GetACRRepoCredential` | `agentbay:GetACRRepoCredential` | `docker login` |
 
 **RAM Policy example:**
@@ -261,9 +259,7 @@ If you are using a RAM sub-account's AK/SK, grant the required permissions via t
   "Statement": [
     {
       "Effect": "Allow",
-      "Action": [
-        "agentbay:GetACRRepoCredential"
-      ],
+      "Action": ["agentbay:GetACRRepoCredential"],
       "Resource": "*"
     }
   ]
@@ -276,14 +272,14 @@ If you are using a RAM sub-account's AK/SK, grant the required permissions via t
 
 ## Command Overview
 
-| Group | Commands | Description | Details |
-|-------|----------|-------------|---------|
-| Core | `version`, `login`, `logout` | Version & auth | [→](docs/en/core.md) |
-| Image | `list`, `init`, `create`, `create-from-template`, `activate`, `deactivate`, `delete`, `status`, `set-max-session`, `warmup-status` | Image lifecycle | [→](docs/en/image.md) |
-| API Key | `create`, `enable`, `disable`, `delete`, `list`, `concurrency set`, `describe-key-content` | Key management | [→](docs/en/apikey.md) |
-| Network | `package list` | Network config | [→](docs/en/network.md) |
-| Skills | `push`, `show`, `list` | Skill management | [→](docs/en/skills.md) |
-| Docker | `login`, `tag`, `push` | Docker registry | [→](docs/en/docker.md) |
+| Group   | Commands                                                                                                                           | Description      | Details                 |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------------- |
+| Core    | `version`, `login`, `logout`                                                                                                       | Version & auth   | [→](docs/en/core.md)    |
+| Image   | `list`, `init`, `create`, `create-from-template`, `activate`, `deactivate`, `delete`, `status`, `set-max-session`, `warmup-status` | Image lifecycle  | [→](docs/en/image.md)   |
+| API Key | `create`, `enable`, `disable`, `delete`, `list`, `concurrency set`, `describe-key-content`                                         | Key management   | [→](docs/en/apikey.md)  |
+| Network | `package list`                                                                                                                     | Network config   | [→](docs/en/network.md) |
+| Skills  | `push`, `show`, `list`                                                                                                             | Skill management | [→](docs/en/skills.md)  |
+| Docker  | `login`, `tag`, `push`                                                                                                             | Docker registry  | [→](docs/en/docker.md)  |
 
 ---
 

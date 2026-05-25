@@ -99,15 +99,15 @@ STS、OAuth（不推荐使用）及环境变量详见 [认证与环境](docs/zh/
 
 ### `apikey` 命令分组
 
-| OpenAPI Action | 所需权限 | 调用命令 |
-|---|---|---|
-| `CreateApiKey` | `agentbay:CreateApiKey` | `apikey create` |
-| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` | `apikey enable`、`apikey disable`、`apikey delete`、`apikey list`、`apikey concurrency set` |
-| `DescribeApiKeys` | `agentbay:DescribeApiKeys` | `apikey delete`、`apikey list` |
-| `ModifyApiKeyStatus` | `agentbay:ModifyApiKeyStatus` | `apikey enable`、`apikey disable`、`apikey delete` |
-| `DeleteApiKey` | `agentbay:DeleteApiKey` | `apikey delete` |
-| `ModifyMcpApiKeyConfig` | `agentbay:ModifyMcpApiKeyConfig` | `apikey concurrency set` |
-| `DescribeKeyContent` | `agentbay:DescribeKeyContent` | `apikey describe-key-content` |
+| OpenAPI Action          | 所需权限                         | 调用命令                                                                                    |
+| ----------------------- | -------------------------------- | ------------------------------------------------------------------------------------------- |
+| `CreateApiKey`          | `agentbay:CreateApiKey`          | `apikey create`                                                                             |
+| `DescribeMcpApiKey`     | `agentbay:DescribeMcpApiKey`     | `apikey enable`、`apikey disable`、`apikey delete`、`apikey list`、`apikey concurrency set` |
+| `DescribeApiKeys`       | `agentbay:DescribeApiKeys`       | `apikey delete`、`apikey list`                                                              |
+| `ModifyApiKeyStatus`    | `agentbay:ModifyApiKeyStatus`    | `apikey enable`、`apikey disable`、`apikey delete`                                          |
+| `DeleteApiKey`          | `agentbay:DeleteApiKey`          | `apikey delete`                                                                             |
+| `ModifyMcpApiKeyConfig` | `agentbay:ModifyMcpApiKeyConfig` | `apikey concurrency set`                                                                    |
+| `DescribeKeyContent`    | `agentbay:DescribeKeyContent`    | `apikey describe-key-content`                                                               |
 
 **RAM Policy 示例（`apikey` 命令完整授权）：**
 
@@ -136,26 +136,26 @@ STS、OAuth（不推荐使用）及环境变量详见 [认证与环境](docs/zh/
 
 ### `image` 命令分组
 
-| OpenAPI Action | 所需权限 | 调用命令 |
-|---|---|---|
-| `ListMcpImages` | `agentbay:ListMcpImages` | `image list`、`image deactivate` |
-| `GetMcpImageInfo` | `agentbay:GetMcpImageInfo` | `image create`、`image activate`、`image deactivate`、`image delete`、`image status`、`image set-max-session` |
-| `GetDockerFileStoreCredential` | `agentbay:GetDockerFileStoreCredential` | `image create` |
-| `CreateDockerImageTask` | `agentbay:CreateDockerImageTask` | `image create` |
-| `GetDockerImageTask` | `agentbay:GetDockerImageTask` | `image create` |
-| `CreateImageFromTemplate` | `agentbay:CreateImageFromTemplate` | `image create-from-template` |
-| `DescribeInstanceTypes` | `agentbay:DescribeInstanceTypes` | `image activate` |
-| `DescribeMcpPolicyData` | `agentbay:DescribeMcpPolicyData` | `image activate` |
-| `CreateMcpPolicyData` | `agentbay:CreateMcpPolicyData` | `image activate` |
-| `ModifyMcpPolicyData` | `agentbay:ModifyMcpPolicyData` | `image activate` |
-| `DescribeOfficeSites` | `agentbay:DescribeOfficeSites` | `image activate` |
-| `SaveMcpPolicyData` | `agentbay:SaveMcpPolicyData` | `image activate` |
-| `CreateResourceGroup` | `agentbay:CreateResourceGroup` | `image activate` |
-| `DeleteResourceGroup` | `agentbay:DeleteResourceGroup` | `image deactivate` |
-| `DeleteMcpImage` | `agentbay:DeleteMcpImage` | `image delete` |
-| `GetDockerfileTemplate` | `agentbay:GetDockerfileTemplate` | `image init` |
-| `BatchCreateHideResourceGroupsWithMaxSession` | `agentbay:BatchCreateHideResourceGroupsWithMaxSession` | `image set-max-session` |
-| `DescribeWarmUpStatusOpen` | `agentbay:DescribeWarmUpStatusOpen` | `image warmup-status` |
+| OpenAPI Action                                | 所需权限                                               | 调用命令                                                                                                      |
+| --------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `ListMcpImages`                               | `agentbay:ListMcpImages`                               | `image list`、`image deactivate`                                                                              |
+| `GetMcpImageInfo`                             | `agentbay:GetMcpImageInfo`                             | `image create`、`image activate`、`image deactivate`、`image delete`、`image status`、`image set-max-session` |
+| `GetDockerFileStoreCredential`                | `agentbay:GetDockerFileStoreCredential`                | `image create`                                                                                                |
+| `CreateDockerImageTask`                       | `agentbay:CreateDockerImageTask`                       | `image create`                                                                                                |
+| `GetDockerImageTask`                          | `agentbay:GetDockerImageTask`                          | `image create`                                                                                                |
+| `CreateImageFromTemplate`                     | `agentbay:CreateImageFromTemplate`                     | `image create-from-template`                                                                                  |
+| `DescribeInstanceTypes`                       | `agentbay:DescribeInstanceTypes`                       | `image activate`                                                                                              |
+| `DescribeMcpPolicyData`                       | `agentbay:DescribeMcpPolicyData`                       | `image activate`                                                                                              |
+| `CreateMcpPolicyData`                         | `agentbay:CreateMcpPolicyData`                         | `image activate`                                                                                              |
+| `ModifyMcpPolicyData`                         | `agentbay:ModifyMcpPolicyData`                         | `image activate`                                                                                              |
+| `DescribeOfficeSites`                         | `agentbay:DescribeOfficeSites`                         | `image activate`                                                                                              |
+| `SaveMcpPolicyData`                           | `agentbay:SaveMcpPolicyData`                           | `image activate`                                                                                              |
+| `CreateResourceGroup`                         | `agentbay:CreateResourceGroup`                         | `image activate`                                                                                              |
+| `DeleteResourceGroup`                         | `agentbay:DeleteResourceGroup`                         | `image deactivate`                                                                                            |
+| `DeleteMcpImage`                              | `agentbay:DeleteMcpImage`                              | `image delete`                                                                                                |
+| `GetDockerfileTemplate`                       | `agentbay:GetDockerfileTemplate`                       | `image init`                                                                                                  |
+| `BatchCreateHideResourceGroupsWithMaxSession` | `agentbay:BatchCreateHideResourceGroupsWithMaxSession` | `image set-max-session`                                                                                       |
+| `DescribeWarmUpStatusOpen`                    | `agentbay:DescribeWarmUpStatusOpen`                    | `image warmup-status`                                                                                         |
 
 **RAM Policy 示例（`image` 命令完整授权）：**
 
@@ -195,8 +195,8 @@ STS、OAuth（不推荐使用）及环境变量详见 [认证与环境](docs/zh/
 
 ### `network` 命令分组
 
-| OpenAPI Action | 所需权限 | 调用命令 |
-|---|---|---|
+| OpenAPI Action            | 所需权限                           | 调用命令               |
+| ------------------------- | ---------------------------------- | ---------------------- |
 | `DescribeNetworkPackages` | `agentbay:DescribeNetworkPackages` | `network package list` |
 
 **RAM Policy 示例：**
@@ -207,9 +207,7 @@ STS、OAuth（不推荐使用）及环境变量详见 [认证与环境](docs/zh/
   "Statement": [
     {
       "Effect": "Allow",
-      "Action": [
-        "agentbay:DescribeNetworkPackages"
-      ],
+      "Action": ["agentbay:DescribeNetworkPackages"],
       "Resource": "*"
     }
   ]
@@ -218,12 +216,12 @@ STS、OAuth（不推荐使用）及环境变量详见 [认证与环境](docs/zh/
 
 ### `skills` 命令分组
 
-| OpenAPI Action | 所需权限 | 调用命令 |
-|---|---|---|
-| `ListTag` | `agentbay:ListTag` | `skills push` |
-| `CreateTag` | `agentbay:CreateTag` | `skills push` |
-| `GetMarketSkillCredential` | `agentbay:GetMarketSkillCredential` | `skills push` |
-| `CreateMarketSkill` | `agentbay:CreateMarketSkill` | `skills push` |
+| OpenAPI Action              | 所需权限                             | 调用命令      |
+| --------------------------- | ------------------------------------ | ------------- |
+| `ListTag`                   | `agentbay:ListTag`                   | `skills push` |
+| `CreateTag`                 | `agentbay:CreateTag`                 | `skills push` |
+| `GetMarketSkillCredential`  | `agentbay:GetMarketSkillCredential`  | `skills push` |
+| `CreateMarketSkill`         | `agentbay:CreateMarketSkill`         | `skills push` |
 | `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` | `skills show` |
 
 **RAM Policy 示例：**
@@ -249,8 +247,8 @@ STS、OAuth（不推荐使用）及环境变量详见 [认证与环境](docs/zh/
 
 ### `docker` 命令分组
 
-| OpenAPI Action | 所需权限 | 调用命令 |
-|---|---|---|
+| OpenAPI Action         | 所需权限                        | 调用命令       |
+| ---------------------- | ------------------------------- | -------------- |
 | `GetACRRepoCredential` | `agentbay:GetACRRepoCredential` | `docker login` |
 
 **RAM Policy 示例：**
@@ -261,9 +259,7 @@ STS、OAuth（不推荐使用）及环境变量详见 [认证与环境](docs/zh/
   "Statement": [
     {
       "Effect": "Allow",
-      "Action": [
-        "agentbay:GetACRRepoCredential"
-      ],
+      "Action": ["agentbay:GetACRRepoCredential"],
       "Resource": "*"
     }
   ]
@@ -276,14 +272,14 @@ STS、OAuth（不推荐使用）及环境变量详见 [认证与环境](docs/zh/
 
 ## 命令概览
 
-| 分组 | 命令 | 说明 | 详情 |
-|------|------|------|------|
-| 核心 | `version`, `login`, `logout` | 版本与认证 | [→](docs/zh/core.md) |
-| 镜像 | `list`, `init`, `create`, `create-from-template`, `activate`, `deactivate`, `delete`, `status`, `set-max-session`, `warmup-status` | 镜像生命周期 | [→](docs/zh/image.md) |
-| API Key | `create`, `enable`, `disable`, `delete`, `list`, `concurrency set`, `describe-key-content` | 密钥管理 | [→](docs/zh/apikey.md) |
-| 网络 | `package list` | 网络配置 | [→](docs/zh/network.md) |
-| 技能 | `push`, `show`, `list` | 技能管理 | [→](docs/zh/skills.md) |
-| Docker | `login`, `tag`, `push` | Docker 仓库 | [→](docs/zh/docker.md) |
+| 分组    | 命令                                                                                                                               | 说明         | 详情                    |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------ | ----------------------- |
+| 核心    | `version`, `login`, `logout`                                                                                                       | 版本与认证   | [→](docs/zh/core.md)    |
+| 镜像    | `list`, `init`, `create`, `create-from-template`, `activate`, `deactivate`, `delete`, `status`, `set-max-session`, `warmup-status` | 镜像生命周期 | [→](docs/zh/image.md)   |
+| API Key | `create`, `enable`, `disable`, `delete`, `list`, `concurrency set`, `describe-key-content`                                         | 密钥管理     | [→](docs/zh/apikey.md)  |
+| 网络    | `package list`                                                                                                                     | 网络配置     | [→](docs/zh/network.md) |
+| 技能    | `push`, `show`, `list`                                                                                                             | 技能管理     | [→](docs/zh/skills.md)  |
+| Docker  | `login`, `tag`, `push`                                                                                                             | Docker 仓库  | [→](docs/zh/docker.md)  |
 
 ---
 

@@ -33,7 +33,7 @@ func (s CreateMarketSkillRequest) GoString() string {
 	return s.String()
 }
 
-func (s *CreateMarketSkillRequest) GetOssBucket() *string   { return s.OssBucket }
+func (s *CreateMarketSkillRequest) GetOssBucket() *string { return s.OssBucket }
 func (s *CreateMarketSkillRequest) SetOssBucket(v string) *CreateMarketSkillRequest {
 	s.OssBucket = &v
 	return s

@@ -48,12 +48,12 @@ type iCreateTagResponseBody interface {
 }
 
 type CreateTagResponseBody struct {
-	Code           *string                        `json:"Code,omitempty" xml:"Code,omitempty"`
+	Code           *string                         `json:"Code,omitempty" xml:"Code,omitempty"`
 	Data           []CreateTagResponseBodyDataItem `json:"Data,omitempty" xml:"Data,omitempty"`
-	HttpStatusCode *int32                         `json:"HttpStatusCode,omitempty" xml:"HttpStatusCode,omitempty"`
-	Message        *string                        `json:"Message,omitempty" xml:"Message,omitempty"`
-	RequestId      *string                        `json:"RequestId,omitempty" xml:"RequestId,omitempty"`
-	Success        *bool                          `json:"Success,omitempty" xml:"Success,omitempty"`
+	HttpStatusCode *int32                          `json:"HttpStatusCode,omitempty" xml:"HttpStatusCode,omitempty"`
+	Message        *string                         `json:"Message,omitempty" xml:"Message,omitempty"`
+	RequestId      *string                         `json:"RequestId,omitempty" xml:"RequestId,omitempty"`
+	Success        *bool                           `json:"Success,omitempty" xml:"Success,omitempty"`
 }
 
 func (s CreateTagResponseBody) String() string {

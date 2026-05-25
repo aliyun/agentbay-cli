@@ -24,9 +24,9 @@ agentbay skills push ./my-skill --tag "标签1" --tag "标签2"
 
 **Flags：**
 
-| 参数   | 类型        | 必填 | 说明                                                                                      |
-| ------ | ----------- | ---- | ----------------------------------------------------------------------------------------- |
-| `--tag` | stringArray | 否   | 技能标签名称（可多次指定，如 `--tag "标签1" --tag "标签2"`）|
+| 参数    | 类型        | 必填 | 说明                                                         |
+| ------- | ----------- | ---- | ------------------------------------------------------------ |
+| `--tag` | stringArray | 否   | 技能标签名称（可多次指定，如 `--tag "标签1" --tag "标签2"`） |
 
 **注意事项：**
 
@@ -62,7 +62,12 @@ agentbay skills push ./my-skill --tag "标签1" --tag "标签2"
 
 ```json
 {
-  "Action": ["agentbay:ListTag", "agentbay:CreateTag", "agentbay:GetMarketSkillCredential", "agentbay:CreateMarketSkill"]
+  "Action": [
+    "agentbay:ListTag",
+    "agentbay:CreateTag",
+    "agentbay:GetMarketSkillCredential",
+    "agentbay:CreateMarketSkill"
+  ]
 }
 ```
 
