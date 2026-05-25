@@ -1,8 +1,8 @@
 class Agentbay < Formula
   desc "Secure infrastructure for running AI-generated code"
   homepage "https://github.com/aliyun/agentbay-cli"
-  url "https://github.com/aliyun/agentbay-cli/archive/refs/tags/v0.2.10.tar.gz"
-  sha256 "bc0fdcc6f5f0c3e8d6ce77a21f8f36bd759d9c8dd28ca2695fd77a38091248d0"
+  url "https://github.com/aliyun/agentbay-cli/archive/refs/tags/v0.3.0.tar.gz"
+  sha256 "b1717ee4b3bcd13a4b1c9cbf8f8e004269b92f0fdf6940cf2095b8f89f663dfa"
   license "MIT"
   head "https://github.com/aliyun/agentbay-cli.git", branch: "main"
 
@@ -12,7 +12,7 @@ class Agentbay < Formula
     # Set build variables matching the Makefile
     version = self.version
     # Use embedded git commit from build time (since tarball has no .git directory)
-    git_commit = "679214a"
+    git_commit = "16dda9f"
     build_date = Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # Set Go proxy for better network connectivity (especially in China)
