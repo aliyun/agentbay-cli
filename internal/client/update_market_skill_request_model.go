@@ -17,8 +17,8 @@ type iUpdateMarketSkillRequest interface {
 	GetOssBucket() *string
 	SetOssFilePath(v string) *UpdateMarketSkillRequest
 	GetOssFilePath() *string
-	SetTags(v []string) *UpdateMarketSkillRequest
-	GetTags() []string
+	SetTagList(v []string) *UpdateMarketSkillRequest
+	GetTagList() []string
 	SetIcon(v string) *UpdateMarketSkillRequest
 	GetIcon() *string
 }
@@ -27,7 +27,7 @@ type UpdateMarketSkillRequest struct {
 	SkillId     *string  `json:"SkillId,omitempty" xml:"SkillId,omitempty"`
 	OssBucket   *string  `json:"OssBucket,omitempty" xml:"OssBucket,omitempty"`
 	OssFilePath *string  `json:"OssFilePath,omitempty" xml:"OssFilePath,omitempty"`
-	Tags        []string `json:"Tags,omitempty" xml:"Tags,omitempty"`
+	TagList     []string `json:"TagList,omitempty" xml:"TagList,omitempty"`
 	Icon        *string  `json:"Icon,omitempty" xml:"Icon,omitempty"`
 }
 
@@ -54,9 +54,9 @@ func (s *UpdateMarketSkillRequest) SetOssFilePath(v string) *UpdateMarketSkillRe
 	s.OssFilePath = &v
 	return s
 }
-func (s *UpdateMarketSkillRequest) GetTags() []string { return s.Tags }
-func (s *UpdateMarketSkillRequest) SetTags(v []string) *UpdateMarketSkillRequest {
-	s.Tags = v
+func (s *UpdateMarketSkillRequest) GetTagList() []string { return s.TagList }
+func (s *UpdateMarketSkillRequest) SetTagList(v []string) *UpdateMarketSkillRequest {
+	s.TagList = v
 	return s
 }
 func (s *UpdateMarketSkillRequest) GetIcon() *string { return s.Icon }

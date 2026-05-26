@@ -11,12 +11,12 @@ type iCreateTagRequest interface {
 	dara.Model
 	String() string
 	GoString() string
-	SetTagNameList(v []string) *CreateTagRequest
-	GetTagNameList() []string
+	SetTagList(v []string) *CreateTagRequest
+	GetTagList() []string
 }
 
 type CreateTagRequest struct {
-	TagNameList []string `json:"TagNameList,omitempty" xml:"TagNameList,omitempty"`
+	TagList []string `json:"TagList,omitempty" xml:"TagList,omitempty"`
 }
 
 func (s CreateTagRequest) String() string {
@@ -27,9 +27,9 @@ func (s CreateTagRequest) GoString() string {
 	return s.String()
 }
 
-func (s *CreateTagRequest) GetTagNameList() []string { return s.TagNameList }
-func (s *CreateTagRequest) SetTagNameList(v []string) *CreateTagRequest {
-	s.TagNameList = v
+func (s *CreateTagRequest) GetTagList() []string { return s.TagList }
+func (s *CreateTagRequest) SetTagList(v []string) *CreateTagRequest {
+	s.TagList = v
 	return s
 }
 func (s *CreateTagRequest) Validate() error {

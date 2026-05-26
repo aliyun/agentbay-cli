@@ -15,8 +15,8 @@ type iCreateMarketSkillRequest interface {
 	GetOssBucket() *string
 	SetOssFilePath(v string) *CreateMarketSkillRequest
 	GetOssFilePath() *string
-	SetTags(v []string) *CreateMarketSkillRequest
-	GetTags() []string
+	SetTagList(v []string) *CreateMarketSkillRequest
+	GetTagList() []string
 	SetIcon(v string) *CreateMarketSkillRequest
 	GetIcon() *string
 }
@@ -24,7 +24,7 @@ type iCreateMarketSkillRequest interface {
 type CreateMarketSkillRequest struct {
 	OssBucket   *string  `json:"OssBucket,omitempty" xml:"OssBucket,omitempty"`
 	OssFilePath *string  `json:"OssFilePath,omitempty" xml:"OssFilePath,omitempty"`
-	Tags        []string `json:"Tags,omitempty" xml:"Tags,omitempty"`
+	TagList     []string `json:"TagList,omitempty" xml:"TagList,omitempty"`
 	Icon        *string  `json:"Icon,omitempty" xml:"Icon,omitempty"`
 }
 
@@ -46,9 +46,9 @@ func (s *CreateMarketSkillRequest) SetOssFilePath(v string) *CreateMarketSkillRe
 	s.OssFilePath = &v
 	return s
 }
-func (s *CreateMarketSkillRequest) GetTags() []string { return s.Tags }
-func (s *CreateMarketSkillRequest) SetTags(v []string) *CreateMarketSkillRequest {
-	s.Tags = v
+func (s *CreateMarketSkillRequest) GetTagList() []string { return s.TagList }
+func (s *CreateMarketSkillRequest) SetTagList(v []string) *CreateMarketSkillRequest {
+	s.TagList = v
 	return s
 }
 func (s *CreateMarketSkillRequest) GetIcon() *string { return s.Icon }

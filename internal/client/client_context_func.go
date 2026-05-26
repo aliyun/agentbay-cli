@@ -41,9 +41,9 @@ func (client *Client) CreateMarketSkillWithContext(ctx context.Context, request 
 	if !dara.IsNil(request.OssFilePath) {
 		body["OssFilePath"] = request.OssFilePath
 	}
-	if len(request.Tags) > 0 {
-		b, _ := json.Marshal(request.Tags)
-		body["Tags"] = string(b)
+	if len(request.TagList) > 0 {
+		b, _ := json.Marshal(request.TagList)
+		body["TagList"] = string(b)
 	}
 
 	req := &openapiutil.OpenApiRequest{

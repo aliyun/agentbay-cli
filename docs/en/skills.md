@@ -39,6 +39,7 @@ agentbay skills push ./my-skill --tag "tag1" --icon 'https://example.com/icon.pn
 - Tags are processed before obtaining the upload credential to avoid credential expiry during tag creation.
 - If `--icon` is not specified, the default AgentBay icon is used automatically.
 - **Shell quoting for `--icon`:** If the icon URL contains `!!` (e.g. Alibaba CDN URLs like `...!!6000000005528...`), wrap it in **single quotes** to prevent zsh history expansion: `--icon 'https://...'`.
+- **Duplicate name restriction:** `push` is a pure create operation; the platform does not allow duplicate skill names under the same user account. To update an existing skill's content, use `skills update`.
 
 **Output:**
 
@@ -103,6 +104,7 @@ agentbay skills update --skill-id <id> --file ./my-skill --icon 'https://example
 - When `--file` is a directory, it is automatically packed into a `.zip` before upload.
 - When `--tag` is specified, the CLI first checks whether each tag already exists; missing tags are created automatically.
 - Tags are processed before obtaining the upload credential to avoid credential expiry.
+- **Skill name cannot be changed:** The `name` field in `SKILL.md` of the new file must match the original skill's name exactly. If they differ, the server will return an error.
 - **Shell quoting for `--icon`:** If the icon URL contains `!!` (e.g. Alibaba CDN URLs like `...!!6000000005528...`), wrap it in **single quotes** to prevent zsh history expansion: `--icon 'https://...'`. Double quotes or no quotes will cause zsh to expand `!!` into the previous command, resulting in a parse error.
 
 **Output:**
@@ -197,13 +199,13 @@ agentbay skills list --name "find" --tag aliyun --page 1 --size 5
 
 **Flags:**
 
-| Flag       | Short | Type        | Required | Default | Description                                                                          |
-| ---------- | ----- | ----------- | -------- | ------- | ------------------------------------------------------------------------------------ |
-| `--page`   |       | int         | No       | 1       | Page number                                                                          |
-| `--size`   |       | int         | No       | 10      | Number of results per page                                                           |
-| `--name`   |       | string      | No       | (none)  | Filter by skill name                                                                 |
-| `--tag`    |       | stringArray | No       | (none)  | Filter by tag name (can be specified multiple times, e.g. `--tag test --tag aliyun`) |
-| `--output` | `-o`  | string      | No       | (none)  | Output format. Use `json` for machine-readable complete data (e.g. for AI/scripts)   |
+| Flag       | Short | Type        | Required | Default | Description                                                                                                                                             |
+| ---------- | ----- | ----------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--page`   |       | int         | No       | 1       | Page number                                                                                                                                             |
+| `--size`   |       | int         | No       | 10      | Number of results per page                                                                                                                              |
+| `--name`   |       | string      | No       | (none)  | Filter by skill name                                                                                                                                    |
+| `--tag`    |       | stringArray | No       | (none)  | Filter by tag name (can be specified multiple times); multiple `--tag` values use **OR** logic — skills matching any of the specified tags are returned |
+| `--output` | `-o`  | string      | No       | (none)  | Output format. Use `json` for machine-readable complete data (e.g. for AI/scripts)                                                                      |
 
 **Output:**
 

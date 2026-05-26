@@ -11,8 +11,8 @@ type ListMarketSkillByPageRequest struct {
 	PageSize *int32
 	// SkillName filters by skill name (optional).
 	SkillName *string
-	// TagNames filters by tag names (optional). Will be serialized as JSON array string.
-	TagNames []string
+	// TagList filters by tag names (optional). Will be serialized as JSON array string.
+	TagList []string
 }
 
 // GetPageNo returns the PageNo value safely.
@@ -39,12 +39,12 @@ func (r *ListMarketSkillByPageRequest) GetSkillName() *string {
 	return r.SkillName
 }
 
-// GetTagNames returns the TagNames value safely.
-func (r *ListMarketSkillByPageRequest) GetTagNames() []string {
+// GetTagList returns the TagList value safely.
+func (r *ListMarketSkillByPageRequest) GetTagList() []string {
 	if r == nil {
 		return nil
 	}
-	return r.TagNames
+	return r.TagList
 }
 
 // Validate validates the request parameters.

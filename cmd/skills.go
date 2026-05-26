@@ -231,7 +231,7 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 
 		if len(missingTags) > 0 {
 			fmt.Printf("[INFO] Tags not found: %s, creating...\n", strings.Join(missingTags, ", "))
-			createReq := &client.CreateTagRequest{TagNameList: missingTags}
+			createReq := &client.CreateTagRequest{TagList: missingTags}
 			createTagResp, err := apiClient.CreateTag(ctx, createReq)
 			if err != nil {
 				printRequestIDFromErrIfVerbose(cmd, err)
@@ -340,7 +340,7 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 		OssFilePath: &createOssPath,
 	}
 	if len(tags) > 0 {
-		createReq.Tags = tags
+		createReq.TagList = tags
 	}
 	if iconInput != "" {
 		createReq.Icon = &iconInput
@@ -443,7 +443,7 @@ func runSkillsUpdate(cmd *cobra.Command, args []string) error {
 
 		if len(missingTags) > 0 {
 			fmt.Printf("[INFO] Tags not found: %s, creating...\n", strings.Join(missingTags, ", "))
-			createReq := &client.CreateTagRequest{TagNameList: missingTags}
+			createReq := &client.CreateTagRequest{TagList: missingTags}
 			createTagResp, err := apiClient.CreateTag(ctx, createReq)
 			if err != nil {
 				printRequestIDFromErrIfVerbose(cmd, err)
@@ -615,7 +615,7 @@ func runSkillsUpdate(cmd *cobra.Command, args []string) error {
 		updateReq.OssFilePath = &ossFilePath
 	}
 	if len(tags) > 0 {
-		updateReq.Tags = tags
+		updateReq.TagList = tags
 	}
 	if iconInput != "" {
 		updateReq.Icon = &iconInput
@@ -771,7 +771,7 @@ func runSkillsList(cmd *cobra.Command, args []string) error {
 		req.SkillName = &name
 	}
 	if len(tags) > 0 {
-		req.TagNames = tags
+		req.TagList = tags
 	}
 
 	resp, err := apiClient.ListMarketSkillByPage(ctx, req)
@@ -1058,9 +1058,8 @@ func runSkillsShow(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(os.Stderr, "[INFO] No details for skill %s\n", skillId)
 		return nil
 	}
-	verbose, _ := cmd.Flags().GetBool("verbose")
-	if verbose && resp.Body.RequestId != nil && *resp.Body.RequestId != "" {
-		printRequestIDIfVerbose(cmd, *resp.Body.RequestId)
+	if resp.Body.RequestId != nil && *resp.Body.RequestId != "" {
+		fmt.Printf("[INFO] DescribeMarketSkillDetail RequestId: %s\n", *resp.Body.RequestId)
 	}
 	d := resp.Body.Data
 	displaySkillId := strPtr(d.GetSkillId())

@@ -414,9 +414,9 @@ func (client *Client) CreateMarketSkillWithOptions(request *CreateMarketSkillReq
 	if !dara.IsNil(request.OssFilePath) {
 		body["OssFilePath"] = request.OssFilePath
 	}
-	if len(request.Tags) > 0 {
-		b, _ := json.Marshal(request.Tags)
-		body["Tags"] = string(b)
+	if len(request.TagList) > 0 {
+		b, _ := json.Marshal(request.TagList)
+		body["TagList"] = string(b)
 	}
 	if !dara.IsNil(request.Icon) {
 		body["Icon"] = request.Icon
@@ -480,9 +480,9 @@ func (client *Client) UpdateMarketSkillWithOptions(request *UpdateMarketSkillReq
 	if !dara.IsNil(request.OssFilePath) {
 		body["OssFilePath"] = request.OssFilePath
 	}
-	if len(request.Tags) > 0 {
-		b, _ := json.Marshal(request.Tags)
-		body["Tags"] = string(b)
+	if len(request.TagList) > 0 {
+		b, _ := json.Marshal(request.TagList)
+		body["TagList"] = string(b)
 	}
 	if !dara.IsNil(request.Icon) {
 		body["Icon"] = request.Icon
@@ -546,9 +546,9 @@ func (client *Client) ListMarketSkillByPageWithOptions(request *ListMarketSkillB
 	if request.SkillName != nil {
 		query["SkillName"] = request.SkillName
 	}
-	if len(request.TagNames) > 0 {
-		b, _ := json.Marshal(request.TagNames)
-		query["TagNames"] = string(b)
+	if len(request.TagList) > 0 {
+		b, _ := json.Marshal(request.TagList)
+		query["TagList"] = string(b)
 	}
 
 	req := &openapiutil.OpenApiRequest{
@@ -698,16 +698,16 @@ func (client *Client) ListTag() (_result *ListTagResponse, _err error) {
 }
 
 // CreateTag 批量创建标签
-// TagNameList is sent as a JSON array string in the body, not using xxx.1 format.
+// TagList is sent as a JSON array string in the body, not using xxx.1 format.
 func (client *Client) CreateTagWithOptions(request *CreateTagRequest, runtime *dara.RuntimeOptions) (_result *CreateTagResponse, _err error) {
 	_err = request.Validate()
 	if _err != nil {
 		return _result, _err
 	}
 	body := map[string]interface{}{}
-	if len(request.TagNameList) > 0 {
-		b, _ := json.Marshal(request.TagNameList)
-		body["TagNameList"] = string(b)
+	if len(request.TagList) > 0 {
+		b, _ := json.Marshal(request.TagList)
+		body["TagList"] = string(b)
 	}
 	req := &openapiutil.OpenApiRequest{
 		Body:    openapiutil.ParseToMap(body),
