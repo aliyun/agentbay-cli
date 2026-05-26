@@ -1663,6 +1663,251 @@ func parseListTagResponse(res map[string]interface{}) (*ListTagResponse, error) 
 	return out, nil
 }
 
+// --- ListMarketSkillByPage ---
+
+// listMarketSkillByPageOuterJSONWire handles the outer-wrapped response format:
+// {"code":"200","data":{"RequestId":"...","HttpStatusCode":200,"Data":{...},"Code":"ok"},...}
+type listMarketSkillByPageOuterJSONWire struct {
+	Code           *string         `json:"code"`
+	Data           json.RawMessage `json:"data"`
+	HttpStatusCode json.RawMessage `json:"httpStatusCode"`
+	Message        *string         `json:"message"`
+	RequestId      *string         `json:"requestId"`
+	Success        *bool           `json:"successResponse"`
+}
+
+// listMarketSkillByPageInnerJSONWire is the inner "data" payload with pagination info.
+type listMarketSkillByPageInnerJSONWire struct {
+	RequestId      *string                            `json:"RequestId"`
+	HttpStatusCode json.RawMessage                    `json:"HttpStatusCode"`
+	Code           *string                            `json:"Code"`
+	Data           *listMarketSkillByPageDataJSONWire `json:"Data"`
+}
+
+// listMarketSkillByPageDataJSONWire holds the actual paginated data.
+type listMarketSkillByPageDataJSONWire struct {
+	TotalCount json.RawMessage                       `json:"TotalCount"`
+	TotalPage  json.RawMessage                       `json:"TotalPage"`
+	PageSize   json.RawMessage                       `json:"PageSize"`
+	PageNumber json.RawMessage                       `json:"PageNumber"`
+	Result     []listMarketSkillByPageResultJSONWire `json:"Result"`
+}
+
+// listMarketSkillByPageResultJSONWire is a single skill entry.
+type listMarketSkillByPageResultJSONWire struct {
+	SkillName   *string  `json:"SkillName"`
+	SkillId     *string  `json:"SkillId"`
+	TenantTags  []string `json:"TenantTags"`
+	SkillStatus *string  `json:"SkillStatus"`
+	GmtModified *string  `json:"GmtModified"`
+	GmtCreate   *string  `json:"GmtCreate"`
+	Description *string  `json:"Description"`
+	Icon        *string  `json:"Icon"`
+}
+
+type xmlListMarketSkillByPageResult struct {
+	SkillName   string   `xml:"SkillName"`
+	SkillId     string   `xml:"SkillId"`
+	TenantTags  []string `xml:"TenantTags>Tag"`
+	SkillStatus string   `xml:"SkillStatus"`
+	GmtModified string   `xml:"GmtModified"`
+	GmtCreate   string   `xml:"GmtCreate"`
+	Description string   `xml:"Description"`
+	Icon        string   `xml:"Icon"`
+}
+
+type xmlListMarketSkillByPageResponse struct {
+	XMLName        xml.Name `xml:"ListMarketSkillByPageResponse"`
+	RequestId      string   `xml:"RequestId"`
+	HttpStatusCode string   `xml:"HttpStatusCode"`
+	Code           string   `xml:"Code"`
+	Success        bool     `xml:"Success"`
+	Message        string   `xml:"Message"`
+	Data           struct {
+		TotalCount string                           `xml:"TotalCount"`
+		TotalPage  string                           `xml:"TotalPage"`
+		PageSize   string                           `xml:"PageSize"`
+		PageNumber string                           `xml:"PageNumber"`
+		Result     []xmlListMarketSkillByPageResult `xml:"Result>Item"`
+	} `xml:"Data"`
+}
+
+func parseListMarketSkillByPageResponse(res map[string]interface{}) (*ListMarketSkillByPageResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &ListMarketSkillByPageResponse{Headers: make(map[string]*string)}
+	parsed := &ListMarketSkillByPageResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			// XML branch
+			var xr xmlListMarketSkillByPageResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = dara.String(xr.Code)
+			parsed.RequestId = dara.String(xr.RequestId)
+			parsed.Success = dara.Bool(xr.Success)
+			parsed.Message = dara.String(xr.Message)
+			if s := strings.TrimSpace(xr.HttpStatusCode); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					parsed.HttpStatusCode = dara.Int32(int32(n))
+				}
+			}
+			data := &ListMarketSkillByPageResponseBodyData{}
+			if s := strings.TrimSpace(xr.Data.TotalCount); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					data.TotalCount = dara.Int32(int32(n))
+				}
+			}
+			if s := strings.TrimSpace(xr.Data.TotalPage); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					data.TotalPage = dara.Int32(int32(n))
+				}
+			}
+			if s := strings.TrimSpace(xr.Data.PageSize); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					data.PageSize = dara.Int32(int32(n))
+				}
+			}
+			if s := strings.TrimSpace(xr.Data.PageNumber); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					data.PageNumber = dara.Int32(int32(n))
+				}
+			}
+			for _, item := range xr.Data.Result {
+				data.Result = append(data.Result, &ListMarketSkillByPageResponseBodyDataResult{
+					SkillName:   dara.String(item.SkillName),
+					SkillId:     dara.String(item.SkillId),
+					TenantTags:  item.TenantTags,
+					SkillStatus: dara.String(item.SkillStatus),
+					GmtModified: dara.String(item.GmtModified),
+					GmtCreate:   dara.String(item.GmtCreate),
+					Description: dara.String(item.Description),
+					Icon:        dara.String(item.Icon),
+				})
+			}
+			parsed.Data = data
+		} else {
+			// JSON branch: outer-wrapped format
+			// {"code":"200","data":{"RequestId":"...","HttpStatusCode":200,"Data":{...},"Code":"ok"}}
+			var outer listMarketSkillByPageOuterJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &outer); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.RequestId = outer.RequestId
+			n, derr := int32FromFlexibleJSON(outer.HttpStatusCode)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: fmt.Errorf("HttpStatusCode: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.HttpStatusCode = n
+			parsed.Success = outer.Success
+
+			if len(outer.Data) > 0 && string(outer.Data) != "null" {
+				var inner listMarketSkillByPageInnerJSONWire
+				if err := json.Unmarshal(outer.Data, &inner); err != nil {
+					return nil, &ErrWithRequestID{Err: fmt.Errorf("data: %w", err), RequestID: extractRequestIDFromResponse(res)}
+				}
+				// Use inner Code and RequestId if available
+				if inner.Code != nil {
+					parsed.Code = inner.Code
+				} else {
+					parsed.Code = outer.Code
+				}
+				if inner.RequestId != nil {
+					parsed.RequestId = inner.RequestId
+				}
+				if inner.Data != nil {
+					// Double-wrapped ACS format: outer.Data is {"RequestId":...,"Data":{pagination}}
+					data := &ListMarketSkillByPageResponseBodyData{}
+					tc, derr := int32FromFlexibleJSON(inner.Data.TotalCount)
+					if derr != nil {
+						return nil, &ErrWithRequestID{Err: fmt.Errorf("Data.TotalCount: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+					}
+					data.TotalCount = tc
+					tp, derr := int32FromFlexibleJSON(inner.Data.TotalPage)
+					if derr != nil {
+						return nil, &ErrWithRequestID{Err: fmt.Errorf("Data.TotalPage: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+					}
+					data.TotalPage = tp
+					ps, derr := int32FromFlexibleJSON(inner.Data.PageSize)
+					if derr != nil {
+						return nil, &ErrWithRequestID{Err: fmt.Errorf("Data.PageSize: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+					}
+					data.PageSize = ps
+					pn, derr := int32FromFlexibleJSON(inner.Data.PageNumber)
+					if derr != nil {
+						return nil, &ErrWithRequestID{Err: fmt.Errorf("Data.PageNumber: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+					}
+					data.PageNumber = pn
+					for _, item := range inner.Data.Result {
+						data.Result = append(data.Result, &ListMarketSkillByPageResponseBodyDataResult{
+							SkillName:   item.SkillName,
+							SkillId:     item.SkillId,
+							TenantTags:  item.TenantTags,
+							SkillStatus: item.SkillStatus,
+							GmtModified: item.GmtModified,
+							GmtCreate:   item.GmtCreate,
+							Description: item.Description,
+							Icon:        item.Icon,
+						})
+					}
+					parsed.Data = data
+				} else {
+					// Single-wrapped format: outer.Data is the pagination data directly
+					// e.g. outer.Data = {"TotalCount":6,"TotalPage":1,...,"Result":[...]}
+					// This happens when Go JSON case-insensitive matching maps "Data" -> outer.Data.
+					var directData listMarketSkillByPageDataJSONWire
+					if jerr := json.Unmarshal(outer.Data, &directData); jerr == nil && len(directData.Result) > 0 {
+						data := &ListMarketSkillByPageResponseBodyData{}
+						tc, _ := int32FromFlexibleJSON(directData.TotalCount)
+						data.TotalCount = tc
+						tp, _ := int32FromFlexibleJSON(directData.TotalPage)
+						data.TotalPage = tp
+						ps, _ := int32FromFlexibleJSON(directData.PageSize)
+						data.PageSize = ps
+						pn, _ := int32FromFlexibleJSON(directData.PageNumber)
+						data.PageNumber = pn
+						for _, item := range directData.Result {
+							data.Result = append(data.Result, &ListMarketSkillByPageResponseBodyDataResult{
+								SkillName:   item.SkillName,
+								SkillId:     item.SkillId,
+								TenantTags:  item.TenantTags,
+								SkillStatus: item.SkillStatus,
+								GmtModified: item.GmtModified,
+								GmtCreate:   item.GmtCreate,
+								Description: item.Description,
+								Icon:        item.Icon,
+							})
+						}
+						parsed.Data = data
+					} else if jerr == nil {
+						// Empty result set
+						data := &ListMarketSkillByPageResponseBodyData{}
+						tc, _ := int32FromFlexibleJSON(directData.TotalCount)
+						data.TotalCount = tc
+						tp, _ := int32FromFlexibleJSON(directData.TotalPage)
+						data.TotalPage = tp
+						ps, _ := int32FromFlexibleJSON(directData.PageSize)
+						data.PageSize = ps
+						pn, _ := int32FromFlexibleJSON(directData.PageNumber)
+						data.PageNumber = pn
+						parsed.Data = data
+					}
+				}
+			} else {
+				// outer.Data is nil: body has no data field at all
+				parsed.Code = outer.Code
+			}
+		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
+
 // --- CreateTag ---
 
 type createTagJSONWire struct {

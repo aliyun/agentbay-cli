@@ -224,6 +224,7 @@ STS、OAuth（不推荐使用）及环境变量详见 [认证与环境](docs/zh/
 | `CreateMarketSkill`         | `agentbay:CreateMarketSkill`         | `skills push`                  |
 | `UpdateMarketSkill`         | `agentbay:UpdateMarketSkill`         | `skills update`                |
 | `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` | `skills show`                  |
+| `ListMarketSkillByPage`     | `agentbay:ListMarketSkillByPage`     | `skills list`                  |
 
 **RAM Policy 示例：**
 
@@ -239,7 +240,8 @@ STS、OAuth（不推荐使用）及环境变量详见 [认证与环境](docs/zh/
         "agentbay:GetMarketSkillCredential",
         "agentbay:CreateMarketSkill",
         "agentbay:UpdateMarketSkill",
-        "agentbay:DescribeMarketSkillDetail"
+        "agentbay:DescribeMarketSkillDetail",
+        "agentbay:ListMarketSkillByPage"
       ],
       "Resource": "*"
     }

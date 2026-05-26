@@ -109,6 +109,111 @@ feat: add API key concurrency management CLI command
 
 ---
 
+## 📋 `--output json` 输出格式 SOP
+
+### 适用场景
+
+凡命令返回**列表类数据**（即输出一个以上条目的表格），**必须**支持 `--output json` flag。
+
+**判断标准**：
+
+| 命令类型                    | 是否需要      |
+| --------------------------- | ------------- |
+| `list` 命令（返回列表）     | ✅ 必须添加   |
+| `show` / 查询单条详情       | ❌ 通常不需要 |
+| 只读查询但返回单一字段      | ❌ 不需要     |
+| 创建 / 修改 / 删除 等变更类 | ❌ 不需要     |
+
+### Flag 设计规范
+
+- Flag 名称统一为 `--output`
+- **短参数**：
+  - 区分是否已有其他短参数占用 `-o`：
+    - 未被占用：添加 `-o` 短参数（如 `apikey list`、`skills list`）
+    - 已被占用（如 `image list` 的 `--os-type -o`）：**不加短参数**
+- 当前仅支持 `json` 一种输出格式
+
+```go
+// 有短参数的情况
+cmd.Flags().StringP("output", "o", "", `Output format. Use "json" for machine-readable output (e.g. for AI/scripts)`)
+
+// 无短参数的情况（-o 已被占用）
+cmd.Flags().String("output", "", `Output format. Use "json" for machine-readable output (e.g. for AI/scripts)`)
+```
+
+### 实现模板
+
+```go
+func runXxxList(cmd *cobra.Command, args []string) error {
+    outputFmt, _ := cmd.Flags().GetString("output")
+
+    // ... 调用 API、获取数据 ...
+
+    // JSON 输出分支：放在表格输出之前
+    if strings.EqualFold(outputFmt, "json") {
+        type itemJSON struct {
+            // 输出全量字段，包括表格中被桓出的列
+            Field1 string `json:"field1"`
+            Field2 string `json:"field2"`
+        }
+        type outputJSON struct {
+            TotalCount int        `json:"totalCount"`
+            NextToken  string     `json:"nextToken,omitempty"`  // 分页命令需要
+            Items      []itemJSON `json:"items"`
+        }
+        out := outputJSON{TotalCount: len(items)}
+        for _, item := range items {
+            // 填充字段
+        }
+        if out.Items == nil {
+            out.Items = []itemJSON{} // 空数组用 [] 而非 null
+        }
+        b, err := json.MarshalIndent(out, "", "  ")
+        if err != nil {
+            return fmt.Errorf("json marshal: %w", err)
+        }
+        fmt.Println(string(b))
+        return nil
+    }
+
+    // 默认表格输出
+    printTable(items)
+    return nil
+}
+```
+
+### JSON 输出字段要求
+
+1. **包含全量字段**：导出所有 API 返回的字段，包括表格中因横向空间限制而被栓略的列
+2. **字段命名**：使用 camelCase（如 `skillId`、`gmtCreate`、`statusDisplay`）
+3. **空数组**：永远输出 `[]` 而非 `null`，即 `if out.Items == nil { out.Items = []itemJSON{} }`
+4. **可选字段**：使用 `omitempty`（如分页的 `nextToken`）
+5. **不包含内部请求元信息**：`[INFO] Request ID:` 行仍打印到 stdout，但不包含在 JSON 输出中
+
+### 文档要求
+
+凡新增 `--output json` 支持，必须在对应的 `docs/zh/<group>.md` 和 `docs/en/<group>.md` 中记录：
+
+1. 在 Flags 表格中添加 `--output` 行
+2. 提供 JSON 输出示例
+3. 如有短参数冲突（如 `image list` 的 `-o` 已被 `--os-type` 占用），要在文档中说明
+
+### 参考实现
+
+- [`cmd/skills.go`](file:///Users/lxy/work/project/ai/agentbay/cli/agentbay-cli/cmd/skills.go) — `runSkillsList`（`-o json` 短参数）
+- [`cmd/image_list_helper.go`](file:///Users/lxy/work/project/ai/agentbay/cli/agentbay-cli/cmd/image_list_helper.go) — `printImagesAsJSON` 共享输出 helper
+- [`cmd/apikey_list.go`](file:///Users/lxy/work/project/ai/agentbay/cli/agentbay-cli/cmd/apikey_list.go) — `runApikeyList`（`-o json` 短参数）
+
+### 检查清单
+
+- [ ] `--output` flag 已添加，有无短参数 `-o` 遵循冲突检查规则
+- [ ] JSON 输出分支放在表格输出**之前**，而非之后
+- [ ] 空数组输出 `[]` 而非 `null`
+- [ ] 字段包含表格中因横向空间被栓略的列
+- [ ] 对应的 `docs/zh/<group>.md` 和 `docs/en/<group>.md` 已更新
+
+---
+
 ## 💻 Go 代码规范
 
 ### ⚠️ 接口变更必须同步更新 Mock（重要！）

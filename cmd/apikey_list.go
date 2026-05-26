@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -53,6 +54,7 @@ func init() {
 	apikeyListCmd.Flags().StringVar(&apikeyListApiKey, "api-key", "", "User-visible API key (akm-xxx format, recommended) to filter")
 	apikeyListCmd.Flags().StringVar(&apikeyListApiKeyId, "api-key-id", "", "Internal API Key ID (ak-xxx) to filter. Prefer --api-key for normal usage")
 	apikeyListCmd.Flags().StringVar(&apikeyListNextToken, "next-token", "", "Pagination token from previous query")
+	apikeyListCmd.Flags().StringP("output", "o", "", `Output format. Use "json" for machine-readable output (e.g. for AI/scripts)`)
 
 	ApiKeyCmd.AddCommand(apikeyListCmd)
 }
@@ -169,6 +171,54 @@ func runApikeyList(cmd *cobra.Command, args []string) error {
 
 	apiKeys := data.GetApiKeys()
 	fmt.Printf("\n[OK] Found %d API key(s)\n\n", len(apiKeys))
+
+	// JSON output mode
+	outputFmt, _ := cmd.Flags().GetString("output")
+	if strings.EqualFold(outputFmt, "json") {
+		type apiKeyJSON struct {
+			KeyId       string `json:"keyId"`
+			Name        string `json:"name"`
+			ApiKey      string `json:"apiKey"`
+			Status      string `json:"status"`
+			Concurrency *int32 `json:"concurrency"`
+			GmtCreate   string `json:"gmtCreate"`
+			LastUseDate string `json:"lastUseDate"`
+		}
+		type apiKeysOutput struct {
+			TotalCount int          `json:"totalCount"`
+			NextToken  string       `json:"nextToken,omitempty"`
+			ApiKeys    []apiKeyJSON `json:"apiKeys"`
+		}
+		out := apiKeysOutput{TotalCount: len(apiKeys)}
+		if nt := data.GetNextToken(); nt != "" {
+			out.NextToken = nt
+		}
+		for _, key := range apiKeys {
+			if key == nil {
+				continue
+			}
+			entry := apiKeyJSON{
+				KeyId:       key.GetKeyId(),
+				Name:        key.GetName(),
+				ApiKey:      key.GetApiKey(),
+				Status:      key.GetStatus(),
+				Concurrency: key.Concurrency,
+				GmtCreate:   key.GetGmtCreate(),
+				LastUseDate: key.GetLastUseDate(),
+			}
+			out.ApiKeys = append(out.ApiKeys, entry)
+		}
+		if out.ApiKeys == nil {
+			out.ApiKeys = []apiKeyJSON{}
+		}
+		b, jerr := json.MarshalIndent(out, "", "  ")
+		if jerr != nil {
+			return fmt.Errorf("json marshal: %w", jerr)
+		}
+		fmt.Println(string(b))
+		return nil
+	}
+
 	printApiKeyTable(apiKeys)
 
 	// Print pagination hint

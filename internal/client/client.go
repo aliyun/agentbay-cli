@@ -529,6 +529,73 @@ func (client *Client) UpdateMarketSkill(request *UpdateMarketSkillRequest) (_res
 	return _result, _err
 }
 
+// ListMarketSkillByPage 分页查询 Market Skill 列表
+// Uses BodyType "string" so we parse XML/JSON manually.
+func (client *Client) ListMarketSkillByPageWithOptions(request *ListMarketSkillByPageRequest, runtime *dara.RuntimeOptions) (_result *ListMarketSkillByPageResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if request.PageNo != nil {
+		query["PageNo"] = request.PageNo
+	}
+	if request.PageSize != nil {
+		query["PageSize"] = request.PageSize
+	}
+	if request.SkillName != nil {
+		query["SkillName"] = request.SkillName
+	}
+	if len(request.TagNames) > 0 {
+		b, _ := json.Marshal(request.TagNames)
+		query["TagNames"] = string(b)
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("ListMarketSkillByPage"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &ListMarketSkillByPageResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseListMarketSkillByPageResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) ListMarketSkillByPage(request *ListMarketSkillByPageRequest) (_result *ListMarketSkillByPageResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &ListMarketSkillByPageResponse{}
+	_body, _err := client.ListMarketSkillByPageWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+func (client *Client) ListMarketSkillByPageWithContext(ctx interface{}, request *ListMarketSkillByPageRequest) (_result *ListMarketSkillByPageResponse, _err error) {
+	return client.ListMarketSkillByPage(request)
+}
+
 // ListTag 查询所有标签
 func (client *Client) ListTagWithOptions(runtime *dara.RuntimeOptions) (_result *ListTagResponse, _err error) {
 	query := map[string]interface{}{}

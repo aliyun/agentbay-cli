@@ -29,23 +29,21 @@ agentbay apikey create --name "my-api-key"
 
 **Flags:**
 
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--name` | string | Yes | API key name (must be unique) |
+| Flag     | Type   | Required | Description                   |
+| -------- | ------ | -------- | ----------------------------- |
+| `--name` | string | Yes      | API key name (must be unique) |
 
 **Output:** The command displays `ApiKeyId` (ak-xxx format) and `Name` of the newly created key.
 
 **Involved APIs:**
 
-| Action | Required Permission |
-|---|---|
+| Action         | Required Permission     |
+| -------------- | ----------------------- |
 | `CreateApiKey` | `agentbay:CreateApiKey` |
 
 ```json
 {
-  "Action": [
-    "agentbay:CreateApiKey"
-  ]
+  "Action": ["agentbay:CreateApiKey"]
 }
 ```
 
@@ -65,26 +63,23 @@ agentbay apikey enable --api-key-id ak-xxxxxxxxxxxxxxxx
 
 **Flags:**
 
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--api-key` | string | Yes* | User-visible API Key (akm-xxx format, recommended) |
-| `--api-key-id` | string | Yes* | Internal API Key ID (ak-xxx). Prefer `--api-key` for normal usage |
+| Flag           | Type   | Required | Description                                                       |
+| -------------- | ------ | -------- | ----------------------------------------------------------------- |
+| `--api-key`    | string | Yes\*    | User-visible API Key (akm-xxx format, recommended)                |
+| `--api-key-id` | string | Yes\*    | Internal API Key ID (ak-xxx). Prefer `--api-key` for normal usage |
 
 \* Either `--api-key` or `--api-key-id` must be specified, but not both.
 
 **Involved APIs:**
 
-| Action | Required Permission |
-|---|---|
-| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` |
+| Action               | Required Permission           |
+| -------------------- | ----------------------------- |
+| `DescribeMcpApiKey`  | `agentbay:DescribeMcpApiKey`  |
 | `ModifyApiKeyStatus` | `agentbay:ModifyApiKeyStatus` |
 
 ```json
 {
-  "Action": [
-    "agentbay:DescribeMcpApiKey",
-    "agentbay:ModifyApiKeyStatus"
-  ]
+  "Action": ["agentbay:DescribeMcpApiKey", "agentbay:ModifyApiKeyStatus"]
 }
 ```
 
@@ -104,26 +99,23 @@ agentbay apikey disable --api-key-id ak-xxxxxxxxxxxxxxxx
 
 **Flags:**
 
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--api-key` | string | Yes* | User-visible API Key (akm-xxx format, recommended) |
-| `--api-key-id` | string | Yes* | Internal API Key ID (ak-xxx). Prefer `--api-key` for normal usage |
+| Flag           | Type   | Required | Description                                                       |
+| -------------- | ------ | -------- | ----------------------------------------------------------------- |
+| `--api-key`    | string | Yes\*    | User-visible API Key (akm-xxx format, recommended)                |
+| `--api-key-id` | string | Yes\*    | Internal API Key ID (ak-xxx). Prefer `--api-key` for normal usage |
 
 \* Either `--api-key` or `--api-key-id` must be specified, but not both.
 
 **Involved APIs:**
 
-| Action | Required Permission |
-|---|---|
-| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` |
+| Action               | Required Permission           |
+| -------------------- | ----------------------------- |
+| `DescribeMcpApiKey`  | `agentbay:DescribeMcpApiKey`  |
 | `ModifyApiKeyStatus` | `agentbay:ModifyApiKeyStatus` |
 
 ```json
 {
-  "Action": [
-    "agentbay:DescribeMcpApiKey",
-    "agentbay:ModifyApiKeyStatus"
-  ]
+  "Action": ["agentbay:DescribeMcpApiKey", "agentbay:ModifyApiKeyStatus"]
 }
 ```
 
@@ -147,11 +139,11 @@ agentbay apikey delete --api-key-id ak-xxxxxxxxxxxxxxxx -y
 
 **Flags:**
 
-| Flag | Short | Type | Required | Description |
-|------|-------|------|----------|-------------|
-| `--api-key` | | string | Yes* | User-visible API Key (akm-xxx format, recommended) |
-| `--api-key-id` | | string | Yes* | Internal API Key ID (ak-xxx). Prefer `--api-key` for normal usage |
-| `--yes` | `-y` | | No | Skip all confirmation prompts (for non-interactive use) |
+| Flag           | Short | Type   | Required | Description                                                       |
+| -------------- | ----- | ------ | -------- | ----------------------------------------------------------------- |
+| `--api-key`    |       | string | Yes\*    | User-visible API Key (akm-xxx format, recommended)                |
+| `--api-key-id` |       | string | Yes\*    | Internal API Key ID (ak-xxx). Prefer `--api-key` for normal usage |
+| `--yes`        | `-y`  |        | No       | Skip all confirmation prompts (for non-interactive use)           |
 
 \* Either `--api-key` or `--api-key-id` must be specified, but not both.
 
@@ -162,12 +154,12 @@ agentbay apikey delete --api-key-id ak-xxxxxxxxxxxxxxxx -y
 
 **Involved APIs:**
 
-| Action | Required Permission |
-|---|---|
-| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` |
-| `DescribeApiKeys` | `agentbay:DescribeApiKeys` |
+| Action               | Required Permission           |
+| -------------------- | ----------------------------- |
+| `DescribeMcpApiKey`  | `agentbay:DescribeMcpApiKey`  |
+| `DescribeApiKeys`    | `agentbay:DescribeApiKeys`    |
 | `ModifyApiKeyStatus` | `agentbay:ModifyApiKeyStatus` |
-| `DeleteApiKey` | `agentbay:DeleteApiKey` |
+| `DeleteApiKey`       | `agentbay:DeleteApiKey`       |
 
 ```json
 {
@@ -201,30 +193,56 @@ agentbay apikey list --api-key-id ak-xxxxxxxxxxxxxxxx
 
 # Fetch the next page
 agentbay apikey list --next-token <token>
+
+# JSON output (for AI/scripts)
+agentbay apikey list -o json
 ```
 
 **Flags:**
 
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--max-results` | int | No | Maximum number of results (default: 10) |
-| `--api-key` | string | No | Filter by user-visible API Key (akm-xxx format) |
-| `--api-key-id` | string | No | Filter by internal API Key ID (ak-xxx). `--api-key` and `--api-key-id` are mutually exclusive |
-| `--next-token` | string | No | Pagination token for next page |
+| Flag            | Short | Type   | Required | Description                                                                                   |
+| --------------- | ----- | ------ | -------- | --------------------------------------------------------------------------------------------- |
+| `--max-results` |       | int    | No       | Maximum number of results (default: 10)                                                       |
+| `--api-key`     |       | string | No       | Filter by user-visible API Key (akm-xxx format)                                               |
+| `--api-key-id`  |       | string | No       | Filter by internal API Key ID (ak-xxx). `--api-key` and `--api-key-id` are mutually exclusive |
+| `--next-token`  |       | string | No       | Pagination token for next page                                                                |
+| `--output`      | `-o`  | string | No       | Output format. Use `json` for machine-readable complete data (e.g. for AI/scripts)            |
 
-**Involved APIs:**
+**Output example:**
 
-| Action | Required Permission |
-|---|---|
-| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` |
-| `DescribeApiKeys` | `agentbay:DescribeApiKeys` |
+Use `--output json` (or `-o json`) for complete JSON output:
+
+```bash
+agentbay apikey list -o json
+```
 
 ```json
 {
-  "Action": [
-    "agentbay:DescribeMcpApiKey",
-    "agentbay:DescribeApiKeys"
+  "totalCount": 2,
+  "apiKeys": [
+    {
+      "keyId": "ak-xxxxxxxxxxxxxxxx",
+      "name": "my-key",
+      "apiKey": "akm-xxxxxxxxxxxxxxxx",
+      "status": "ENABLED",
+      "concurrency": 5,
+      "gmtCreate": "2026-01-01T00:00:00.000+00:00",
+      "lastUseDate": "2026-01-02T00:00:00.000+00:00"
+    }
   ]
+}
+```
+
+**Involved APIs:**
+
+| Action              | Required Permission          |
+| ------------------- | ---------------------------- |
+| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` |
+| `DescribeApiKeys`   | `agentbay:DescribeApiKeys`   |
+
+```json
+{
+  "Action": ["agentbay:DescribeMcpApiKey", "agentbay:DescribeApiKeys"]
 }
 ```
 
@@ -244,27 +262,24 @@ agentbay apikey concurrency set --api-key-id ak-xxx --concurrency 10
 
 **Flags:**
 
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--api-key` | string | Yes* | User-visible API Key (akm-xxx format, recommended) |
-| `--api-key-id` | string | Yes* | Internal API Key ID (ak-xxx). Prefer `--api-key` for normal usage |
-| `--concurrency` | int | Yes | Maximum concurrent sessions (must be >= 1) |
+| Flag            | Type   | Required | Description                                                       |
+| --------------- | ------ | -------- | ----------------------------------------------------------------- |
+| `--api-key`     | string | Yes\*    | User-visible API Key (akm-xxx format, recommended)                |
+| `--api-key-id`  | string | Yes\*    | Internal API Key ID (ak-xxx). Prefer `--api-key` for normal usage |
+| `--concurrency` | int    | Yes      | Maximum concurrent sessions (must be >= 1)                        |
 
 \* Either `--api-key` or `--api-key-id` must be specified, but not both.
 
 **Involved APIs:**
 
-| Action | Required Permission |
-|---|---|
-| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` |
+| Action                  | Required Permission              |
+| ----------------------- | -------------------------------- |
+| `DescribeMcpApiKey`     | `agentbay:DescribeMcpApiKey`     |
 | `ModifyMcpApiKeyConfig` | `agentbay:ModifyMcpApiKeyConfig` |
 
 ```json
 {
-  "Action": [
-    "agentbay:DescribeMcpApiKey",
-    "agentbay:ModifyMcpApiKeyConfig"
-  ]
+  "Action": ["agentbay:DescribeMcpApiKey", "agentbay:ModifyMcpApiKeyConfig"]
 }
 ```
 
@@ -281,22 +296,20 @@ agentbay apikey describe-key-content --api-key-id ak-xxxxxxxxxxxxxxxx
 
 **Flags:**
 
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--api-key-id` | string | Yes | Internal API key ID (ak-xxx format) |
+| Flag           | Type   | Required | Description                         |
+| -------------- | ------ | -------- | ----------------------------------- |
+| `--api-key-id` | string | Yes      | Internal API key ID (ak-xxx format) |
 
 **Output:** The command displays the plaintext `ApiKey` (akm-xxx format) and the `ApiKeyId` used to query it.
 
 **Involved APIs:**
 
-| Action | Required Permission |
-|---|---|
+| Action               | Required Permission           |
+| -------------------- | ----------------------------- |
 | `DescribeKeyContent` | `agentbay:DescribeKeyContent` |
 
 ```json
 {
-  "Action": [
-    "agentbay:DescribeKeyContent"
-  ]
+  "Action": ["agentbay:DescribeKeyContent"]
 }
 ```

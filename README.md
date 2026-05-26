@@ -224,6 +224,7 @@ If you are using a RAM sub-account's AK/SK, grant the required permissions via t
 | `CreateMarketSkill`         | `agentbay:CreateMarketSkill`         | `skills push`                  |
 | `UpdateMarketSkill`         | `agentbay:UpdateMarketSkill`         | `skills update`                |
 | `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` | `skills show`                  |
+| `ListMarketSkillByPage`     | `agentbay:ListMarketSkillByPage`     | `skills list`                  |
 
 **RAM Policy example:**
 
@@ -238,7 +239,8 @@ If you are using a RAM sub-account's AK/SK, grant the required permissions via t
         "agentbay:CreateTag",
         "agentbay:GetMarketSkillCredential",
         "agentbay:CreateMarketSkill",
-        "agentbay:DescribeMarketSkillDetail"
+        "agentbay:DescribeMarketSkillDetail",
+        "agentbay:ListMarketSkillByPage"
       ],
       "Resource": "*"
     }

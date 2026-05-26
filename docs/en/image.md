@@ -18,19 +18,23 @@ agentbay image list --include-system     # User + system images
 agentbay image list --system-only        # System images only
 agentbay image list --os-type Linux      # Filter by OS type: Linux / Android / Windows
 agentbay image list --page 2 --size 5    # Pagination
+agentbay image list --output json        # JSON output (for AI/scripts)
 ```
 
 **Flags:**
 
-| Flag | Short | Type | Required | Description |
-|------|-------|------|----------|-------------|
-| `--os-type` | `-o` | string | No | Filter by OS (Linux, Windows, Android) |
-| `--include-system` | | | No | Include system images in addition to user images |
-| `--system-only` | | | No | Show only system images |
-| `--page` | `-p` | int | No | Page number (default: 1) |
-| `--size` | `-s` | int | No | Items per page (default: 10) |
+| Flag               | Short | Type   | Required | Description                                                                        |
+| ------------------ | ----- | ------ | -------- | ---------------------------------------------------------------------------------- |
+| `--os-type`        | `-o`  | string | No       | Filter by OS (Linux, Windows, Android)                                             |
+| `--include-system` |       |        | No       | Include system images in addition to user images                                   |
+| `--system-only`    |       |        | No       | Show only system images                                                            |
+| `--page`           | `-p`  | int    | No       | Page number (default: 1)                                                           |
+| `--size`           | `-s`  | int    | No       | Items per page (default: 10)                                                       |
+| `--output`         |       | string | No       | Output format. Use `json` for machine-readable complete data (e.g. for AI/scripts) |
 
 **Output example:**
+
+Default table output:
 
 ```
 === USER IMAGES (17) ===
@@ -44,6 +48,31 @@ IMAGE ID                  IMAGE NAME                     TYPE                 ST
 mobile-use-android-14     Mobile Use Android 14          DedicatedDesktop     Available     Android 14         MobileUse
 ```
 
+Use `--output json` for complete JSON output (note: `-o` short flag is taken by `--os-type` on this command, use the full flag name):
+
+```bash
+agentbay image list --output json
+```
+
+```json
+{
+  "totalCount": 2,
+  "images": [
+    {
+      "imageId": "imgc-xxxxxxxxxxxxxx",
+      "imageName": "my-app",
+      "type": "DockerBuilder",
+      "status": "IMAGE_AVAILABLE",
+      "statusDisplay": "Available",
+      "osName": "Linux",
+      "osVersion": "Debian 12",
+      "osDisplay": "Linux Debian 12",
+      "applyScene": "CodeSpace"
+    }
+  ]
+}
+```
+
 **Notes:**
 
 - System images are always available and don't require activation. Only user-created images need to be activated before use.
@@ -52,15 +81,13 @@ mobile-use-android-14     Mobile Use Android 14          DedicatedDesktop     Av
 
 **Involved APIs:**
 
-| Action | Required Permission |
-|---|---|
+| Action          | Required Permission      |
+| --------------- | ------------------------ |
 | `ListMcpImages` | `agentbay:ListMcpImages` |
 
 ```json
 {
-  "Action": [
-    "agentbay:ListMcpImages"
-  ]
+  "Action": ["agentbay:ListMcpImages"]
 }
 ```
 
@@ -77,9 +104,9 @@ agentbay image init -i code-space-debian-12
 
 **Flags:**
 
-| Flag | Short | Type | Required | Description |
-|------|-------|------|----------|-------------|
-| `--sourceImageId` | `-i` | string | Yes | System image ID to use as base |
+| Flag              | Short | Type   | Required | Description                    |
+| ----------------- | ----- | ------ | -------- | ------------------------------ |
+| `--sourceImageId` | `-i`  | string | Yes      | System image ID to use as base |
 
 Available `sourceImageId` values for production:
 
@@ -105,15 +132,13 @@ Writing Dockerfile to /path/to/current/directory/Dockerfile... Done.
 
 **Involved APIs:**
 
-| Action | Required Permission |
-|---|---|
+| Action                  | Required Permission              |
+| ----------------------- | -------------------------------- |
 | `GetDockerfileTemplate` | `agentbay:GetDockerfileTemplate` |
 
 ```json
 {
-  "Action": [
-    "agentbay:GetDockerfileTemplate"
-  ]
+  "Action": ["agentbay:GetDockerfileTemplate"]
 }
 ```
 
@@ -156,11 +181,11 @@ agentbay image create-from-template -s ai-container-registry.cn-hangzhou.cr.aliy
 
 **Flags:**
 
-| Flag | Short | Type | Required | Description |
-|------|-------|------|----------|-------------|
-| `--source-image` | `-s` | string | Yes | Source Docker image registry path (with tag) already pushed to ACR |
-| `--name` | `-n` | string | Yes | Custom image name |
-| `--imageId` | `-i` | string | Yes | Base system image ID (e.g. `code-space-debian-12`) |
+| Flag             | Short | Type   | Required | Description                                                        |
+| ---------------- | ----- | ------ | -------- | ------------------------------------------------------------------ |
+| `--source-image` | `-s`  | string | Yes      | Source Docker image registry path (with tag) already pushed to ACR |
+| `--name`         | `-n`  | string | Yes      | Custom image name                                                  |
+| `--imageId`      | `-i`  | string | Yes      | Base system image ID (e.g. `code-space-debian-12`)                 |
 
 **Creation flow (server-side):**
 
@@ -186,15 +211,13 @@ agentbay image create-from-template -s ai-container-registry.cn-hangzhou.cr.aliy
 
 **Involved APIs:**
 
-| Action | Required Permission |
-|---|---|
+| Action                    | Required Permission                |
+| ------------------------- | ---------------------------------- |
 | `CreateImageFromTemplate` | `agentbay:CreateImageFromTemplate` |
 
 ```json
 {
-  "Action": [
-    "agentbay:CreateImageFromTemplate"
-  ]
+  "Action": ["agentbay:CreateImageFromTemplate"]
 }
 ```
 
@@ -231,18 +254,18 @@ agentbay image activate imgc-xxxxxxxxxxxxxx --region-id cn-shanghai
 
 **Flags:**
 
-| Flag | Short | Type | Required | Description |
-|------|-------|------|----------|-------------|
-| `--cpu` | `-c` | int | No | CPU cores (2, 4, or 8); must pair with `--memory` |
-| `--memory` | `-m` | int | No | Memory in GB (4, 8, or 16); must pair with `--cpu` |
-| `--network-type` | | string | No | Network type: `DEFAULT` or `ADVANCED` |
-| `--session-bandwidth` | | int | No | Session bandwidth (required for ADVANCED network) |
-| `--dns-address` | | string | No | DNS address (repeatable; required for ADVANCED network) |
-| `--lifecycle-mode` | | string | No | Lifecycle mode: `auto` or `manual` |
-| `--lifecycle-max-runtime` | | int | No | Max runtime in seconds |
-| `--lifecycle-hibernate` | | int | No | Hibernate timeout in seconds |
-| `--lifecycle-idle-timeout` | | int | No | Idle timeout in seconds |
-| `--region-id` | | string | No | Region ID for resource deployment |
+| Flag                       | Short | Type   | Required | Description                                             |
+| -------------------------- | ----- | ------ | -------- | ------------------------------------------------------- |
+| `--cpu`                    | `-c`  | int    | No       | CPU cores (2, 4, or 8); must pair with `--memory`       |
+| `--memory`                 | `-m`  | int    | No       | Memory in GB (4, 8, or 16); must pair with `--cpu`      |
+| `--network-type`           |       | string | No       | Network type: `DEFAULT` or `ADVANCED`                   |
+| `--session-bandwidth`      |       | int    | No       | Session bandwidth (required for ADVANCED network)       |
+| `--dns-address`            |       | string | No       | DNS address (repeatable; required for ADVANCED network) |
+| `--lifecycle-mode`         |       | string | No       | Lifecycle mode: `auto` or `manual`                      |
+| `--lifecycle-max-runtime`  |       | int    | No       | Max runtime in seconds                                  |
+| `--lifecycle-hibernate`    |       | int    | No       | Hibernate timeout in seconds                            |
+| `--lifecycle-idle-timeout` |       | int    | No       | Idle timeout in seconds                                 |
+| `--region-id`              |       | string | No       | Region ID for resource deployment                       |
 
 **Supported resource combinations:** `2c4g` (default), `4c8g`, `8c16g`
 
@@ -265,16 +288,16 @@ Waiting for activation to complete...
 
 **Involved APIs:**
 
-| Action | Required Permission |
-|---|---|
-| `GetMcpImageInfo` | `agentbay:GetMcpImageInfo` |
+| Action                  | Required Permission              |
+| ----------------------- | -------------------------------- |
+| `GetMcpImageInfo`       | `agentbay:GetMcpImageInfo`       |
 | `DescribeInstanceTypes` | `agentbay:DescribeInstanceTypes` |
 | `DescribeMcpPolicyData` | `agentbay:DescribeMcpPolicyData` |
-| `CreateMcpPolicyData` | `agentbay:CreateMcpPolicyData` |
-| `ModifyMcpPolicyData` | `agentbay:ModifyMcpPolicyData` |
-| `DescribeOfficeSites` | `agentbay:DescribeOfficeSites` |
-| `SaveMcpPolicyData` | `agentbay:SaveMcpPolicyData` |
-| `CreateResourceGroup` | `agentbay:CreateResourceGroup` |
+| `CreateMcpPolicyData`   | `agentbay:CreateMcpPolicyData`   |
+| `ModifyMcpPolicyData`   | `agentbay:ModifyMcpPolicyData`   |
+| `DescribeOfficeSites`   | `agentbay:DescribeOfficeSites`   |
+| `SaveMcpPolicyData`     | `agentbay:SaveMcpPolicyData`     |
+| `CreateResourceGroup`   | `agentbay:CreateResourceGroup`   |
 
 ```json
 {
@@ -315,10 +338,10 @@ Usually completes in seconds.
 
 **Involved APIs:**
 
-| Action | Required Permission |
-|---|---|
-| `GetMcpImageInfo` | `agentbay:GetMcpImageInfo` |
-| `ListMcpImages` | `agentbay:ListMcpImages` |
+| Action                | Required Permission            |
+| --------------------- | ------------------------------ |
+| `GetMcpImageInfo`     | `agentbay:GetMcpImageInfo`     |
+| `ListMcpImages`       | `agentbay:ListMcpImages`       |
 | `DeleteResourceGroup` | `agentbay:DeleteResourceGroup` |
 
 ```json
@@ -344,9 +367,9 @@ agentbay image delete imgc-xxxxxxxxxxxxxx --yes    # Skip confirmation (CI / scr
 
 **Flags:**
 
-| Flag | Short | Type | Required | Description |
-|------|-------|------|----------|-------------|
-| `--yes` | `-y` | | No | Skip confirmation prompt (required in non-interactive mode) |
+| Flag    | Short | Type | Required | Description                                                 |
+| ------- | ----- | ---- | -------- | ----------------------------------------------------------- |
+| `--yes` | `-y`  |      | No       | Skip confirmation prompt (required in non-interactive mode) |
 
 **Restrictions:**
 
@@ -369,17 +392,14 @@ Deleting image... Done.
 
 **Involved APIs:**
 
-| Action | Required Permission |
-|---|---|
+| Action            | Required Permission        |
+| ----------------- | -------------------------- |
 | `GetMcpImageInfo` | `agentbay:GetMcpImageInfo` |
-| `DeleteMcpImage` | `agentbay:DeleteMcpImage` |
+| `DeleteMcpImage`  | `agentbay:DeleteMcpImage`  |
 
 ```json
 {
-  "Action": [
-    "agentbay:GetMcpImageInfo",
-    "agentbay:DeleteMcpImage"
-  ]
+  "Action": ["agentbay:GetMcpImageInfo", "agentbay:DeleteMcpImage"]
 }
 ```
 
@@ -395,28 +415,26 @@ agentbay image status imgc-xxxxxxxxxxxxxx
 
 **Common status values:**
 
-| Status | Meaning |
-|--------|---------|
-| `IMAGE_CREATING` | Image is being created |
-| `IMAGE_CREATE_FAILED` | Image creation failed |
-| `IMAGE_AVAILABLE` | Available, not activated |
-| `RESOURCE_DEPLOYING` | Activation in progress |
-| `RESOURCE_PUBLISHED` | Activated and in use |
-| `RESOURCE_DELETING` | Deactivation in progress |
-| `RESOURCE_FAILED` | Activation or resource operation failed |
-| `RESOURCE_CEASED` | Resource ceased |
+| Status                | Meaning                                 |
+| --------------------- | --------------------------------------- |
+| `IMAGE_CREATING`      | Image is being created                  |
+| `IMAGE_CREATE_FAILED` | Image creation failed                   |
+| `IMAGE_AVAILABLE`     | Available, not activated                |
+| `RESOURCE_DEPLOYING`  | Activation in progress                  |
+| `RESOURCE_PUBLISHED`  | Activated and in use                    |
+| `RESOURCE_DELETING`   | Deactivation in progress                |
+| `RESOURCE_FAILED`     | Activation or resource operation failed |
+| `RESOURCE_CEASED`     | Resource ceased                         |
 
 **Involved APIs:**
 
-| Action | Required Permission |
-|---|---|
+| Action            | Required Permission        |
+| ----------------- | -------------------------- |
 | `GetMcpImageInfo` | `agentbay:GetMcpImageInfo` |
 
 ```json
 {
-  "Action": [
-    "agentbay:GetMcpImageInfo"
-  ]
+  "Action": ["agentbay:GetMcpImageInfo"]
 }
 ```
 
@@ -432,18 +450,18 @@ agentbay image set-max-session --image-id imgc-xxxxxxxxxxxxxx --max-session-num 
 
 **Flags:**
 
-| Flag | Type | Required | Description |
-|------|------|----------|-------------|
-| `--image-id` | string | Yes | Image ID |
-| `--max-session-num` | int | Yes | Maximum concurrent sessions |
+| Flag                | Type   | Required | Description                 |
+| ------------------- | ------ | -------- | --------------------------- |
+| `--image-id`        | string | Yes      | Image ID                    |
+| `--max-session-num` | int    | Yes      | Maximum concurrent sessions |
 
 > The command polls until the resource group is ready (typically ~5 minutes).
 
 **Involved APIs:**
 
-| Action | Required Permission |
-|---|---|
-| `GetMcpImageInfo` | `agentbay:GetMcpImageInfo` |
+| Action                                        | Required Permission                                    |
+| --------------------------------------------- | ------------------------------------------------------ |
+| `GetMcpImageInfo`                             | `agentbay:GetMcpImageInfo`                             |
 | `BatchCreateHideResourceGroupsWithMaxSession` | `agentbay:BatchCreateHideResourceGroupsWithMaxSession` |
 
 ```json
@@ -473,14 +491,12 @@ agentbay image warmup-status
 
 **Involved APIs:**
 
-| Action | Required Permission |
-|---|---|
+| Action                     | Required Permission                 |
+| -------------------------- | ----------------------------------- |
 | `DescribeWarmUpStatusOpen` | `agentbay:DescribeWarmUpStatusOpen` |
 
 ```json
 {
-  "Action": [
-    "agentbay:DescribeWarmUpStatusOpen"
-  ]
+  "Action": ["agentbay:DescribeWarmUpStatusOpen"]
 }
 ```

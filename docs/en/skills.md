@@ -182,6 +182,84 @@ Description:
 
 ---
 
-### `skills list` _(placeholder)_
+### `skills list`
 
-Lists cloud skills. Backend list API is not yet available; this command currently acts as a placeholder.
+List cloud skills with pagination, supporting optional filters by name and tags.
+
+```bash
+agentbay skills list
+agentbay skills list --page 2
+agentbay skills list --size 20
+agentbay skills list --name "find"
+agentbay skills list --tag test --tag aliyun
+agentbay skills list --name "find" --tag aliyun --page 1 --size 5
+```
+
+**Flags:**
+
+| Flag       | Short | Type        | Required | Default | Description                                                                          |
+| ---------- | ----- | ----------- | -------- | ------- | ------------------------------------------------------------------------------------ |
+| `--page`   |       | int         | No       | 1       | Page number                                                                          |
+| `--size`   |       | int         | No       | 10      | Number of results per page                                                           |
+| `--name`   |       | string      | No       | (none)  | Filter by skill name                                                                 |
+| `--tag`    |       | stringArray | No       | (none)  | Filter by tag name (can be specified multiple times, e.g. `--tag test --tag aliyun`) |
+| `--output` | `-o`  | string      | No       | (none)  | Output format. Use `json` for machine-readable complete data (e.g. for AI/scripts)   |
+
+**Output:**
+
+Default table output (columns adapt to terminal width):
+
+```
+[INFO] ListMarketSkillByPage Request ID: A4E9C0A5-7BD3-1B1C-A3C5-D54F9472F3AE
+[PAGE] Page 1 of 1 (Page Size: 10, Total: 6)
+
+SKILL NAME                      SKILL ID                          STATUS                 TAGS                                       MODIFIED
+------------------------------  --------------------------------  ----------------------  ------------------------------------------  ------------------------------
+lxy-find-skills                 skill-04p87enx9u4moq5fi           VERIFY_PASSED          tag1, tag2                                  2026-05-26T02:37:59.000+00:00
+stock-watcher                   skill-04p87lvcjt9o1o9uj           INIT                                                               2026-04-04T08:42:11.000+00:00
+```
+
+Use `--output json` (or `-o json`) for complete JSON output, suitable for AI/scripts:
+
+```bash
+agentbay skills list -o json
+```
+
+```json
+{
+  "totalCount": 2,
+  "totalPage": 1,
+  "pageSize": 10,
+  "pageNumber": 1,
+  "result": [
+    {
+      "skillId": "skill-04p87enx9u4moq5fi",
+      "skillName": "lxy-find-skills",
+      "description": "...",
+      "status": "VERIFY_PASSED",
+      "tags": ["tag1", "tag2"],
+      "icon": "https://...",
+      "gmtModified": "2026-05-26T02:37:59.000+00:00",
+      "gmtCreate": "2026-05-22T08:23:04.000+00:00"
+    }
+  ]
+}
+```
+
+When there are more pages, a tip is shown at the end:
+
+```
+[TIP] Use --page 2 to view the next page.
+```
+
+**Involved APIs:**
+
+| Action                  | Required Permission              |
+| ----------------------- | -------------------------------- |
+| `ListMarketSkillByPage` | `agentbay:ListMarketSkillByPage` |
+
+```json
+{
+  "Action": ["agentbay:ListMarketSkillByPage"]
+}
+```

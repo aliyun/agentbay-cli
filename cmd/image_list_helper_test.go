@@ -179,6 +179,10 @@ func (m *mockImageListClient) CreateTag(ctx context.Context, request *client.Cre
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockImageListClient) ListMarketSkillByPage(ctx context.Context, request *client.ListMarketSkillByPageRequest) (*client.ListMarketSkillByPageResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 // Helper functions for testing
 func boolPtr(b bool) *bool {
 	return &b
@@ -227,7 +231,7 @@ func TestRunImageListWithBothTypes(t *testing.T) {
 			systemTotal: 2,
 		}
 
-		err := runImageListWithBothTypes(ctx, mockClient, "", 1, 10)
+		err := runImageListWithBothTypes(ctx, mockClient, "", 1, 10, "")
 
 		// Restore stdout
 		w.Close()
@@ -251,7 +255,7 @@ func TestRunImageListWithBothTypes(t *testing.T) {
 			systemTotal:  0,
 		}
 
-		err := runImageListWithBothTypes(ctx, mockClient, "", 1, 10)
+		err := runImageListWithBothTypes(ctx, mockClient, "", 1, 10, "")
 
 		// Restore stdout
 		w.Close()
@@ -274,7 +278,7 @@ func TestRunImageListWithBothTypes(t *testing.T) {
 			systemTotal:  0,
 		}
 
-		err := runImageListWithBothTypes(ctx, mockClient, "", 1, 10)
+		err := runImageListWithBothTypes(ctx, mockClient, "", 1, 10, "")
 
 		// Restore stdout
 		w.Close()
@@ -301,7 +305,7 @@ func TestRunImageListWithBothTypes(t *testing.T) {
 			systemTotal: 0,
 		}
 
-		err := runImageListWithBothTypes(ctx, mockClient, "", 1, 10)
+		err := runImageListWithBothTypes(ctx, mockClient, "", 1, 10, "")
 
 		// Restore stdout
 		w.Close()
@@ -333,7 +337,7 @@ func TestRunImageListWithBothTypes(t *testing.T) {
 			systemTotal: 1,
 		}
 
-		err := runImageListWithBothTypes(ctx, mockClient, "", 1, 10)
+		err := runImageListWithBothTypes(ctx, mockClient, "", 1, 10, "")
 
 		// Restore stdout
 		w.Close()
@@ -366,7 +370,7 @@ func TestRunImageListWithBothTypes(t *testing.T) {
 			systemTotal: 1,
 		}
 
-		err := runImageListWithBothTypes(ctx, mockClient, "Linux", 1, 10)
+		err := runImageListWithBothTypes(ctx, mockClient, "Linux", 1, 10, "")
 
 		// Restore stdout
 		w.Close()
@@ -494,7 +498,7 @@ func TestPrintImageTable(t *testing.T) {
 			systemTotal:  1,
 		}
 
-		err := runImageListWithBothTypes(ctx, mockClient, "", 1, 10)
+		err := runImageListWithBothTypes(ctx, mockClient, "", 1, 10, "")
 
 		// Restore stdout
 		w.Close()

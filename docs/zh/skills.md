@@ -182,6 +182,84 @@ Description:
 
 ---
 
-### `skills list`（占位）
+### `skills list`
 
-列出云端技能。后端 list 接口尚未提供，该命令目前为占位实现。
+分页查询云端技能列表，支持按名称和标签筛选。
+
+```bash
+agentbay skills list
+agentbay skills list --page 2
+agentbay skills list --size 20
+agentbay skills list --name "find"
+agentbay skills list --tag test --tag aliyun
+agentbay skills list --name "find" --tag aliyun --page 1 --size 5
+```
+
+**Flags：**
+
+| 参数       | 短参数 | 类型        | 必填 | 默认值 | 说明                                                             |
+| ---------- | ------ | ----------- | ---- | ------ | ---------------------------------------------------------------- |
+| `--page`   |        | int         | 否   | 1      | 页码                                                             |
+| `--size`   |        | int         | 否   | 10     | 每页条数                                                         |
+| `--name`   |        | string      | 否   | （无） | 按技能名称筛选                                                   |
+| `--tag`    |        | stringArray | 否   | （无） | 按标签筛选（可多次指定，如 `--tag test --tag aliyun`）           |
+| `--output` | `-o`   | string      | 否   | （无） | 输出格式。使用 `json` 获取机器可读的完整数据（适合 AI/脚本使用） |
+
+**输出：**
+
+默认表格输出（根据终端宽度自适应列）：
+
+```
+[INFO] ListMarketSkillByPage Request ID: A4E9C0A5-7BD3-1B1C-A3C5-D54F9472F3AE
+[PAGE] Page 1 of 1 (Page Size: 10, Total: 6)
+
+SKILL NAME                      SKILL ID                          STATUS                 TAGS                                       MODIFIED
+------------------------------  --------------------------------  ----------------------  ------------------------------------------  ------------------------------
+lxy-find-skills                 skill-04p87enx9u4moq5fi           VERIFY_PASSED          哈哈, 阿里云, lxy, test-2, test-1           2026-05-26T02:37:59.000+00:00
+stock-watcher                   skill-04p87lvcjt9o1o9uj           INIT                                                               2026-04-04T08:42:11.000+00:00
+```
+
+使用 `--output json`（或 `-o json`）输出完整 JSON，适合 AI/脚本使用：
+
+```bash
+agentbay skills list -o json
+```
+
+```json
+{
+  "totalCount": 2,
+  "totalPage": 1,
+  "pageSize": 10,
+  "pageNumber": 1,
+  "result": [
+    {
+      "skillId": "skill-04p87enx9u4moq5fi",
+      "skillName": "lxy-find-skills",
+      "description": "...",
+      "status": "VERIFY_PASSED",
+      "tags": ["哈哈", "阿里云"],
+      "icon": "https://...",
+      "gmtModified": "2026-05-26T02:37:59.000+00:00",
+      "gmtCreate": "2026-05-22T08:23:04.000+00:00"
+    }
+  ]
+}
+```
+
+当结果有多页时，末尾会显示下一页提示：
+
+```
+[TIP] Use --page 2 to view the next page.
+```
+
+**涉及接口：**
+
+| Action                  | 所需权限                         |
+| ----------------------- | -------------------------------- |
+| `ListMarketSkillByPage` | `agentbay:ListMarketSkillByPage` |
+
+```json
+{
+  "Action": ["agentbay:ListMarketSkillByPage"]
+}
+```

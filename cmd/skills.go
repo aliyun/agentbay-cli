@@ -7,6 +7,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/url"
@@ -16,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"github.com/agentbay/agentbay-cli/internal/agentbay"
 	"github.com/agentbay/agentbay-cli/internal/client"
@@ -47,7 +49,7 @@ Directory: packed to zip then uploaded. Zip: uploaded as-is.`,
 var skillsListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List cloud skills",
-	Long:  `List skills visible to you (yours and public). Backend list API coming soon.`,
+	Long:  `List skills visible to you (yours and public), with optional filters for name and tags.`,
 	Args:  cobra.NoArgs,
 	RunE:  runSkillsList,
 }
@@ -76,6 +78,12 @@ func init() {
 
 	skillsPushCmd.Flags().StringArray("tag", nil, "Tag name for the skill (can be specified multiple times, e.g. --tag \"tag1\" --tag \"tag2\")")
 	skillsPushCmd.Flags().String("icon", "https://img.alicdn.com/imgextra/i4/O1CN01syuoCy1qhsZxbwuBz_!!6000000005528-2-tps-100-100.png", "Icon for the skill (URL or identifier); uses the default AgentBay icon if not specified")
+
+	skillsListCmd.Flags().Int("page", 1, "Page number (default: 1)")
+	skillsListCmd.Flags().Int("size", 10, "Page size (default: 10)")
+	skillsListCmd.Flags().String("name", "", "Filter by skill name (optional)")
+	skillsListCmd.Flags().StringArray("tag", nil, "Filter by tag name (can be specified multiple times, e.g. --tag test --tag aliyun)")
+	skillsListCmd.Flags().StringP("output", "o", "", `Output format. Use "json" for machine-readable output (e.g. for AI/scripts)`)
 
 	skillsUpdateCmd.Flags().String("skill-id", "", "Skill ID to update (required)")
 	_ = skillsUpdateCmd.MarkFlagRequired("skill-id")
@@ -729,8 +737,301 @@ func zipSkillDir(dir string) (*bytes.Buffer, error) {
 }
 
 func runSkillsList(cmd *cobra.Command, args []string) error {
-	fmt.Fprintln(os.Stderr, "[INFO] List skills: backend list API is not yet available. This command will be enabled when the API is ready.")
+	page, _ := cmd.Flags().GetInt("page")
+	size, _ := cmd.Flags().GetInt("size")
+	name, _ := cmd.Flags().GetString("name")
+	tags, _ := cmd.Flags().GetStringArray("tag")
+	outputFmt, _ := cmd.Flags().GetString("output")
+
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+	if !cfg.IsAuthenticated() {
+		return fmt.Errorf("[ERROR] Not authenticated. Run 'agentbay login' or set AGENTBAY_ACCESS_KEY_ID/AGENTBAY_ACCESS_KEY_SECRET")
+	}
+	apiClient := agentbay.NewClientFromConfig(cfg)
+	ctx := context.Background()
+
+	req := &client.ListMarketSkillByPageRequest{}
+	if page > 0 {
+		pageNo := int32(page)
+		req.PageNo = &pageNo
+	}
+	if size > 0 {
+		pageSize := int32(size)
+		req.PageSize = &pageSize
+	}
+	if name != "" {
+		req.SkillName = &name
+	}
+	if len(tags) > 0 {
+		req.TagNames = tags
+	}
+
+	resp, err := apiClient.ListMarketSkillByPage(ctx, req)
+	if err != nil {
+		if reqID := extractRequestIDFromErr(err); reqID != "" {
+			fmt.Printf("[INFO] ListMarketSkillByPage Request ID: %s\n", reqID)
+		}
+		return fmt.Errorf("[ERROR] Failed to list skills: %w", err)
+	}
+
+	if resp != nil && resp.Body != nil {
+		if reqId := resp.Body.GetRequestId(); reqId != nil && *reqId != "" {
+			fmt.Printf("[INFO] ListMarketSkillByPage Request ID: %s\n", *reqId)
+		}
+	}
+
+	// Success check: Code != "ok" = failure
+	if resp.Body != nil {
+		code := ""
+		if resp.Body.Code != nil {
+			code = *resp.Body.Code
+		}
+		successPtr := resp.Body.Success
+		if (successPtr != nil && !*successPtr) || (code != "" && !strings.EqualFold(code, "ok")) {
+			msg := ""
+			if resp.Body.Message != nil {
+				msg = *resp.Body.Message
+			}
+			return fmt.Errorf("[ERROR] Failed to list skills: Code=%s, Message=%s", code, msg)
+		}
+	}
+
+	data := resp.Body.GetData()
+	if data == nil {
+		fmt.Println("[INFO] No skills found.")
+		return nil
+	}
+
+	// JSON output mode
+	if strings.EqualFold(outputFmt, "json") {
+		type skillJSON struct {
+			SkillId     string   `json:"skillId"`
+			SkillName   string   `json:"skillName"`
+			Description string   `json:"description"`
+			Status      string   `json:"status"`
+			Tags        []string `json:"tags"`
+			Icon        string   `json:"icon"`
+			GmtModified string   `json:"gmtModified"`
+			GmtCreate   string   `json:"gmtCreate"`
+		}
+		type pageJSON struct {
+			TotalCount int32       `json:"totalCount"`
+			TotalPage  int32       `json:"totalPage"`
+			PageSize   int32       `json:"pageSize"`
+			PageNumber int32       `json:"pageNumber"`
+			Result     []skillJSON `json:"result"`
+		}
+		var pg pageJSON
+		if data.TotalCount != nil {
+			pg.TotalCount = *data.TotalCount
+		}
+		if data.TotalPage != nil {
+			pg.TotalPage = *data.TotalPage
+		}
+		if data.PageSize != nil {
+			pg.PageSize = *data.PageSize
+		}
+		if data.PageNumber != nil {
+			pg.PageNumber = *data.PageNumber
+		}
+		for _, item := range data.GetResult() {
+			s := skillJSON{
+				Tags: item.TenantTags,
+			}
+			if item.SkillId != nil {
+				s.SkillId = *item.SkillId
+			}
+			if item.SkillName != nil {
+				s.SkillName = *item.SkillName
+			}
+			if item.Description != nil {
+				s.Description = *item.Description
+			}
+			if item.SkillStatus != nil {
+				s.Status = *item.SkillStatus
+			}
+			if item.Icon != nil {
+				s.Icon = *item.Icon
+			}
+			if item.GmtModified != nil {
+				s.GmtModified = *item.GmtModified
+			}
+			if item.GmtCreate != nil {
+				s.GmtCreate = *item.GmtCreate
+			}
+			if s.Tags == nil {
+				s.Tags = []string{}
+			}
+			pg.Result = append(pg.Result, s)
+		}
+		if pg.Result == nil {
+			pg.Result = []skillJSON{}
+		}
+		out, jerr := json.MarshalIndent(pg, "", "  ")
+		if jerr != nil {
+			return fmt.Errorf("json marshal: %w", jerr)
+		}
+		fmt.Println(string(out))
+		return nil
+	}
+
+	// Print pagination info
+	totalCount := int32(0)
+	totalPage := int32(0)
+	pageNum := int32(1)
+	pageDisplaySize := int32(size)
+	if data.TotalCount != nil {
+		totalCount = *data.TotalCount
+	}
+	if data.TotalPage != nil {
+		totalPage = *data.TotalPage
+	}
+	if data.PageNumber != nil {
+		pageNum = *data.PageNumber
+	}
+	if data.PageSize != nil {
+		pageDisplaySize = *data.PageSize
+	}
+	fmt.Printf("[PAGE] Page %d of %d (Page Size: %d, Total: %d)\n\n", pageNum, totalPage, pageDisplaySize, totalCount)
+
+	results := data.GetResult()
+	if len(results) == 0 {
+		fmt.Println("[INFO] No skills found.")
+		return nil
+	}
+
+	// Compute dynamic column widths based on terminal width.
+	// Priority: SKILL NAME > SKILL ID > STATUS > TAGS > MODIFIED
+	termWidth := 120
+	if w, _, err := term.GetSize(int(os.Stdout.Fd())); err == nil && w > 0 {
+		termWidth = w
+	}
+
+	const (
+		colSkillID      = 32 // skill-xxx… always fixed
+		colStatus       = 13 // VERIFY_PASSED length
+		colSepPerCol    = 2  // two-space separator between columns
+		colSkillNameMin = 15
+		colSkillNameMax = 30
+		colTagsMin      = 20
+		colModifiedFull = 30
+	)
+
+	// Fixed budget: ID + STATUS + separators for 4-column base (name|id|status|tags)
+	// separator count = (numCols - 1) * 2; we try 5 cols first, then 4, then 3.
+	fixedBase := colSkillID + colStatus // 45
+
+	// Determine SKILL NAME width
+	colSkillName := colSkillNameMax
+	if termWidth < colSkillNameMax+fixedBase+colSepPerCol*2+colTagsMin+colSepPerCol {
+		colSkillName = colSkillNameMin
+	}
+
+	// Remaining space after name + id + status + separators
+	// We always have at least: name | id | status (3 cols, 2 separators)
+	baseUsed := colSkillName + colSkillID + colStatus + colSepPerCol*2
+	remaining := termWidth - baseUsed
+
+	// Decide which optional columns to show and their widths
+	showModified := false
+	showTags := false
+	colTags := 0
+	colModified := 0
+
+	if remaining >= colSepPerCol+colTagsMin+colSepPerCol+colModifiedFull {
+		// Enough for both TAGS and MODIFIED
+		showTags = true
+		showModified = true
+		// Allocate MODIFIED its full width, give rest to TAGS
+		colModified = colModifiedFull
+		colTags = remaining - colSepPerCol*2 - colModified
+		if colTags < colTagsMin {
+			colTags = colTagsMin
+		}
+	} else if remaining >= colSepPerCol+colTagsMin {
+		// Only enough for TAGS
+		showTags = true
+		colTags = remaining - colSepPerCol
+		if colTags < colTagsMin {
+			colTags = colTagsMin
+		}
+	}
+	// else: only NAME | ID | STATUS
+
+	// Build header
+	header := fmt.Sprintf("%-*s  %-*s  %-*s",
+		colSkillName, "SKILL NAME",
+		colSkillID, "SKILL ID",
+		colStatus, "STATUS",
+	)
+	separator := strings.Repeat("-", colSkillName) + "  " +
+		strings.Repeat("-", colSkillID) + "  " +
+		strings.Repeat("-", colStatus)
+	if showTags {
+		header += fmt.Sprintf("  %-*s", colTags, "TAGS")
+		separator += "  " + strings.Repeat("-", colTags)
+	}
+	if showModified {
+		header += fmt.Sprintf("  %-*s", colModified, "MODIFIED")
+		separator += "  " + strings.Repeat("-", colModified)
+	}
+	fmt.Println(header)
+	fmt.Println(separator)
+
+	for _, item := range results {
+		skillId := ""
+		if item.SkillId != nil {
+			skillId = *item.SkillId
+		}
+		skillName := ""
+		if item.SkillName != nil {
+			skillName = *item.SkillName
+		}
+		status := ""
+		if item.SkillStatus != nil {
+			status = *item.SkillStatus
+		}
+		tagsStr := strings.Join(item.TenantTags, ", ")
+		modified := ""
+		if item.GmtModified != nil {
+			modified = *item.GmtModified
+		}
+
+		row := fmt.Sprintf("%-*s  %-*s  %-*s",
+			colSkillName, truncateStr(skillName, colSkillName),
+			colSkillID, truncateStr(skillId, colSkillID),
+			colStatus, truncateStr(status, colStatus),
+		)
+		if showTags {
+			row += fmt.Sprintf("  %-*s", colTags, truncateStr(tagsStr, colTags))
+		}
+		if showModified {
+			row += fmt.Sprintf("  %-*s", colModified, truncateStr(modified, colModified))
+		}
+		fmt.Println(row)
+	}
+
+	// Show next page tip if there are more pages
+	if pageNum < totalPage {
+		fmt.Printf("\n[TIP] Use --page %d to view the next page.\n", pageNum+1)
+	}
+
 	return nil
+}
+
+// truncateStr truncates s to maxLen runes, appending "..." if truncated.
+func truncateStr(s string, maxLen int) string {
+	runes := []rune(s)
+	if len(runes) <= maxLen {
+		return s
+	}
+	if maxLen <= 3 {
+		return string(runes[:maxLen])
+	}
+	return string(runes[:maxLen-3]) + "..."
 }
 
 func runSkillsShow(cmd *cobra.Command, args []string) error {

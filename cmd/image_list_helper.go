@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -14,8 +15,58 @@ import (
 	"github.com/agentbay/agentbay-cli/internal/client"
 )
 
+// imageItemJSON is the JSON representation of a single image entry.
+type imageItemJSON struct {
+	ImageId       string `json:"imageId"`
+	ImageName     string `json:"imageName"`
+	Type          string `json:"type"`
+	Status        string `json:"status"`
+	StatusDisplay string `json:"statusDisplay"`
+	OsName        string `json:"osName"`
+	OsVersion     string `json:"osVersion"`
+	OsDisplay     string `json:"osDisplay"`
+	ApplyScene    string `json:"applyScene"`
+}
+
+// printImagesAsJSON outputs image list data as indented JSON.
+func printImagesAsJSON(images []*client.ListMcpImagesResponseBodyData, totalCount int32) error {
+	type output struct {
+		TotalCount int32           `json:"totalCount"`
+		Images     []imageItemJSON `json:"images"`
+	}
+	out := output{TotalCount: totalCount}
+	for _, image := range images {
+		if image == nil {
+			continue
+		}
+		item := imageItemJSON{
+			ImageId:       getStringValue(image.GetImageId()),
+			ImageName:     getStringValue(image.GetImageName()),
+			Type:          getStringValue(image.GetImageBuildType()),
+			Status:        getStringValue(image.GetImageResourceStatus()),
+			StatusDisplay: formatImageStatus(getStringValue(image.GetImageResourceStatus())),
+			ApplyScene:    getStringValue(image.GetImageApplyScene()),
+		}
+		if imgInfo := image.GetImageInfo(); imgInfo != nil {
+			item.OsName = getStringValue(imgInfo.GetOsName())
+			item.OsVersion = getStringValue(imgInfo.GetOsVersion())
+			item.OsDisplay = formatOSInfo(imgInfo)
+		}
+		out.Images = append(out.Images, item)
+	}
+	if out.Images == nil {
+		out.Images = []imageItemJSON{}
+	}
+	b, err := json.MarshalIndent(out, "", "  ")
+	if err != nil {
+		return fmt.Errorf("json marshal: %w", err)
+	}
+	fmt.Println(string(b))
+	return nil
+}
+
 // runImageListWithBothTypes handles querying both user and system images
-func runImageListWithBothTypes(ctx context.Context, apiClient agentbay.Client, osType string, page, pageSize int) error {
+func runImageListWithBothTypes(ctx context.Context, apiClient agentbay.Client, osType string, page, pageSize int, outputFmt string) error {
 	var allImages []*client.ListMcpImagesResponseBodyData
 	var totalCount int32
 
@@ -109,6 +160,11 @@ func runImageListWithBothTypes(ctx context.Context, apiClient agentbay.Client, o
 	if len(allImages) == 0 {
 		fmt.Printf("\n[EMPTY] No images found.\n")
 		return nil
+	}
+
+	// JSON output mode
+	if strings.EqualFold(outputFmt, "json") {
+		return printImagesAsJSON(allImages, totalCount)
 	}
 
 	fmt.Printf("\n[OK] Found %d images (Total: %d)\n", len(allImages), totalCount)

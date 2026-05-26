@@ -178,6 +178,62 @@ func TestSkillsCmd(t *testing.T) {
 		assert.NotNil(t, iconFlag)
 		assert.Equal(t, "", iconFlag.DefValue)
 	})
+
+	t.Run("skills list has --page flag with default 1", func(t *testing.T) {
+		var listCmd *cobra.Command
+		for _, c := range cmd.SkillsCmd.Commands() {
+			if c.Name() == "list" {
+				listCmd = c
+				break
+			}
+		}
+		requireNotNil(t, listCmd)
+		pageFlag := listCmd.Flags().Lookup("page")
+		assert.NotNil(t, pageFlag)
+		assert.Equal(t, "1", pageFlag.DefValue)
+	})
+
+	t.Run("skills list has --size flag with default 10", func(t *testing.T) {
+		var listCmd *cobra.Command
+		for _, c := range cmd.SkillsCmd.Commands() {
+			if c.Name() == "list" {
+				listCmd = c
+				break
+			}
+		}
+		requireNotNil(t, listCmd)
+		sizeFlag := listCmd.Flags().Lookup("size")
+		assert.NotNil(t, sizeFlag)
+		assert.Equal(t, "10", sizeFlag.DefValue)
+	})
+
+	t.Run("skills list has --name flag", func(t *testing.T) {
+		var listCmd *cobra.Command
+		for _, c := range cmd.SkillsCmd.Commands() {
+			if c.Name() == "list" {
+				listCmd = c
+				break
+			}
+		}
+		requireNotNil(t, listCmd)
+		nameFlag := listCmd.Flags().Lookup("name")
+		assert.NotNil(t, nameFlag)
+		assert.Equal(t, "", nameFlag.DefValue)
+	})
+
+	t.Run("skills list has --tag flag", func(t *testing.T) {
+		var listCmd *cobra.Command
+		for _, c := range cmd.SkillsCmd.Commands() {
+			if c.Name() == "list" {
+				listCmd = c
+				break
+			}
+		}
+		requireNotNil(t, listCmd)
+		tagFlag := listCmd.Flags().Lookup("tag")
+		assert.NotNil(t, tagFlag)
+		assert.Equal(t, "[]", tagFlag.DefValue)
+	})
 }
 
 // requireNotNil helps avoid importing cmd package twice for *cobra.Command type.

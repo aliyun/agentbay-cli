@@ -29,23 +29,21 @@ agentbay apikey create --name "my-api-key"
 
 **参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `--name` | string | 是 | API Key 名称（必须唯一） |
+| 参数     | 类型   | 必填 | 说明                     |
+| -------- | ------ | ---- | ------------------------ |
+| `--name` | string | 是   | API Key 名称（必须唯一） |
 
 **输出：** 命令显示新创建密钥的 `ApiKeyId`（ak-xxx 格式）和 `Name`。
 
 **涉及接口：**
 
-| Action | 所需权限 |
-|---|---|
+| Action         | 所需权限                |
+| -------------- | ----------------------- |
 | `CreateApiKey` | `agentbay:CreateApiKey` |
 
 ```json
 {
-  "Action": [
-    "agentbay:CreateApiKey"
-  ]
+  "Action": ["agentbay:CreateApiKey"]
 }
 ```
 
@@ -65,26 +63,23 @@ agentbay apikey enable --api-key-id ak-xxxxxxxxxxxxxxxx
 
 **参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `--api-key` | string | 是* | 用户可见的 API Key（akm-xxx 格式，推荐） |
-| `--api-key-id` | string | 是* | 内部 API Key ID（ak-xxx）。日常使用推荐 `--api-key` |
+| 参数           | 类型   | 必填 | 说明                                                |
+| -------------- | ------ | ---- | --------------------------------------------------- |
+| `--api-key`    | string | 是\* | 用户可见的 API Key（akm-xxx 格式，推荐）            |
+| `--api-key-id` | string | 是\* | 内部 API Key ID（ak-xxx）。日常使用推荐 `--api-key` |
 
 \* 必须指定 `--api-key` 或 `--api-key-id` 其中之一，不可同时指定。
 
 **涉及接口：**
 
-| Action | 所需权限 |
-|---|---|
-| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` |
+| Action               | 所需权限                      |
+| -------------------- | ----------------------------- |
+| `DescribeMcpApiKey`  | `agentbay:DescribeMcpApiKey`  |
 | `ModifyApiKeyStatus` | `agentbay:ModifyApiKeyStatus` |
 
 ```json
 {
-  "Action": [
-    "agentbay:DescribeMcpApiKey",
-    "agentbay:ModifyApiKeyStatus"
-  ]
+  "Action": ["agentbay:DescribeMcpApiKey", "agentbay:ModifyApiKeyStatus"]
 }
 ```
 
@@ -104,26 +99,23 @@ agentbay apikey disable --api-key-id ak-xxxxxxxxxxxxxxxx
 
 **参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `--api-key` | string | 是* | 用户可见的 API Key（akm-xxx 格式，推荐） |
-| `--api-key-id` | string | 是* | 内部 API Key ID（ak-xxx）。日常使用推荐 `--api-key` |
+| 参数           | 类型   | 必填 | 说明                                                |
+| -------------- | ------ | ---- | --------------------------------------------------- |
+| `--api-key`    | string | 是\* | 用户可见的 API Key（akm-xxx 格式，推荐）            |
+| `--api-key-id` | string | 是\* | 内部 API Key ID（ak-xxx）。日常使用推荐 `--api-key` |
 
 \* 必须指定 `--api-key` 或 `--api-key-id` 其中之一，不可同时指定。
 
 **涉及接口：**
 
-| Action | 所需权限 |
-|---|---|
-| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` |
+| Action               | 所需权限                      |
+| -------------------- | ----------------------------- |
+| `DescribeMcpApiKey`  | `agentbay:DescribeMcpApiKey`  |
 | `ModifyApiKeyStatus` | `agentbay:ModifyApiKeyStatus` |
 
 ```json
 {
-  "Action": [
-    "agentbay:DescribeMcpApiKey",
-    "agentbay:ModifyApiKeyStatus"
-  ]
+  "Action": ["agentbay:DescribeMcpApiKey", "agentbay:ModifyApiKeyStatus"]
 }
 ```
 
@@ -147,11 +139,11 @@ agentbay apikey delete --api-key-id ak-xxxxxxxxxxxxxxxx -y
 
 **参数：**
 
-| 参数 | 短参数 | 类型 | 必填 | 说明 |
-|------|--------|------|------|------|
-| `--api-key` | | string | 是* | 用户可见的 API Key（akm-xxx 格式，推荐） |
-| `--api-key-id` | | string | 是* | 内部 API Key ID（ak-xxx）。日常使用推荐 `--api-key` |
-| `--yes` | `-y` | | 否 | 跳过所有确认提示（非交互模式使用） |
+| 参数           | 短参数 | 类型   | 必填 | 说明                                                |
+| -------------- | ------ | ------ | ---- | --------------------------------------------------- |
+| `--api-key`    |        | string | 是\* | 用户可见的 API Key（akm-xxx 格式，推荐）            |
+| `--api-key-id` |        | string | 是\* | 内部 API Key ID（ak-xxx）。日常使用推荐 `--api-key` |
+| `--yes`        | `-y`   |        | 否   | 跳过所有确认提示（非交互模式使用）                  |
 
 \* 必须指定 `--api-key` 或 `--api-key-id` 其中之一，不可同时指定。
 
@@ -162,12 +154,12 @@ agentbay apikey delete --api-key-id ak-xxxxxxxxxxxxxxxx -y
 
 **涉及接口：**
 
-| Action | 所需权限 |
-|---|---|
-| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` |
-| `DescribeApiKeys` | `agentbay:DescribeApiKeys` |
+| Action               | 所需权限                      |
+| -------------------- | ----------------------------- |
+| `DescribeMcpApiKey`  | `agentbay:DescribeMcpApiKey`  |
+| `DescribeApiKeys`    | `agentbay:DescribeApiKeys`    |
 | `ModifyApiKeyStatus` | `agentbay:ModifyApiKeyStatus` |
-| `DeleteApiKey` | `agentbay:DeleteApiKey` |
+| `DeleteApiKey`       | `agentbay:DeleteApiKey`       |
 
 ```json
 {
@@ -201,30 +193,56 @@ agentbay apikey list --api-key-id ak-xxxxxxxxxxxxxxxx
 
 # 获取下一页
 agentbay apikey list --next-token <token>
+
+# JSON 输出（AI/脚本使用）
+agentbay apikey list -o json
 ```
 
 **参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `--max-results` | int | 否 | 最大返回数量（默认：10） |
-| `--api-key` | string | 否 | 按用户可见的 API Key（akm-xxx 格式）筛选 |
-| `--api-key-id` | string | 否 | 按内部 API Key ID（ak-xxx）筛选。与 `--api-key` 互斥 |
-| `--next-token` | string | 否 | 分页 Token |
+| 参数            | 短参数 | 类型   | 必填 | 说明                                                             |
+| --------------- | ------ | ------ | ---- | ---------------------------------------------------------------- |
+| `--max-results` |        | int    | 否   | 最大返回数量（默认：10）                                         |
+| `--api-key`     |        | string | 否   | 按用户可见的 API Key（akm-xxx 格式）筛选                         |
+| `--api-key-id`  |        | string | 否   | 按内部 API Key ID（ak-xxx）筛选。与 `--api-key` 互斥             |
+| `--next-token`  |        | string | 否   | 分页 Token                                                       |
+| `--output`      | `-o`   | string | 否   | 输出格式。使用 `json` 获取机器可读的完整数据（适合 AI/脚本使用） |
 
-**涉及接口：**
+**输出示例：**
 
-| Action | 所需权限 |
-|---|---|
-| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` |
-| `DescribeApiKeys` | `agentbay:DescribeApiKeys` |
+使用 `--output json`（或 `-o json`）输出完整 JSON：
+
+```bash
+agentbay apikey list -o json
+```
 
 ```json
 {
-  "Action": [
-    "agentbay:DescribeMcpApiKey",
-    "agentbay:DescribeApiKeys"
+  "totalCount": 2,
+  "apiKeys": [
+    {
+      "keyId": "ak-xxxxxxxxxxxxxxxx",
+      "name": "my-key",
+      "apiKey": "akm-xxxxxxxxxxxxxxxx",
+      "status": "ENABLED",
+      "concurrency": 5,
+      "gmtCreate": "2026-01-01T00:00:00.000+00:00",
+      "lastUseDate": "2026-01-02T00:00:00.000+00:00"
+    }
   ]
+}
+```
+
+**涉及接口：**
+
+| Action              | 所需权限                     |
+| ------------------- | ---------------------------- |
+| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` |
+| `DescribeApiKeys`   | `agentbay:DescribeApiKeys`   |
+
+```json
+{
+  "Action": ["agentbay:DescribeMcpApiKey", "agentbay:DescribeApiKeys"]
 }
 ```
 
@@ -244,27 +262,24 @@ agentbay apikey concurrency set --api-key-id ak-xxx --concurrency 10
 
 **参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `--api-key` | string | 是* | 用户可见的 API Key（akm-xxx 格式，推荐） |
-| `--api-key-id` | string | 是* | 内部 API Key ID（ak-xxx）。日常使用推荐 `--api-key` |
-| `--concurrency` | int | 是 | 最大并发会话数（必须 >= 1） |
+| 参数            | 类型   | 必填 | 说明                                                |
+| --------------- | ------ | ---- | --------------------------------------------------- |
+| `--api-key`     | string | 是\* | 用户可见的 API Key（akm-xxx 格式，推荐）            |
+| `--api-key-id`  | string | 是\* | 内部 API Key ID（ak-xxx）。日常使用推荐 `--api-key` |
+| `--concurrency` | int    | 是   | 最大并发会话数（必须 >= 1）                         |
 
 \* 必须指定 `--api-key` 或 `--api-key-id` 其中之一，不可同时指定。
 
 **涉及接口：**
 
-| Action | 所需权限 |
-|---|---|
-| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` |
+| Action                  | 所需权限                         |
+| ----------------------- | -------------------------------- |
+| `DescribeMcpApiKey`     | `agentbay:DescribeMcpApiKey`     |
 | `ModifyMcpApiKeyConfig` | `agentbay:ModifyMcpApiKeyConfig` |
 
 ```json
 {
-  "Action": [
-    "agentbay:DescribeMcpApiKey",
-    "agentbay:ModifyMcpApiKeyConfig"
-  ]
+  "Action": ["agentbay:DescribeMcpApiKey", "agentbay:ModifyMcpApiKeyConfig"]
 }
 ```
 
@@ -281,22 +296,20 @@ agentbay apikey describe-key-content --api-key-id ak-xxxxxxxxxxxxxxxx
 
 **参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `--api-key-id` | string | 是 | 内部 API Key ID（ak-xxx 格式） |
+| 参数           | 类型   | 必填 | 说明                           |
+| -------------- | ------ | ---- | ------------------------------ |
+| `--api-key-id` | string | 是   | 内部 API Key ID（ak-xxx 格式） |
 
 **输出：** 命令显示对应的明文 `ApiKey`（akm-xxx 格式）及查询时使用的 `ApiKeyId`。
 
 **涉及接口：**
 
-| Action | 所需权限 |
-|---|---|
+| Action               | 所需权限                      |
+| -------------------- | ----------------------------- |
 | `DescribeKeyContent` | `agentbay:DescribeKeyContent` |
 
 ```json
 {
-  "Action": [
-    "agentbay:DescribeKeyContent"
-  ]
+  "Action": ["agentbay:DescribeKeyContent"]
 }
 ```

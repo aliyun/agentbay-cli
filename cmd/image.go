@@ -228,6 +228,7 @@ func init() {
 	imageListCmd.Flags().Bool("system-only", false, "Show only system images")
 	imageListCmd.Flags().IntP("page", "p", 1, "Page number (default: 1)")
 	imageListCmd.Flags().IntP("size", "s", 10, "Page size (default: 10)")
+	imageListCmd.Flags().String("output", "", `Output format. Use "json" for machine-readable output (e.g. for AI/scripts)`)
 
 	// Add required flag for image init command - use sourceImageId to match API field name
 	imageInitCmd.Flags().StringP("sourceImageId", "i", "", "Source image ID (required)")
@@ -722,6 +723,7 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	systemOnly, _ := cmd.Flags().GetBool("system-only")
 	page, _ := cmd.Flags().GetInt("page")
 	pageSize, _ := cmd.Flags().GetInt("size")
+	outputFmt, _ := cmd.Flags().GetString("output")
 
 	// Determine what type of images to fetch
 	var fetchMessage string
@@ -755,7 +757,7 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	// Handle different image type queries
 	if includeSystem {
 		// For include-system, we need to make two API calls and merge results
-		return runImageListWithBothTypes(ctx, apiClient, osType, page, pageSize)
+		return runImageListWithBothTypes(ctx, apiClient, osType, page, pageSize, outputFmt)
 	}
 
 	// Single query for system-only or user-only (default)
@@ -844,6 +846,15 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	if len(images) == 0 {
 		fmt.Printf("\n[EMPTY] No images found.\n")
 		return nil
+	}
+
+	// JSON output mode
+	if strings.EqualFold(outputFmt, "json") {
+		var totalCount int32
+		if resp.Body.GetTotalCount() != nil {
+			totalCount = *resp.Body.GetTotalCount()
+		}
+		return printImagesAsJSON(images, totalCount)
 	}
 
 	// Display results
@@ -2068,7 +2079,7 @@ func getAppInstanceType(ctx context.Context, apiClient agentbay.Client, imageId 
 			}
 		}
 		errMsg := fmt.Sprintf("[ERROR] No matching instance type for %dc%dg.\n[TIP] Available options: %s", cpu, memory, strings.Join(availableOptions, ", "))
-		return "", fmt.Errorf(errMsg)
+		return "", fmt.Errorf("%s", errMsg)
 	}
 
 	var appInstanceType string
