@@ -223,8 +223,9 @@ If you are using a RAM sub-account's AK/SK, grant the required permissions via t
 | `GetMarketSkillCredential`  | `agentbay:GetMarketSkillCredential`  | `skills push`, `skills update` |
 | `CreateMarketSkill`         | `agentbay:CreateMarketSkill`         | `skills push`                  |
 | `UpdateMarketSkill`         | `agentbay:UpdateMarketSkill`         | `skills update`                |
-| `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` | `skills show`                  |
+| `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` | `skills show`, `skills delete` |
 | `ListMarketSkillByPage`     | `agentbay:ListMarketSkillByPage`     | `skills list`                  |
+| `DeleteMarketSkill`         | `agentbay:DeleteMarketSkill`         | `skills delete`                |
 
 **RAM Policy example:**
 
@@ -281,7 +282,7 @@ If you are using a RAM sub-account's AK/SK, grant the required permissions via t
 | Image   | `list`, `init`, `create`, `create-from-template`, `activate`, `deactivate`, `delete`, `status`, `set-max-session`, `warmup-status` | Image lifecycle  | [→](docs/en/image.md)   |
 | API Key | `create`, `enable`, `disable`, `delete`, `list`, `concurrency set`, `describe-key-content`                                         | Key management   | [→](docs/en/apikey.md)  |
 | Network | `package list`                                                                                                                     | Network config   | [→](docs/en/network.md) |
-| Skills  | `push`, `update`, `show`, `list`                                                                                                   | Skill management | [→](docs/en/skills.md)  |
+| Skills  | `push`, `update`, `show`, `list`, `delete`                                                                                         | Skill management | [→](docs/en/skills.md)  |
 | Docker  | `login`, `tag`, `push`                                                                                                             | Docker registry  | [→](docs/en/docker.md)  |
 
 ---

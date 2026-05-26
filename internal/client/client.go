@@ -596,6 +596,63 @@ func (client *Client) ListMarketSkillByPageWithContext(ctx interface{}, request 
 	return client.ListMarketSkillByPage(request)
 }
 
+// DeleteMarketSkill 删除 Market Skill
+// Uses BodyType "string" so we parse XML/JSON manually.
+func (client *Client) DeleteMarketSkillWithOptions(request *DeleteMarketSkillRequest, runtime *dara.RuntimeOptions) (_result *DeleteMarketSkillResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if request.SkillId != nil {
+		query["SkillId"] = request.SkillId
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("DeleteMarketSkill"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &DeleteMarketSkillResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseDeleteMarketSkillResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) DeleteMarketSkill(request *DeleteMarketSkillRequest) (_result *DeleteMarketSkillResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &DeleteMarketSkillResponse{}
+	_body, _err := client.DeleteMarketSkillWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+func (client *Client) DeleteMarketSkillWithContext(ctx interface{}, request *DeleteMarketSkillRequest) (_result *DeleteMarketSkillResponse, _err error) {
+	return client.DeleteMarketSkill(request)
+}
+
 // ListTag 查询所有标签
 func (client *Client) ListTagWithOptions(runtime *dara.RuntimeOptions) (_result *ListTagResponse, _err error) {
 	query := map[string]interface{}{}

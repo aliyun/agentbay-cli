@@ -33,6 +33,7 @@ type Client interface {
 	UpdateMarketSkill(ctx context.Context, request *client.UpdateMarketSkillRequest) (*client.CreateMarketSkillResponse, error)
 	DescribeMarketSkillDetail(ctx context.Context, request *client.DescribeMarketSkillDetailRequest) (*client.DescribeMarketSkillDetailResponse, error)
 	ListMarketSkillByPage(ctx context.Context, request *client.ListMarketSkillByPageRequest) (*client.ListMarketSkillByPageResponse, error)
+	DeleteMarketSkill(ctx context.Context, request *client.DeleteMarketSkillRequest) (*client.DeleteMarketSkillResponse, error)
 	// Tags
 	ListTag(ctx context.Context) (*client.ListTagResponse, error)
 	CreateTag(ctx context.Context, request *client.CreateTagRequest) (*client.CreateTagResponse, error)
@@ -205,6 +206,15 @@ func (cw *clientWrapper) ListMarketSkillByPage(ctx context.Context, request *cli
 		return nil, err
 	}
 	return sdkClient.ListMarketSkillByPageWithOptions(request, cw.getRuntimeOptions())
+}
+
+// DeleteMarketSkill wraps the SDK client method
+func (cw *clientWrapper) DeleteMarketSkill(ctx context.Context, request *client.DeleteMarketSkillRequest) (*client.DeleteMarketSkillResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.DeleteMarketSkillWithOptions(request, cw.getRuntimeOptions())
 }
 
 // CreateTag wraps the SDK client method

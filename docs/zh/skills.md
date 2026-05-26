@@ -263,3 +263,67 @@ agentbay skills list -o json
   "Action": ["agentbay:ListMarketSkillByPage"]
 }
 ```
+
+---
+
+### `skills delete`
+
+永久删除云端技能。
+
+默认情况下，命令会先查询技能详情并展示，再提示确认是否删除。指定 `--yes` 时跳过详情查询和确认提示，直接执行删除，适合脚本/CI 场景。
+
+```bash
+# 交互式删除（展示技能信息并确认）
+agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx
+
+# 跳过详情查询和确认，直接删除（脚本/CI）
+agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx --yes
+agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx -y
+```
+
+**Flags：**
+
+| 参数         | 短参数 | 类型   | 必填 | 默认值  | 说明                                            |
+| ------------ | ------ | ------ | ---- | ------- | ----------------------------------------------- |
+| `--skill-id` |        | string | 是   | （无）  | 要删除的技能 ID                                 |
+| `--yes`      | `-y`   | bool   | 否   | `false` | 跳过详情查询和确认提示（适合非交互式/脚本场景） |
+
+**输出（交互模式）：**
+
+```
+[STEP 1/2] Fetching skill details...
+[INFO] DescribeMarketSkillDetail Request ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  SkillId: skill-xxxxxxxxxxxxxxxx
+  Name:    my-skill
+
+Are you sure you want to permanently delete this skill? [y/N]: y
+[INFO] DeleteMarketSkill Request ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+[SUCCESS] Skill has been deleted.
+  SkillId: skill-xxxxxxxxxxxxxxxx
+```
+
+**输出（`--yes` 模式）：**
+
+```
+[INFO] --yes specified, skipping skill detail lookup.
+[INFO] DeleteMarketSkill Request ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+[SUCCESS] Skill has been deleted.
+  SkillId: skill-xxxxxxxxxxxxxxxx
+```
+
+**涉及接口：**
+
+| Action                      | 所需权限                             |
+| --------------------------- | ------------------------------------ |
+| `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` |
+| `DeleteMarketSkill`         | `agentbay:DeleteMarketSkill`         |
+
+```json
+{
+  "Action": ["agentbay:DescribeMarketSkillDetail", "agentbay:DeleteMarketSkill"]
+}
+```
+
+> **注意：** 使用 `--yes` 时，仅需 `agentbay:DeleteMarketSkill` 权限。

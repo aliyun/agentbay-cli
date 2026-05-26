@@ -148,6 +148,10 @@ func (m *mockGetMcpImageInfoClient) ListMarketSkillByPage(ctx context.Context, r
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockGetMcpImageInfoClient) DeleteMarketSkill(ctx context.Context, request *client.DeleteMarketSkillRequest) (*client.DeleteMarketSkillResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 var _ agentbay.Client = (*mockGetMcpImageInfoClient)(nil)
 
 func TestInferImageTypeFromImageID(t *testing.T) {

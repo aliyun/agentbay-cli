@@ -22,7 +22,7 @@ func TestSkillsCmd(t *testing.T) {
 		assert.True(t, strings.Contains(cmd.SkillsCmd.Long, "skill"))
 	})
 
-	t.Run("skills has subcommands push update list show", func(t *testing.T) {
+	t.Run("skills has subcommands push update list show delete", func(t *testing.T) {
 		children := cmd.SkillsCmd.Commands()
 		names := make([]string, len(children))
 		for i, c := range children {
@@ -32,6 +32,7 @@ func TestSkillsCmd(t *testing.T) {
 		assert.Contains(t, names, "update")
 		assert.Contains(t, names, "list")
 		assert.Contains(t, names, "show")
+		assert.Contains(t, names, "delete")
 	})
 
 	t.Run("skills push requires one argument", func(t *testing.T) {
@@ -233,6 +234,51 @@ func TestSkillsCmd(t *testing.T) {
 		tagFlag := listCmd.Flags().Lookup("tag")
 		assert.NotNil(t, tagFlag)
 		assert.Equal(t, "[]", tagFlag.DefValue)
+	})
+
+	t.Run("skills delete accepts no positional arguments", func(t *testing.T) {
+		var deleteCmd *cobra.Command
+		for _, c := range cmd.SkillsCmd.Commands() {
+			if c.Name() == "delete" {
+				deleteCmd = c
+				break
+			}
+		}
+		requireNotNil(t, deleteCmd)
+		assert.NoError(t, deleteCmd.Args(deleteCmd, []string{}))
+		assert.Error(t, deleteCmd.Args(deleteCmd, []string{"extra"}))
+	})
+
+	t.Run("skills delete has --skill-id flag (required)", func(t *testing.T) {
+		var deleteCmd *cobra.Command
+		for _, c := range cmd.SkillsCmd.Commands() {
+			if c.Name() == "delete" {
+				deleteCmd = c
+				break
+			}
+		}
+		requireNotNil(t, deleteCmd)
+		skillIdFlag := deleteCmd.Flags().Lookup("skill-id")
+		assert.NotNil(t, skillIdFlag)
+		assert.Equal(t, "", skillIdFlag.DefValue)
+		// Verify --skill-id is marked as required
+		requiredAnnotation := skillIdFlag.Annotations[cobra.BashCompOneRequiredFlag]
+		assert.Equal(t, []string{"true"}, requiredAnnotation)
+	})
+
+	t.Run("skills delete has --yes flag with shorthand y", func(t *testing.T) {
+		var deleteCmd *cobra.Command
+		for _, c := range cmd.SkillsCmd.Commands() {
+			if c.Name() == "delete" {
+				deleteCmd = c
+				break
+			}
+		}
+		requireNotNil(t, deleteCmd)
+		yesFlag := deleteCmd.Flags().Lookup("yes")
+		assert.NotNil(t, yesFlag)
+		assert.Equal(t, "false", yesFlag.DefValue)
+		assert.Equal(t, "y", yesFlag.Shorthand)
 	})
 }
 

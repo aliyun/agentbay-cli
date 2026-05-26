@@ -263,3 +263,67 @@ When there are more pages, a tip is shown at the end:
   "Action": ["agentbay:ListMarketSkillByPage"]
 }
 ```
+
+---
+
+### `skills delete`
+
+Permanently delete a skill from the cloud.
+
+By default, the command fetches the skill details and displays them before prompting for confirmation. With `--yes`, both the detail lookup and confirmation prompt are skipped and the deletion is performed directly — suitable for scripts/CI.
+
+```bash
+# Interactive deletion (shows skill info and prompts for confirmation)
+agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx
+
+# Skip detail lookup and confirmation, delete directly (scripts/CI)
+agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx --yes
+agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx -y
+```
+
+**Flags:**
+
+| Flag         | Short | Type   | Required | Default | Description                                                          |
+| ------------ | ----- | ------ | -------- | ------- | -------------------------------------------------------------------- |
+| `--skill-id` |       | string | Yes      | (none)  | Skill ID to delete                                                   |
+| `--yes`      | `-y`  | bool   | No       | `false` | Skip detail lookup and confirmation prompt (for non-interactive use) |
+
+**Output (interactive mode):**
+
+```
+[STEP 1/2] Fetching skill details...
+[INFO] DescribeMarketSkillDetail Request ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  SkillId: skill-xxxxxxxxxxxxxxxx
+  Name:    my-skill
+
+Are you sure you want to permanently delete this skill? [y/N]: y
+[INFO] DeleteMarketSkill Request ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+[SUCCESS] Skill has been deleted.
+  SkillId: skill-xxxxxxxxxxxxxxxx
+```
+
+**Output (`--yes` mode):**
+
+```
+[INFO] --yes specified, skipping skill detail lookup.
+[INFO] DeleteMarketSkill Request ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+[SUCCESS] Skill has been deleted.
+  SkillId: skill-xxxxxxxxxxxxxxxx
+```
+
+**Involved APIs:**
+
+| Action                      | Required Permission                  |
+| --------------------------- | ------------------------------------ |
+| `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` |
+| `DeleteMarketSkill`         | `agentbay:DeleteMarketSkill`         |
+
+```json
+{
+  "Action": ["agentbay:DescribeMarketSkillDetail", "agentbay:DeleteMarketSkill"]
+}
+```
+
+> **Note:** When using `--yes`, only the `agentbay:DeleteMarketSkill` permission is required.

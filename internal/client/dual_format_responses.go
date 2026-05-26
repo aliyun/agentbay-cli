@@ -1987,3 +1987,78 @@ func parseCreateTagResponse(res map[string]interface{}) (*CreateTagResponse, err
 	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
 	return out, nil
 }
+
+// --- DeleteMarketSkill ---
+
+type deleteMarketSkillJSONWire struct {
+	Code           *string         `json:"Code"`
+	Data           *bool           `json:"Data"`
+	HttpStatusCode json.RawMessage `json:"HttpStatusCode"`
+	Message        *string         `json:"Message"`
+	RequestId      *string         `json:"RequestId"`
+	Success        *bool           `json:"Success"`
+}
+
+type xmlDeleteMarketSkillResponse struct {
+	XMLName        struct{} `xml:"DeleteMarketSkillResponse"`
+	Code           string   `xml:"Code"`
+	Data           string   `xml:"Data"`
+	HttpStatusCode string   `xml:"HttpStatusCode"`
+	Message        string   `xml:"Message"`
+	RequestId      string   `xml:"RequestId"`
+	Success        string   `xml:"Success"`
+}
+
+func parseDeleteMarketSkillResponse(res map[string]interface{}) (*DeleteMarketSkillResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &DeleteMarketSkillResponse{Headers: make(map[string]*string)}
+	parsed := &DeleteMarketSkillResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xr xmlDeleteMarketSkillResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = dara.String(xr.Code)
+			parsed.RequestId = dara.String(xr.RequestId)
+			parsed.Message = dara.String(xr.Message)
+			if s := strings.TrimSpace(xr.HttpStatusCode); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					parsed.HttpStatusCode = dara.Int32(int32(n))
+				}
+			}
+			if s := strings.TrimSpace(xr.Success); s == "true" {
+				parsed.Success = dara.Bool(true)
+			} else if s == "false" {
+				parsed.Success = dara.Bool(false)
+			}
+			if s := strings.TrimSpace(xr.Data); s == "true" {
+				parsed.Data = dara.Bool(true)
+			} else if s == "false" {
+				parsed.Data = dara.Bool(false)
+			}
+		} else {
+			var wire deleteMarketSkillJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = wire.Code
+			parsed.Message = wire.Message
+			parsed.RequestId = wire.RequestId
+			parsed.Success = wire.Success
+			parsed.Data = wire.Data
+			n, derr := int32FromFlexibleJSON(wire.HttpStatusCode)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: fmt.Errorf("HttpStatusCode: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.HttpStatusCode = n
+		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}

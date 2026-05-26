@@ -183,6 +183,10 @@ func (m *mockImageListClient) ListMarketSkillByPage(ctx context.Context, request
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockImageListClient) DeleteMarketSkill(ctx context.Context, request *client.DeleteMarketSkillRequest) (*client.DeleteMarketSkillResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 // Helper functions for testing
 func boolPtr(b bool) *bool {
 	return &b

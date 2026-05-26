@@ -75,6 +75,7 @@ func init() {
 	SkillsCmd.AddCommand(skillsListCmd)
 	SkillsCmd.AddCommand(skillsShowCmd)
 	SkillsCmd.AddCommand(skillsUpdateCmd)
+	SkillsCmd.AddCommand(skillsDeleteCmd)
 
 	skillsPushCmd.Flags().StringArray("tag", nil, "Tag name for the skill (can be specified multiple times, e.g. --tag \"tag1\" --tag \"tag2\")")
 	skillsPushCmd.Flags().String("icon", "https://img.alicdn.com/imgextra/i4/O1CN01syuoCy1qhsZxbwuBz_!!6000000005528-2-tps-100-100.png", "Icon for the skill (URL or identifier); uses the default AgentBay icon if not specified")
@@ -91,6 +92,10 @@ func init() {
 	_ = skillsUpdateCmd.MarkFlagRequired("file")
 	skillsUpdateCmd.Flags().StringArray("tag", nil, `Tag name for the skill (can be specified multiple times, e.g. --tag "tag1" --tag "tag2")`)
 	skillsUpdateCmd.Flags().String("icon", "", "Icon for the skill (e.g. URL or identifier)")
+
+	skillsDeleteCmd.Flags().String("skill-id", "", "Skill ID to delete (required)")
+	_ = skillsDeleteCmd.MarkFlagRequired("skill-id")
+	skillsDeleteCmd.Flags().BoolP("yes", "y", false, "Skip confirmation prompt and skill detail lookup (for non-interactive use)")
 }
 
 // parseSkillFrontmatter parses --- name: x description: y --- from SKILL.md content.
@@ -1072,6 +1077,103 @@ func runSkillsShow(cmd *cobra.Command, args []string) error {
 		fmt.Printf("%-*s\n", skillDetailLabelW, "Description:")
 		fmt.Println(wrapText(desc, 72, "  "))
 	}
+	return nil
+}
+
+var skillsDeleteCmd = &cobra.Command{
+	Use:   "delete",
+	Short: "Delete a skill from the cloud",
+	Long: `Delete a skill permanently from the cloud by its skill ID.
+
+Without --yes, the command first fetches the skill details and shows them before asking for confirmation.
+With --yes, the skill detail lookup is skipped and the deletion is performed directly.
+
+Examples:
+  # Delete a skill (interactive, shows skill info and prompts for confirmation)
+  agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx
+
+  # Delete without confirmation (for scripts/CI)
+  agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx --yes`,
+	Args: cobra.NoArgs,
+	RunE: runSkillsDelete,
+}
+
+func runSkillsDelete(cmd *cobra.Command, args []string) error {
+	skillId, _ := cmd.Flags().GetString("skill-id")
+	autoYes, _ := cmd.Flags().GetBool("yes")
+
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+	apiClient := agentbay.NewClientFromConfig(cfg)
+	ctx := context.Background()
+
+	if !autoYes {
+		// STEP 1/2: fetch skill detail to show info before confirmation
+		fmt.Printf("[STEP 1/2] Fetching skill details...\n")
+		req := &client.DescribeMarketSkillDetailRequest{SkillId: &skillId}
+		resp, err := apiClient.DescribeMarketSkillDetail(ctx, req)
+		if err != nil {
+			printRequestIDFromErrIfVerbose(cmd, err)
+			return fmt.Errorf("[ERROR] Failed to get skill details: %w", err)
+		}
+		if resp.Body != nil && resp.Body.RequestId != nil && *resp.Body.RequestId != "" {
+			fmt.Printf("[INFO] DescribeMarketSkillDetail Request ID: %s\n", *resp.Body.RequestId)
+		}
+		if resp.Body == nil || resp.Body.Data == nil {
+			return fmt.Errorf("[ERROR] Skill not found: %s", skillId)
+		}
+		d := resp.Body.Data
+		skillName := strPtr(d.GetName())
+		fmt.Printf("  SkillId: %s\n", skillId)
+		if skillName != "" {
+			fmt.Printf("  Name:    %s\n", skillName)
+		}
+		fmt.Println()
+
+		// STEP 2/2: confirm deletion
+		confirmed, err := ConfirmPrompt("Are you sure you want to permanently delete this skill? [y/N]: ", autoYes)
+		if err != nil {
+			return fmt.Errorf("[ERROR] %w", err)
+		}
+		if !confirmed {
+			fmt.Printf("[INFO] Operation cancelled.\n")
+			return nil
+		}
+	} else {
+		fmt.Printf("[INFO] --yes specified, skipping skill detail lookup.\n")
+	}
+
+	// Delete
+	deleteResp, err := apiClient.DeleteMarketSkill(ctx, &client.DeleteMarketSkillRequest{
+		SkillId: &skillId,
+	})
+	if err != nil {
+		printRequestIDFromErrIfVerbose(cmd, err)
+		return fmt.Errorf("[ERROR] Failed to delete skill: %w", err)
+	}
+
+	if deleteResp.Body == nil {
+		return fmt.Errorf("[ERROR] Invalid response: missing body")
+	}
+
+	if reqID := deleteResp.Body.GetRequestId(); reqID != "" {
+		fmt.Printf("[INFO] DeleteMarketSkill Request ID: %s\n", reqID)
+	}
+
+	// Success判定：以 Code 为主依据，兼容 Success 缺失
+	code := deleteResp.Body.GetCode()
+	successPtr := deleteResp.Body.Success
+	if (successPtr != nil && !*successPtr) || (code != "" && !strings.EqualFold(code, "ok")) {
+		msg := deleteResp.Body.GetMessage()
+		return fmt.Errorf("[ERROR] Failed to delete skill: Code=%s, Message=%s", code, msg)
+	}
+
+	fmt.Println()
+	fmt.Printf("[SUCCESS] Skill has been deleted.\n")
+	fmt.Printf("  SkillId: %s\n", skillId)
+
 	return nil
 }
 
