@@ -72,6 +72,11 @@ func (client *Client) CreateMarketSkillWithContext(ctx context.Context, request 
 	return _result, _err
 }
 
+// UpdateMarketSkillWithContext 更新 Skill，支持 context
+func (client *Client) UpdateMarketSkillWithContext(ctx context.Context, request *UpdateMarketSkillRequest, runtime *dara.RuntimeOptions) (_result *UpdateMarketSkillResponse, _err error) {
+	return client.UpdateMarketSkillWithOptions(request, runtime)
+}
+
 // ListTagWithContext 查询所有标签，支持 context
 func (client *Client) ListTagWithContext(ctx context.Context, runtime *dara.RuntimeOptions) (_result *ListTagResponse, _err error) {
 	return client.ListTagWithOptions(runtime)

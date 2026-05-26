@@ -96,6 +96,9 @@ func (m *mockImageListClient) GetMarketSkillCredential(ctx context.Context, requ
 func (m *mockImageListClient) CreateMarketSkill(ctx context.Context, request *client.CreateMarketSkillRequest) (*client.CreateMarketSkillResponse, error) {
 	return nil, fmt.Errorf("not implemented")
 }
+func (m *mockImageListClient) UpdateMarketSkill(ctx context.Context, request *client.UpdateMarketSkillRequest) (*client.CreateMarketSkillResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
 func (m *mockImageListClient) DescribeMarketSkillDetail(ctx context.Context, request *client.DescribeMarketSkillDetailRequest) (*client.DescribeMarketSkillDetailResponse, error) {
 	return nil, fmt.Errorf("not implemented")
 }

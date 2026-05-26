@@ -30,6 +30,7 @@ type Client interface {
 	// Market Skill
 	GetMarketSkillCredential(ctx context.Context, request *client.GetMarketSkillCredentialRequest) (*client.GetMarketSkillCredentialResponse, error)
 	CreateMarketSkill(ctx context.Context, request *client.CreateMarketSkillRequest) (*client.CreateMarketSkillResponse, error)
+	UpdateMarketSkill(ctx context.Context, request *client.UpdateMarketSkillRequest) (*client.CreateMarketSkillResponse, error)
 	DescribeMarketSkillDetail(ctx context.Context, request *client.DescribeMarketSkillDetailRequest) (*client.DescribeMarketSkillDetailResponse, error)
 	// Tags
 	ListTag(ctx context.Context) (*client.ListTagResponse, error)
@@ -157,6 +158,25 @@ func (cw *clientWrapper) CreateMarketSkill(ctx context.Context, request *client.
 		return nil, err
 	}
 	return sdkClient.CreateMarketSkillWithOptions(request, cw.getRuntimeOptions())
+}
+
+// UpdateMarketSkill wraps the SDK client method
+func (cw *clientWrapper) UpdateMarketSkill(ctx context.Context, request *client.UpdateMarketSkillRequest) (*client.CreateMarketSkillResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	resp, err := sdkClient.UpdateMarketSkillWithOptions(request, cw.getRuntimeOptions())
+	if err != nil {
+		return nil, err
+	}
+	// Convert UpdateMarketSkillResponse to CreateMarketSkillResponse (same Body structure)
+	return &client.CreateMarketSkillResponse{
+		Headers:    resp.Headers,
+		StatusCode: resp.StatusCode,
+		Body:       resp.Body,
+		RawBody:    resp.RawBody,
+	}, nil
 }
 
 // DescribeMarketSkillDetail wraps the SDK client method

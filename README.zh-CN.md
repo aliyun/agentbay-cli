@@ -216,13 +216,14 @@ STS、OAuth（不推荐使用）及环境变量详见 [认证与环境](docs/zh/
 
 ### `skills` 命令分组
 
-| OpenAPI Action              | 所需权限                             | 调用命令      |
-| --------------------------- | ------------------------------------ | ------------- |
-| `ListTag`                   | `agentbay:ListTag`                   | `skills push` |
-| `CreateTag`                 | `agentbay:CreateTag`                 | `skills push` |
-| `GetMarketSkillCredential`  | `agentbay:GetMarketSkillCredential`  | `skills push` |
-| `CreateMarketSkill`         | `agentbay:CreateMarketSkill`         | `skills push` |
-| `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` | `skills show` |
+| OpenAPI Action              | 所需权限                             | 调用命令                       |
+| --------------------------- | ------------------------------------ | ------------------------------ |
+| `ListTag`                   | `agentbay:ListTag`                   | `skills push`, `skills update` |
+| `CreateTag`                 | `agentbay:CreateTag`                 | `skills push`, `skills update` |
+| `GetMarketSkillCredential`  | `agentbay:GetMarketSkillCredential`  | `skills push`, `skills update` |
+| `CreateMarketSkill`         | `agentbay:CreateMarketSkill`         | `skills push`                  |
+| `UpdateMarketSkill`         | `agentbay:UpdateMarketSkill`         | `skills update`                |
+| `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` | `skills show`                  |
 
 **RAM Policy 示例：**
 
@@ -237,6 +238,7 @@ STS、OAuth（不推荐使用）及环境变量详见 [认证与环境](docs/zh/
         "agentbay:CreateTag",
         "agentbay:GetMarketSkillCredential",
         "agentbay:CreateMarketSkill",
+        "agentbay:UpdateMarketSkill",
         "agentbay:DescribeMarketSkillDetail"
       ],
       "Resource": "*"
@@ -278,7 +280,7 @@ STS、OAuth（不推荐使用）及环境变量详见 [认证与环境](docs/zh/
 | 镜像    | `list`, `init`, `create`, `create-from-template`, `activate`, `deactivate`, `delete`, `status`, `set-max-session`, `warmup-status` | 镜像生命周期 | [→](docs/zh/image.md)   |
 | API Key | `create`, `enable`, `disable`, `delete`, `list`, `concurrency set`, `describe-key-content`                                         | 密钥管理     | [→](docs/zh/apikey.md)  |
 | 网络    | `package list`                                                                                                                     | 网络配置     | [→](docs/zh/network.md) |
-| 技能    | `push`, `show`, `list`                                                                                                             | 技能管理     | [→](docs/zh/skills.md)  |
+| 技能    | `push`, `update`, `show`, `list`                                                                                                   | 技能管理     | [→](docs/zh/skills.md)  |
 | Docker  | `login`, `tag`, `push`                                                                                                             | Docker 仓库  | [→](docs/zh/docker.md)  |
 
 ---

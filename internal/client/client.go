@@ -418,6 +418,9 @@ func (client *Client) CreateMarketSkillWithOptions(request *CreateMarketSkillReq
 		b, _ := json.Marshal(request.Tags)
 		body["Tags"] = string(b)
 	}
+	if !dara.IsNil(request.Icon) {
+		body["Icon"] = request.Icon
+	}
 
 	req := &openapiutil.OpenApiRequest{
 		Body: openapiutil.ParseToMap(body),
@@ -453,6 +456,72 @@ func (client *Client) CreateMarketSkill(request *CreateMarketSkillRequest) (_res
 	runtime := &dara.RuntimeOptions{}
 	_result = &CreateMarketSkillResponse{}
 	_body, _err := client.CreateMarketSkillWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+// UpdateMarketSkill 更新 Skill
+// Uses BodyType "string" so we parse XML/JSON manually (backend pre-release returns XML).
+func (client *Client) UpdateMarketSkillWithOptions(request *UpdateMarketSkillRequest, runtime *dara.RuntimeOptions) (_result *UpdateMarketSkillResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	body := map[string]interface{}{}
+	if !dara.IsNil(request.SkillId) {
+		body["SkillId"] = request.SkillId
+	}
+	if !dara.IsNil(request.OssBucket) {
+		body["OssBucket"] = request.OssBucket
+	}
+	if !dara.IsNil(request.OssFilePath) {
+		body["OssFilePath"] = request.OssFilePath
+	}
+	if len(request.Tags) > 0 {
+		b, _ := json.Marshal(request.Tags)
+		body["Tags"] = string(b)
+	}
+	if !dara.IsNil(request.Icon) {
+		body["Icon"] = request.Icon
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Body: openapiutil.ParseToMap(body),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("UpdateMarketSkill"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &UpdateMarketSkillResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseUpdateMarketSkillResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) UpdateMarketSkill(request *UpdateMarketSkillRequest) (_result *UpdateMarketSkillResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &UpdateMarketSkillResponse{}
+	_body, _err := client.UpdateMarketSkillWithOptions(request, runtime)
 	if _err != nil {
 		return _result, _err
 	}

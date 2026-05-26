@@ -14,6 +14,8 @@
 agentbay skills push ./my-skill
 agentbay skills push ./my-skill.zip
 agentbay skills push ./my-skill --tag "标签1" --tag "标签2"
+agentbay skills push ./my-skill --icon 'https://example.com/icon.png'
+agentbay skills push ./my-skill --tag "标签1" --icon 'https://example.com/icon.png'
 ```
 
 **参数：**
@@ -24,9 +26,10 @@ agentbay skills push ./my-skill --tag "标签1" --tag "标签2"
 
 **Flags：**
 
-| 参数    | 类型        | 必填 | 说明                                                         |
-| ------- | ----------- | ---- | ------------------------------------------------------------ |
-| `--tag` | stringArray | 否   | 技能标签名称（可多次指定，如 `--tag "标签1" --tag "标签2"`） |
+| 参数     | 类型        | 必填 | 默认値                | 说明                                                         |
+| -------- | ----------- | ---- | --------------------- | ------------------------------------------------------------ |
+| `--tag`  | stringArray | 否   | （无）                | 技能标签名称（可多次指定，如 `--tag "标签1" --tag "标签2"`） |
+| `--icon` | string      | 否   | AgentBay 默认图标 URL | 技能图标（URL 或标识），不传则自动使用默认图标               |
 
 **注意事项：**
 
@@ -34,6 +37,8 @@ agentbay skills push ./my-skill --tag "标签1" --tag "标签2"
 - 目录会自动打包为 `.zip` 后上传。
 - 指定 `--tag` 时，CLI 会先检查每个标签是否已存在，不存在的标签会自动创建后再上传技能。
 - 标签处理在获取上传凭证之前执行，以避免标签创建过程中凭证过期。
+- 不指定 `--icon` 时，会自动使用默认的 AgentBay 图标。
+- **`--icon` 的 Shell 引号问题：** 若图标 URL 中含有 `!!`（例如阿里云 CDN URL 中常见的 `...!!6000000005528...`），请用**单引号**包裹，以防止 zsh 将 `!!` 展开为上一条命令：`--icon 'https://...'`。
 
 **输出：**
 
@@ -67,6 +72,70 @@ agentbay skills push ./my-skill --tag "标签1" --tag "标签2"
     "agentbay:CreateTag",
     "agentbay:GetMarketSkillCredential",
     "agentbay:CreateMarketSkill"
+  ]
+}
+```
+
+---
+
+### `skills update`
+
+按 ID 更新已有技能。上传新的技能包，并可选地更新标签或设置图标。
+
+```bash
+agentbay skills update --skill-id <id> --file ./my-skill
+agentbay skills update --skill-id <id> --file ./my-skill.zip --tag "标签1" --tag "标签2"
+agentbay skills update --skill-id <id> --file ./my-skill --icon 'https://example.com/icon.png'
+```
+
+**Flags：**
+
+| 参数         | 类型        | 必填 | 说明                                                         |
+| ------------ | ----------- | ---- | ------------------------------------------------------------ |
+| `--skill-id` | string      | 是   | 要更新的技能 ID                                              |
+| `--file`     | string      | 是   | 技能目录或 `.zip` 文件路径                                   |
+| `--tag`      | stringArray | 否   | 技能标签名称（可多次指定，如 `--tag "标签1" --tag "标签2"`） |
+| `--icon`     | string      | 否   | 技能图标（如 URL 或标识）                                    |
+
+**注意事项：**
+
+- `--file` 为目录时，必须包含带 `name` / `description` frontmatter 的 `SKILL.md`。
+- `--file` 为目录时，会自动打包为 `.zip` 后上传。
+- 指定 `--tag` 时，CLI 会先检查每个标签是否已存在，不存在的标签会自动创建。
+- 标签处理在获取上传凭证之前执行，以避免标签创建过程中凭证过期。
+- **`--icon` 的 Shell 引号问题：** 若图标 URL 中含有 `!!`（例如阿里云 CDN URL 中常见的 `...!!6000000005528...`），请用**单引号**包裹，以防止 zsh 将 `!!` 展开为上一条命令：`--icon 'https://...'`。使用双引号或不加引号会导致 zsh 历史扩展，造成命令解析错误。
+
+**输出：**
+
+```
+[STEP 1/3] Getting upload credential...
+[STEP 2/3] Uploading skill zip...
+[STEP 3/3] Updating skill...
+[INFO] UpdateMarketSkill RequestId: xxx
+[SUCCESS] Skill updated successfully!
+[RESULT] Skill ID: 35U2Ver2
+```
+
+> 指定 `--tag` 时会在凭证获取步骤之前增加标签处理步骤。
+
+**涉及接口：**
+
+| Action                     | 所需权限                            |
+| -------------------------- | ----------------------------------- |
+| `ListTag`                  | `agentbay:ListTag`                  |
+| `CreateTag`                | `agentbay:CreateTag`                |
+| `GetMarketSkillCredential` | `agentbay:GetMarketSkillCredential` |
+| `UpdateMarketSkill`        | `agentbay:UpdateMarketSkill`        |
+
+> `ListTag` 和 `CreateTag` 仅在指定 `--tag` 时调用。`GetMarketSkillCredential` 仅在指定 `--file` 时调用。
+
+```json
+{
+  "Action": [
+    "agentbay:ListTag",
+    "agentbay:CreateTag",
+    "agentbay:GetMarketSkillCredential",
+    "agentbay:UpdateMarketSkill"
   ]
 }
 ```

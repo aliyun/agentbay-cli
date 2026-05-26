@@ -30,7 +30,7 @@ const skillDetailLabelW = 14
 var SkillsCmd = &cobra.Command{
 	Use:     "skills",
 	Short:   "Manage AgentBay skills",
-	Long:    "Push and list skills; show details.",
+	Long:    "Push, update, and list skills; show details.",
 	GroupID: "management",
 }
 
@@ -60,12 +60,29 @@ var skillsShowCmd = &cobra.Command{
 	RunE:  runSkillsShow,
 }
 
+var skillsUpdateCmd = &cobra.Command{
+	Use:   "update",
+	Short: "Update an existing skill in the cloud",
+	Long:  `Update an existing skill by ID. Upload a new zip file and optionally update tags or icon.`,
+	Args:  cobra.NoArgs,
+	RunE:  runSkillsUpdate,
+}
+
 func init() {
 	SkillsCmd.AddCommand(skillsPushCmd)
 	SkillsCmd.AddCommand(skillsListCmd)
 	SkillsCmd.AddCommand(skillsShowCmd)
+	SkillsCmd.AddCommand(skillsUpdateCmd)
 
 	skillsPushCmd.Flags().StringArray("tag", nil, "Tag name for the skill (can be specified multiple times, e.g. --tag \"tag1\" --tag \"tag2\")")
+	skillsPushCmd.Flags().String("icon", "https://img.alicdn.com/imgextra/i4/O1CN01syuoCy1qhsZxbwuBz_!!6000000005528-2-tps-100-100.png", "Icon for the skill (URL or identifier); uses the default AgentBay icon if not specified")
+
+	skillsUpdateCmd.Flags().String("skill-id", "", "Skill ID to update (required)")
+	_ = skillsUpdateCmd.MarkFlagRequired("skill-id")
+	skillsUpdateCmd.Flags().String("file", "", "Path to skill directory or .zip file (required)")
+	_ = skillsUpdateCmd.MarkFlagRequired("file")
+	skillsUpdateCmd.Flags().StringArray("tag", nil, `Tag name for the skill (can be specified multiple times, e.g. --tag "tag1" --tag "tag2")`)
+	skillsUpdateCmd.Flags().String("icon", "", "Icon for the skill (e.g. URL or identifier)")
 }
 
 // parseSkillFrontmatter parses --- name: x description: y --- from SKILL.md content.
@@ -151,6 +168,9 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 			tags = append(tags, trimmed)
 		}
 	}
+
+	// Parse icon flag
+	iconInput, _ := cmd.Flags().GetString("icon")
 
 	cfg, err := config.GetConfig()
 	if err != nil {
@@ -309,6 +329,9 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 	if len(tags) > 0 {
 		createReq.Tags = tags
 	}
+	if iconInput != "" {
+		createReq.Icon = &iconInput
+	}
 	var createResp *client.CreateMarketSkillResponse
 	err = withTransientRetry(client.DefaultRetryConfig(), "CreateMarketSkill", func() error {
 		var e error
@@ -334,6 +357,275 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Println()
 	fmt.Printf("[SUCCESS] ✅ Skill created successfully!\n")
+	fmt.Printf("[RESULT] Skill ID: %s\n", skillId)
+	return nil
+}
+
+func runSkillsUpdate(cmd *cobra.Command, args []string) error {
+	skillId, _ := cmd.Flags().GetString("skill-id")
+	fileInput, _ := cmd.Flags().GetString("file")
+	iconInput, _ := cmd.Flags().GetString("icon")
+
+	// Parse tags flag
+	tagsFlag, _ := cmd.Flags().GetStringArray("tag")
+	var tags []string
+	for _, t := range tagsFlag {
+		trimmed := strings.TrimSpace(t)
+		if trimmed != "" {
+			tags = append(tags, trimmed)
+		}
+	}
+
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+	apiClient := agentbay.NewClientFromConfig(cfg)
+	ctx := context.Background()
+
+	// Calculate steps
+	hasFile := fileInput != ""
+	stepIdx := 1
+	totalSteps := 0
+	if len(tags) > 0 {
+		totalSteps++
+	}
+	if hasFile {
+		totalSteps += 2 // credential + upload
+	}
+	totalSteps++ // UpdateMarketSkill call
+	if totalSteps == 0 {
+		totalSteps = 1
+	}
+
+	// Step: Process tags (if any)
+	if len(tags) > 0 {
+		fmt.Printf("[STEP %d/%d] Processing tags...\n", stepIdx, totalSteps)
+		stepIdx++
+
+		listResp, err := apiClient.ListTag(ctx)
+		if err != nil {
+			printRequestIDFromErrIfVerbose(cmd, err)
+			return fmt.Errorf("[ERROR] Failed to list tags: %w", err)
+		}
+		if listResp.Body != nil && listResp.Body.GetRequestId() != "" {
+			fmt.Printf("[INFO] ListTag RequestId: %s\n", listResp.Body.GetRequestId())
+		}
+
+		existingTagNames := map[string]bool{}
+		if listResp.Body != nil && listResp.Body.Data != nil {
+			for _, item := range listResp.Body.Data {
+				if item.TagName != nil {
+					existingTagNames[*item.TagName] = true
+				}
+			}
+		}
+
+		var missingTags []string
+		for _, tagName := range tags {
+			if !existingTagNames[tagName] {
+				missingTags = append(missingTags, tagName)
+			}
+		}
+
+		if len(missingTags) > 0 {
+			fmt.Printf("[INFO] Tags not found: %s, creating...\n", strings.Join(missingTags, ", "))
+			createReq := &client.CreateTagRequest{TagNameList: missingTags}
+			createTagResp, err := apiClient.CreateTag(ctx, createReq)
+			if err != nil {
+				printRequestIDFromErrIfVerbose(cmd, err)
+				return fmt.Errorf("[ERROR] Failed to create tags: %w", err)
+			}
+			if createTagResp.Body != nil && createTagResp.Body.GetRequestId() != "" {
+				fmt.Printf("[INFO] CreateTag RequestId: %s\n", createTagResp.Body.GetRequestId())
+			}
+			fmt.Printf("[INFO] Tags created successfully.\n")
+		} else {
+			fmt.Printf("[INFO] All tags already exist.\n")
+		}
+	}
+
+	var ossBucket, ossFilePath string
+
+	// Steps: Get credential + upload (if --file provided)
+	if hasFile {
+		pathInput := filepath.Clean(fileInput)
+		info, err := os.Stat(pathInput)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return printErrorMessage(
+					fmt.Sprintf("[ERROR] Path does not exist: %s", pathInput),
+					"",
+					"[TIP] Provide a valid skill directory or .zip file via --file",
+				)
+			}
+			return fmt.Errorf("path: %w", err)
+		}
+
+		var skillZipName string
+		var zipPath string
+
+		if info.IsDir() {
+			skillDir := pathInput
+			skillMdPath := filepath.Join(skillDir, skillFileName)
+			skillMd, err := os.ReadFile(skillMdPath)
+			if err != nil {
+				if os.IsNotExist(err) {
+					return printErrorMessage(
+						fmt.Sprintf("[ERROR] %s not found in %s", skillFileName, skillDir),
+						"",
+						fmt.Sprintf("[TIP] Create %s with frontmatter: name: <skill-name>", skillFileName),
+					)
+				}
+				return fmt.Errorf("reading %s: %w", skillFileName, err)
+			}
+			_, _, err = parseSkillFrontmatter(skillMd)
+			if err != nil {
+				return printErrorMessage(
+					fmt.Sprintf("[ERROR] %s", err.Error()),
+					"",
+					fmt.Sprintf("[TIP] Add frontmatter to %s: ---", skillFileName),
+					"      name: my-skill",
+					"      description: Optional description",
+					"      ---",
+				)
+			}
+			skillZipName = skillDirToZipFileName(skillDir)
+		} else {
+			if !strings.HasSuffix(strings.ToLower(pathInput), ".zip") {
+				return printErrorMessage(
+					fmt.Sprintf("[ERROR] Not a directory or .zip file: %s", pathInput),
+					"",
+					"[TIP] Provide a skill directory or .zip file via --file",
+				)
+			}
+			skillZipName = filepath.Base(pathInput)
+			zipPath = pathInput
+		}
+
+		// Get upload credential
+		fmt.Printf("[STEP %d/%d] Getting upload credential...\n", stepIdx, totalSteps)
+		stepIdx++
+		credReq := &client.GetMarketSkillCredentialRequest{FileName: &skillZipName}
+		var credResp *client.GetMarketSkillCredentialResponse
+		err = withTransientRetry(client.DefaultRetryConfig(), "GetMarketSkillCredential", func() error {
+			var e error
+			credResp, e = apiClient.GetMarketSkillCredential(ctx, credReq)
+			return e
+		})
+		if err != nil {
+			printRequestIDFromErrIfVerbose(cmd, err)
+			return fmt.Errorf("[ERROR] Failed to get upload credential: %w", err)
+		}
+		if credResp.Body == nil || credResp.Body.Data == nil {
+			return fmt.Errorf("invalid response: missing credential data")
+		}
+		if credResp.Body != nil && credResp.Body.RequestId != nil && *credResp.Body.RequestId != "" {
+			fmt.Printf("[INFO] GetMarketSkillCredential RequestId: %s\n", *credResp.Body.RequestId)
+		}
+		uploadURLStr := ""
+		if u := credResp.Body.Data.GetOssUrl(); u != nil && *u != "" {
+			uploadURLStr = *u
+		}
+		if uploadURLStr == "" {
+			if u := credResp.Body.Data.GetUrl(); u != nil && *u != "" {
+				uploadURLStr = *u
+			}
+		}
+		if uploadURLStr == "" {
+			return fmt.Errorf("invalid response: missing OSS upload URL")
+		}
+		if verbose, _ := cmd.Flags().GetBool("verbose"); verbose {
+			fmt.Fprintf(os.Stderr, "[DEBUG] OSS upload URL: %s\n", uploadURLStr)
+		}
+
+		createBucket, createOssFilePath, err := parseBucketAndPathForCreate(credResp.Body.Data, uploadURLStr)
+		if err != nil {
+			return err
+		}
+
+		// Upload
+		if zipPath != "" {
+			fmt.Printf("[STEP %d/%d] Uploading skill zip...\n", stepIdx, totalSteps)
+			if verbose, _ := cmd.Flags().GetBool("verbose"); verbose {
+				if fi, err := os.Stat(zipPath); err == nil {
+					fmt.Fprintf(os.Stderr, "[DEBUG] Upload size: %d bytes, file: %s\n", fi.Size(), zipPath)
+				}
+			}
+			if err := uploadFileToOSS(zipPath, uploadURLStr); err != nil {
+				return fmt.Errorf("[ERROR] Failed to upload: %w", err)
+			}
+		} else {
+			fmt.Printf("[STEP %d/%d] Packing and uploading skill...\n", stepIdx, totalSteps)
+			zipBuf, err := zipSkillDir(pathInput)
+			if err != nil {
+				return fmt.Errorf("pack skill: %w", err)
+			}
+			tmpFile, err := os.CreateTemp("", "agentbay-skill-*.zip")
+			if err != nil {
+				return fmt.Errorf("create temp zip: %w", err)
+			}
+			tmpPath := tmpFile.Name()
+			defer os.Remove(tmpPath)
+			if _, err := tmpFile.Write(zipBuf.Bytes()); err != nil {
+				_ = tmpFile.Close()
+				return fmt.Errorf("write temp zip: %w", err)
+			}
+			if err := tmpFile.Close(); err != nil {
+				return fmt.Errorf("close temp zip: %w", err)
+			}
+			if verbose, _ := cmd.Flags().GetBool("verbose"); verbose {
+				fmt.Fprintf(os.Stderr, "[DEBUG] Upload size: %d bytes, temp file: %s\n", zipBuf.Len(), tmpPath)
+			}
+			if err := uploadFileToOSS(tmpPath, uploadURLStr); err != nil {
+				return fmt.Errorf("[ERROR] Failed to upload: %w", err)
+			}
+		}
+		stepIdx++
+
+		// Prepare OSS fields for UpdateMarketSkill
+		ossBucket = createBucket
+		ossFilePath = createOssFilePath
+		// Pre-release credential URL path is often "null/<id>"; some backends reject "null" in OssFilePath.
+		if strings.HasPrefix(ossFilePath, "null/") && len(ossFilePath) > 5 {
+			ossFilePath = ossFilePath[5:]
+		}
+	}
+
+	// Final step: Call UpdateMarketSkill
+	fmt.Printf("[STEP %d/%d] Updating skill...\n", stepIdx, totalSteps)
+	updateReq := &client.UpdateMarketSkillRequest{
+		SkillId: &skillId,
+	}
+	if hasFile {
+		updateReq.OssBucket = &ossBucket
+		updateReq.OssFilePath = &ossFilePath
+	}
+	if len(tags) > 0 {
+		updateReq.Tags = tags
+	}
+	if iconInput != "" {
+		updateReq.Icon = &iconInput
+	}
+
+	var updateResp *client.CreateMarketSkillResponse
+	err = withTransientRetry(client.DefaultRetryConfig(), "UpdateMarketSkill", func() error {
+		var e error
+		updateResp, e = apiClient.UpdateMarketSkill(ctx, updateReq)
+		return e
+	})
+	if err != nil {
+		if updateResp != nil && updateResp.RawBody != "" {
+			fmt.Fprintf(os.Stderr, "[DEBUG] Raw response: %s\n", updateResp.RawBody)
+		}
+		printRequestIDFromErrIfVerbose(cmd, err)
+		return fmt.Errorf("[ERROR] Failed to update skill: %w", err)
+	}
+	if updateResp.Body != nil && updateResp.Body.RequestId != nil && *updateResp.Body.RequestId != "" {
+		fmt.Printf("[INFO] UpdateMarketSkill RequestId: %s\n", *updateResp.Body.RequestId)
+	}
+	fmt.Println()
+	fmt.Printf("[SUCCESS] ✅ Skill updated successfully!\n")
 	fmt.Printf("[RESULT] Skill ID: %s\n", skillId)
 	return nil
 }

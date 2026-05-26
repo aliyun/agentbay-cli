@@ -22,13 +22,14 @@ func TestSkillsCmd(t *testing.T) {
 		assert.True(t, strings.Contains(cmd.SkillsCmd.Long, "skill"))
 	})
 
-	t.Run("skills has subcommands push list show", func(t *testing.T) {
+	t.Run("skills has subcommands push update list show", func(t *testing.T) {
 		children := cmd.SkillsCmd.Commands()
 		names := make([]string, len(children))
 		for i, c := range children {
 			names[i] = c.Name()
 		}
 		assert.Contains(t, names, "push")
+		assert.Contains(t, names, "update")
 		assert.Contains(t, names, "list")
 		assert.Contains(t, names, "show")
 	})
@@ -90,6 +91,92 @@ func TestSkillsCmd(t *testing.T) {
 		tagFlag := push.Flags().Lookup("tag")
 		assert.NotNil(t, tagFlag)
 		assert.Equal(t, "[]", tagFlag.DefValue)
+	})
+
+	t.Run("skills push has --icon flag with default value", func(t *testing.T) {
+		var push *cobra.Command
+		for _, c := range cmd.SkillsCmd.Commands() {
+			if c.Name() == "push" {
+				push = c
+				break
+			}
+		}
+		requireNotNil(t, push)
+		iconFlag := push.Flags().Lookup("icon")
+		assert.NotNil(t, iconFlag)
+		assert.Equal(t, "https://img.alicdn.com/imgextra/i4/O1CN01syuoCy1qhsZxbwuBz_!!6000000005528-2-tps-100-100.png", iconFlag.DefValue)
+	})
+
+	t.Run("skills update accepts no positional arguments", func(t *testing.T) {
+		var updateCmd *cobra.Command
+		for _, c := range cmd.SkillsCmd.Commands() {
+			if c.Name() == "update" {
+				updateCmd = c
+				break
+			}
+		}
+		requireNotNil(t, updateCmd)
+		assert.NoError(t, updateCmd.Args(updateCmd, []string{}))
+		assert.Error(t, updateCmd.Args(updateCmd, []string{"extra"}))
+	})
+
+	t.Run("skills update has --skill-id flag (required)", func(t *testing.T) {
+		var updateCmd *cobra.Command
+		for _, c := range cmd.SkillsCmd.Commands() {
+			if c.Name() == "update" {
+				updateCmd = c
+				break
+			}
+		}
+		requireNotNil(t, updateCmd)
+		skillIdFlag := updateCmd.Flags().Lookup("skill-id")
+		assert.NotNil(t, skillIdFlag)
+		assert.Equal(t, "", skillIdFlag.DefValue)
+	})
+
+	t.Run("skills update has --file flag (required)", func(t *testing.T) {
+		var updateCmd *cobra.Command
+		for _, c := range cmd.SkillsCmd.Commands() {
+			if c.Name() == "update" {
+				updateCmd = c
+				break
+			}
+		}
+		requireNotNil(t, updateCmd)
+		fileFlag := updateCmd.Flags().Lookup("file")
+		assert.NotNil(t, fileFlag)
+		assert.Equal(t, "", fileFlag.DefValue)
+		// Verify --file is marked as required
+		requiredAnnotation := fileFlag.Annotations[cobra.BashCompOneRequiredFlag]
+		assert.Equal(t, []string{"true"}, requiredAnnotation)
+	})
+
+	t.Run("skills update has --tag flag", func(t *testing.T) {
+		var updateCmd *cobra.Command
+		for _, c := range cmd.SkillsCmd.Commands() {
+			if c.Name() == "update" {
+				updateCmd = c
+				break
+			}
+		}
+		requireNotNil(t, updateCmd)
+		tagFlag := updateCmd.Flags().Lookup("tag")
+		assert.NotNil(t, tagFlag)
+		assert.Equal(t, "[]", tagFlag.DefValue)
+	})
+
+	t.Run("skills update has --icon flag", func(t *testing.T) {
+		var updateCmd *cobra.Command
+		for _, c := range cmd.SkillsCmd.Commands() {
+			if c.Name() == "update" {
+				updateCmd = c
+				break
+			}
+		}
+		requireNotNil(t, updateCmd)
+		iconFlag := updateCmd.Flags().Lookup("icon")
+		assert.NotNil(t, iconFlag)
+		assert.Equal(t, "", iconFlag.DefValue)
 	})
 }
 

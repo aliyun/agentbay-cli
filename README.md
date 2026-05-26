@@ -216,13 +216,14 @@ If you are using a RAM sub-account's AK/SK, grant the required permissions via t
 
 ### `skills` Command Group
 
-| OpenAPI Action              | Required Permission                  | Used By       |
-| --------------------------- | ------------------------------------ | ------------- |
-| `ListTag`                   | `agentbay:ListTag`                   | `skills push` |
-| `CreateTag`                 | `agentbay:CreateTag`                 | `skills push` |
-| `GetMarketSkillCredential`  | `agentbay:GetMarketSkillCredential`  | `skills push` |
-| `CreateMarketSkill`         | `agentbay:CreateMarketSkill`         | `skills push` |
-| `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` | `skills show` |
+| OpenAPI Action              | Required Permission                  | Used By                        |
+| --------------------------- | ------------------------------------ | ------------------------------ |
+| `ListTag`                   | `agentbay:ListTag`                   | `skills push`, `skills update` |
+| `CreateTag`                 | `agentbay:CreateTag`                 | `skills push`, `skills update` |
+| `GetMarketSkillCredential`  | `agentbay:GetMarketSkillCredential`  | `skills push`, `skills update` |
+| `CreateMarketSkill`         | `agentbay:CreateMarketSkill`         | `skills push`                  |
+| `UpdateMarketSkill`         | `agentbay:UpdateMarketSkill`         | `skills update`                |
+| `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` | `skills show`                  |
 
 **RAM Policy example:**
 
@@ -278,7 +279,7 @@ If you are using a RAM sub-account's AK/SK, grant the required permissions via t
 | Image   | `list`, `init`, `create`, `create-from-template`, `activate`, `deactivate`, `delete`, `status`, `set-max-session`, `warmup-status` | Image lifecycle  | [→](docs/en/image.md)   |
 | API Key | `create`, `enable`, `disable`, `delete`, `list`, `concurrency set`, `describe-key-content`                                         | Key management   | [→](docs/en/apikey.md)  |
 | Network | `package list`                                                                                                                     | Network config   | [→](docs/en/network.md) |
-| Skills  | `push`, `show`, `list`                                                                                                             | Skill management | [→](docs/en/skills.md)  |
+| Skills  | `push`, `update`, `show`, `list`                                                                                                   | Skill management | [→](docs/en/skills.md)  |
 | Docker  | `login`, `tag`, `push`                                                                                                             | Docker registry  | [→](docs/en/docker.md)  |
 
 ---
@@ -329,4 +330,5 @@ See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## License
 
+This project is licensed under the Apache License 2.0 — see the [LICENSE](LICENSE) file for details.
 This project is licensed under the Apache License 2.0 — see the [LICENSE](LICENSE) file for details.
