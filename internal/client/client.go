@@ -480,7 +480,7 @@ func (client *Client) UpdateMarketSkillWithOptions(request *UpdateMarketSkillReq
 	if !dara.IsNil(request.OssFilePath) {
 		body["OssFilePath"] = request.OssFilePath
 	}
-	if len(request.TagList) > 0 {
+	if request.TagList != nil {
 		b, _ := json.Marshal(request.TagList)
 		body["TagList"] = string(b)
 	}

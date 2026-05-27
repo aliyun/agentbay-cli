@@ -88,10 +88,10 @@ func init() {
 
 	skillsUpdateCmd.Flags().String("skill-id", "", "Skill ID to update (required)")
 	_ = skillsUpdateCmd.MarkFlagRequired("skill-id")
-	skillsUpdateCmd.Flags().String("file", "", "Path to skill directory or .zip file (required)")
-	_ = skillsUpdateCmd.MarkFlagRequired("file")
+	skillsUpdateCmd.Flags().String("file", "", "Path to skill directory or .zip file")
 	skillsUpdateCmd.Flags().StringArray("tag", nil, `Tag name for the skill (can be specified multiple times, e.g. --tag "tag1" --tag "tag2")`)
 	skillsUpdateCmd.Flags().String("icon", "", "Icon for the skill (e.g. URL or identifier)")
+	skillsUpdateCmd.Flags().Bool("clear-tags", false, "Remove all tags from the skill")
 
 	skillsDeleteCmd.Flags().String("skill-id", "", "Skill ID to delete")
 	skillsDeleteCmd.Flags().BoolP("yes", "y", false, "Skip confirmation prompt and skill detail lookup (for non-interactive use)")
@@ -377,6 +377,7 @@ func runSkillsUpdate(cmd *cobra.Command, args []string) error {
 	skillId, _ := cmd.Flags().GetString("skill-id")
 	fileInput, _ := cmd.Flags().GetString("file")
 	iconInput, _ := cmd.Flags().GetString("icon")
+	clearTags, _ := cmd.Flags().GetBool("clear-tags")
 
 	// Parse tags flag
 	tagsFlag, _ := cmd.Flags().GetStringArray("tag")
@@ -386,6 +387,16 @@ func runSkillsUpdate(cmd *cobra.Command, args []string) error {
 		if trimmed != "" {
 			tags = append(tags, trimmed)
 		}
+	}
+
+	// Validate: --tag and --clear-tags are mutually exclusive
+	if clearTags && len(tags) > 0 {
+		return fmt.Errorf("[ERROR] --clear-tags and --tag cannot be used together")
+	}
+
+	// Validate: at least one of --file, --tag, --icon, --clear-tags must be provided
+	if fileInput == "" && len(tags) == 0 && iconInput == "" && !clearTags {
+		return fmt.Errorf("[ERROR] at least one of --file, --tag, --icon, or --clear-tags must be specified")
 	}
 
 	cfg, err := config.GetConfig()
@@ -400,15 +411,12 @@ func runSkillsUpdate(cmd *cobra.Command, args []string) error {
 	stepIdx := 1
 	totalSteps := 0
 	if len(tags) > 0 {
-		totalSteps++
+		totalSteps++ // ListTag/CreateTag step
 	}
 	if hasFile {
 		totalSteps += 2 // credential + upload
 	}
 	totalSteps++ // UpdateMarketSkill call
-	if totalSteps == 0 {
-		totalSteps = 1
-	}
 
 	// Step: Process tags (if any)
 	if len(tags) > 0 {
@@ -615,7 +623,10 @@ func runSkillsUpdate(cmd *cobra.Command, args []string) error {
 	}
 	if len(tags) > 0 {
 		updateReq.TagList = tags
+	} else if clearTags {
+		updateReq.TagList = []string{} // explicit empty slice → API clears all tags
 	}
+	// neither → TagList remains nil → API preserves existing tags
 	if iconInput != "" {
 		updateReq.Icon = &iconInput
 	}

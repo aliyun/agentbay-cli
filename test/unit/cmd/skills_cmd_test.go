@@ -135,7 +135,7 @@ func TestSkillsCmd(t *testing.T) {
 		assert.Equal(t, "", skillIdFlag.DefValue)
 	})
 
-	t.Run("skills update has --file flag (required)", func(t *testing.T) {
+	t.Run("skills update has --file flag (optional)", func(t *testing.T) {
 		var updateCmd *cobra.Command
 		for _, c := range cmd.SkillsCmd.Commands() {
 			if c.Name() == "update" {
@@ -147,9 +147,9 @@ func TestSkillsCmd(t *testing.T) {
 		fileFlag := updateCmd.Flags().Lookup("file")
 		assert.NotNil(t, fileFlag)
 		assert.Equal(t, "", fileFlag.DefValue)
-		// Verify --file is marked as required
+		// --file is now optional; verify it is NOT marked as required
 		requiredAnnotation := fileFlag.Annotations[cobra.BashCompOneRequiredFlag]
-		assert.Equal(t, []string{"true"}, requiredAnnotation)
+		assert.Nil(t, requiredAnnotation)
 	})
 
 	t.Run("skills update has --tag flag", func(t *testing.T) {
@@ -178,6 +178,20 @@ func TestSkillsCmd(t *testing.T) {
 		iconFlag := updateCmd.Flags().Lookup("icon")
 		assert.NotNil(t, iconFlag)
 		assert.Equal(t, "", iconFlag.DefValue)
+	})
+
+	t.Run("skills update has --clear-tags flag", func(t *testing.T) {
+		var updateCmd *cobra.Command
+		for _, c := range cmd.SkillsCmd.Commands() {
+			if c.Name() == "update" {
+				updateCmd = c
+				break
+			}
+		}
+		requireNotNil(t, updateCmd)
+		clearTagsFlag := updateCmd.Flags().Lookup("clear-tags")
+		assert.NotNil(t, clearTagsFlag)
+		assert.Equal(t, "false", clearTagsFlag.DefValue)
 	})
 
 	t.Run("skills list has --page flag with default 1", func(t *testing.T) {

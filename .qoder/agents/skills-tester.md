@@ -276,6 +276,22 @@ SKILL_DIR_RENAMED=/tmp/${TEST_ID}-renamed
   [PASS] 更新多标签（--tag a --tag b）
          命令: AGENTBAY_ENV=prerelease ./agentbay skills update --skill-id <skill-id> --file /tmp/<TEST_ID> --tag "e2e-test" --tag "cli-test"
          RequestID: <ListTag-RID> / <GetMarketSkillCredential-RID> / <UpdateMarketSkill-RID>
+  [PASS] 不传 tag flag（原标签保留）
+         前置: 技能已有标签 "e2e-test"（由上一条用例设置）
+         命令: AGENTBAY_ENV=prerelease ./agentbay skills update --skill-id <skill-id> --file /tmp/<TEST_ID>
+         RequestID: <GetMarketSkillCredential-RID> / <UpdateMarketSkill-RID>
+         验证: skills show <skill-id>，tags 字段仍包含 "e2e-test"（未被清空）
+         判定: tags 字段丢失 → [FAIL]；tags 保持不变 → [PASS]
+  [PASS] 清空所有标签（--clear-tags）
+         前置: 技能有标签（同上）
+         命令: AGENTBAY_ENV=prerelease ./agentbay skills update --skill-id <skill-id> --clear-tags
+         RequestID: <UpdateMarketSkill-RID>（无 ListTag/CreateTag，直接 update）
+         验证: skills show <skill-id>，tags 字段为空 / []
+         判定: tags 非空 → [FAIL]；tags 为空 → [PASS]
+  [PASS] --tag 与 --clear-tags 互斥校验（预期失败）
+         命令: AGENTBAY_ENV=prerelease ./agentbay skills update --skill-id <skill-id> --tag "e2e-test" --clear-tags
+         RequestID: 无（本地参数校验，未发起 API 请求）
+         预期: 输出含 [ERROR]，错误信息含 "cannot be used together" | EXIT_CODE: 1 ✓
   [PASS] 修改技能名后更新（预期失败）
          命令: AGENTBAY_ENV=prerelease ./agentbay skills update --skill-id <skill-id> --file /tmp/<TEST_ID>-renamed
          RequestID: <GetMarketSkillCredential-RID> / <UpdateMarketSkill-RID（若到达该步骤）>
@@ -298,10 +314,10 @@ SKILL_DIR_RENAMED=/tmp/${TEST_ID}-renamed
 │ skills push     │   4  │  <N> │  <M> │
 │ skills list     │   7  │  <N> │  <M> │
 │ skills show     │   2  │  <N> │  <M> │
-│ skills update   │   4  │  <N> │  <M> │
+│ skills update   │   7  │  <N> │  <M> │
 │ skills delete   │   2  │  <N> │  <M> │
 ├─────────────────┼──────┼──────┼──────┤
-│ 合计            │  19  │  <N> │  <M> │
+│ 合计            │  22  │  <N> │  <M> │
 └─────────────────┴──────┴──────┴──────┘
 
 ════════════════════════════════════════════

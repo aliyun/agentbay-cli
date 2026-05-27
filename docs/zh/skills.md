@@ -87,16 +87,30 @@ agentbay skills push ./my-skill --tag "标签1" --icon 'https://example.com/icon
 agentbay skills update --skill-id <id> --file ./my-skill
 agentbay skills update --skill-id <id> --file ./my-skill.zip --tag "标签1" --tag "标签2"
 agentbay skills update --skill-id <id> --file ./my-skill --icon 'https://example.com/icon.png'
+agentbay skills update --skill-id <id> --clear-tags
 ```
 
 **Flags：**
 
-| 参数         | 类型        | 必填 | 说明                                                         |
-| ------------ | ----------- | ---- | ------------------------------------------------------------ |
-| `--skill-id` | string      | 是   | 要更新的技能 ID                                              |
-| `--file`     | string      | 是   | 技能目录或 `.zip` 文件路径                                   |
-| `--tag`      | stringArray | 否   | 技能标签名称（可多次指定，如 `--tag "标签1" --tag "标签2"`） |
-| `--icon`     | string      | 否   | 技能图标（如 URL 或标识）                                    |
+| 参数           | 类型        | 必填 | 说明                                                         |
+| -------------- | ----------- | ---- | ------------------------------------------------------------ |
+| `--skill-id`   | string      | 是   | 要更新的技能 ID                                              |
+| `--file`       | string      | 否   | 技能目录或 `.zip` 文件路径                                   |
+| `--tag`        | stringArray | 否   | 技能标签名称（可多次指定，如 `--tag "标签1" --tag "标签2"`） |
+| `--icon`       | string      | 否   | 技能图标（如 URL 或标识）                                    |
+| `--clear-tags` | bool        | 否   | 清空技能上的所有标签                                         |
+
+> `--file`、`--tag`、`--icon`、`--clear-tags` 至少需指定一个。
+
+**标签行为说明：**
+
+| 操作                               | 接口行为                   |
+| ---------------------------------- | -------------------------- |
+| 不传 `--tag` 也不传 `--clear-tags` | 保留原有标签，不做任何变更 |
+| `--tag "标签1" --tag "标签2"`      | 用指定标签列表覆盖原有标签 |
+| `--clear-tags`                     | 清空技能上的所有标签       |
+
+> `--tag` 与 `--clear-tags` 不能同时使用。
 
 **注意事项：**
 
@@ -294,7 +308,7 @@ agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx -y
 
 | 参数         | 短参数 | 类型   | 必填 | 默认值  | 说明                                            |
 | ------------ | ------ | ------ | ---- | ------- | ----------------------------------------------- |
-| `--skill-id` |        | string | 否*  | （无）  | 要删除的技能 ID（与位置参数二选一）             |
+| `--skill-id` |        | string | 否\* | （无）  | 要删除的技能 ID（与位置参数二选一）             |
 | `--yes`      | `-y`   | bool   | 否   | `false` | 跳过详情查询和确认提示（适合非交互式/脚本场景） |
 
 > \* Skill ID 必须通过位置参数或 `--skill-id` 至少提供一种。

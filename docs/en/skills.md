@@ -87,16 +87,30 @@ Update an existing skill by ID. Upload a new skill package and optionally update
 agentbay skills update --skill-id <id> --file ./my-skill
 agentbay skills update --skill-id <id> --file ./my-skill.zip --tag "tag1" --tag "tag2"
 agentbay skills update --skill-id <id> --file ./my-skill --icon 'https://example.com/icon.png'
+agentbay skills update --skill-id <id> --clear-tags
 ```
 
 **Flags:**
 
-| Flag         | Type        | Required | Description                                                                                |
-| ------------ | ----------- | -------- | ------------------------------------------------------------------------------------------ |
-| `--skill-id` | string      | Yes      | Skill ID to update                                                                         |
-| `--file`     | string      | Yes      | Path to skill directory or `.zip` file                                                     |
-| `--tag`      | stringArray | No       | Tag name for the skill (can be specified multiple times, e.g. `--tag "tag1" --tag "tag2"`) |
-| `--icon`     | string      | No       | Icon for the skill (e.g. URL or identifier)                                                |
+| Flag           | Type        | Required | Description                                                                                |
+| -------------- | ----------- | -------- | ------------------------------------------------------------------------------------------ |
+| `--skill-id`   | string      | Yes      | Skill ID to update                                                                         |
+| `--file`       | string      | No       | Path to skill directory or `.zip` file                                                     |
+| `--tag`        | stringArray | No       | Tag name for the skill (can be specified multiple times, e.g. `--tag "tag1" --tag "tag2"`) |
+| `--icon`       | string      | No       | Icon for the skill (e.g. URL or identifier)                                                |
+| `--clear-tags` | bool        | No       | Remove all tags from the skill                                                             |
+
+> At least one of `--file`, `--tag`, `--icon`, or `--clear-tags` must be specified.
+
+**Tag behavior:**
+
+| Operation                          | API behavior                               |
+| ---------------------------------- | ------------------------------------------ |
+| Neither `--tag` nor `--clear-tags` | Existing tags are preserved unchanged      |
+| `--tag "tag1" --tag "tag2"`        | Replaces existing tags with specified list |
+| `--clear-tags`                     | Removes all tags from the skill            |
+
+> `--tag` and `--clear-tags` cannot be used together.
 
 **Notes:**
 
