@@ -2,15 +2,20 @@
 
 [中文版](README.zh-CN.md) | **English**
 
-A command-line interface for AgentBay services.
+A command-line interface for AgentBay services on Alibaba Cloud — image lifecycle, API keys, Docker, and skills management.
+
+> The current CLI version supports creating and activating **CodeSpace** type images only.
 
 ---
 
-## Overview
+## Features
 
-AgentBay CLI is a Cobra-based command-line tool that talks to AgentBay services through Alibaba Cloud OpenAPI. It provides image management, API key management, network management, skills management, Docker operations, and flexible authentication.
-
-> The current CLI version supports creating and activating **CodeSpace** type images only.
+- **Image lifecycle** — create from Dockerfile/template, activate, list, delete
+- **Docker integration** — ACR login, push, cross-account share / unshare
+- **API key management** — create, enable/disable, delete, concurrency control
+- **Skills & Network** — push/update skills, list network packages
+- **Multi-auth** — AccessKey (AK/SK), STS, OAuth
+- **Cross-platform** — macOS, Linux, Windows
 
 ---
 
@@ -27,7 +32,10 @@ powershell -Command "irm https://aliyun.github.io/agentbay-cli/windows | iex"
 agentbay version
 ```
 
-### Update
+> First `brew install agentbay` builds from source and will install Go as a build dependency, so it may take a few minutes. Subsequent upgrades reuse the cache.
+
+<details>
+<summary><b>Update</b></summary>
 
 **macOS / Linux (Homebrew) — fast path (recommended for routine updates):**
 
@@ -51,7 +59,10 @@ Refreshes Homebrew itself, all taps, and the core formula metadata before upgrad
 powershell -Command "irm https://aliyun.github.io/agentbay-cli/windows | iex"
 ```
 
-### Uninstall
+</details>
+
+<details>
+<summary><b>Uninstall</b></summary>
 
 ```bash
 # macOS / Linux (Homebrew)
@@ -71,51 +82,65 @@ $newPath = ($currentPath.Split(';') | Where-Object { $_ -ne $agentbayPath }) -jo
 # Restart PowerShell for the PATH change to take effect.
 ```
 
-> **Note (Homebrew):** The first `brew install agentbay` builds from source and will automatically install Go as a build dependency, so it may take a few minutes. Subsequent upgrades reuse the cache.
+</details>
 
-See [Installation Guide](docs/en/installation.md) for details (including pre-built binaries and troubleshooting).
+See [Installation Guide](docs/en/installation.md) for pre-built binaries and troubleshooting.
 
 ---
 
-## Authentication
-
-**AccessKey (recommended for scripts/CI):**
+## Quick Start — API Key in 60 seconds
 
 ```bash
+# 1. Authenticate
 export AGENTBAY_ACCESS_KEY_ID="your-access-key-id"
 export AGENTBAY_ACCESS_KEY_SECRET="your-access-key-secret"
+
+# 2. Create an API key (account real-name verification is required)
+agentbay apikey create "my-api-key"
+
+# 3. Inspect / disable / re-enable / delete
+agentbay apikey list
+agentbay apikey disable --api-key akm-xxxxxxxxxxxxxxxx
+agentbay apikey enable  --api-key akm-xxxxxxxxxxxxxxxx
+agentbay apikey delete  --api-key akm-xxxxxxxxxxxxxxxx --yes
 ```
 
-See [Authentication & Environment](docs/en/authentication.md) for STS, OAuth (not recommended), and environment variables.
+> **Tip:** For automation scripts, you can use `--api-key-id ak-xxxxxxxxxxxxxxxx` (returned by `apikey create`) instead of `--api-key`. See [API Key docs](docs/en/apikey.md#terminology).
+>
+> Using a RAM sub-account? See [RAM Permissions](docs/en/ram-permissions.md) for the required policies.
 
 ---
 
-## Documentation
+## Tutorial — Image Workflow (end-to-end)
 
-| Document                                                       | Description                                                           |
-| -------------------------------------------------------------- | --------------------------------------------------------------------- |
-| [Installation Guide](docs/en/installation.md)                  | Detailed installation steps and troubleshooting                       |
-| [Authentication & Environment](docs/en/authentication.md)      | AccessKey, STS, OAuth, and environment variables                      |
-| [Image Creation & Sharing Workflow](docs/en/image-workflow.md) | End-to-end tutorial from Dockerfile template to cross-account sharing |
-| [Image Management](docs/en/image.md)                           | Image lifecycle management command reference                          |
-| [Docker Operations](docs/en/docker.md)                         | ACR login, image push, and sharing                                    |
-| [API Key Management](docs/en/apikey.md)                        | Key creation, enable, disable, delete                                 |
-| [RAM Permissions](docs/en/ram-permissions.md)                  | Required RAM permissions by command group                             |
-| [FAQ](docs/en/faq.md)                                          | Frequently asked questions                                            |
+Build a custom image from a Dockerfile template, push it to ACR, then share it across Alibaba Cloud accounts.
 
-For full command details, see the [Command Reference](docs/en/README.md).
+**Scenario:** Account A builds a custom image and shares it with Account B; Account B creates its own image from the shared repository.
+
+```bash
+# ── Account A: build & publish ─────────────────────────────
+agentbay image init --sourceImageId aio-ubuntu-2404            # 1. download Dockerfile template
+agentbay docker login                                          # 2. ACR login (temp credentials, ~1h)
+docker build -t <registry>/<namespace>/<uid>:<tag> -f Dockerfile .   # 3. build locally
+docker push  <registry>/<namespace>/<uid>:<tag>                # 4. push to ACR
+agentbay image create-from-template \                          # 5. create custom image
+  --source-image /<namespace>/<uid>:<tag> \
+  --name my-image --imageId aio-ubuntu-2404
+agentbay docker share <ACCOUNT_B_UID>                          # 6. share repo to Account B
+agentbay docker list-shares --direction Outgoing               # 7. verify the share
+
+# ── Account B: receive & use ───────────────────────────────
+agentbay docker list-shares --direction Incoming               # 8. view incoming shares
+agentbay image create-from-template ...                        # 9. create own image from A's repo
+```
+
+→ **Full walkthrough** with concrete example values, expected output, and troubleshooting: **[Image Creation & Sharing Workflow](docs/en/image-workflow.md)**
+
+> **Prerequisite:** Docker installed locally. On macOS we recommend [OrbStack](https://orbstack.dev/) — it is lightweight, fast, and uses far fewer resources than Docker Desktop.
 
 ---
 
-## RAM Permissions (RAM Sub-accounts Only)
-
-The main Alibaba Cloud account does **not** require any additional permission configuration. If you are using a **RAM sub-account** with AK/SK authentication, grant the required permissions via the [RAM console](https://ram.console.aliyun.com/users).
-
-For the complete list of required permissions and Policy JSON examples for each command group, see [RAM Permissions](docs/en/ram-permissions.md).
-
----
-
-## Command Overview
+## Commands
 
 | Group   | Commands                                                                                                                           | Description      | Details                 |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------------- |
@@ -126,34 +151,30 @@ For the complete list of required permissions and Policy JSON examples for each 
 | Skills  | `push`, `update`, `show`, `list`, `delete`                                                                                         | Skill management | [→](docs/en/skills.md)  |
 | Docker  | `login`, `tag`, `push`, `share`, `unshare`, `list-shares`                                                                          | Docker registry  | [→](docs/en/docker.md)  |
 
+Full command reference → [docs/en/README.md](docs/en/README.md)
+
 ---
 
-## Quick Start
+## Documentation
 
-```bash
-# 1. Authenticate (AccessKey recommended)
-export AGENTBAY_ACCESS_KEY_ID="your-access-key-id"
-export AGENTBAY_ACCESS_KEY_SECRET="your-access-key-secret"
+| Topic                          | Doc                                            |
+| ------------------------------ | ---------------------------------------------- |
+| Installation & troubleshooting | [installation.md](docs/en/installation.md)     |
+| Authentication & env vars      | [authentication.md](docs/en/authentication.md) |
+| Image workflow (end-to-end)    | [image-workflow.md](docs/en/image-workflow.md) |
+| Image management               | [image.md](docs/en/image.md)                   |
+| Docker operations              | [docker.md](docs/en/docker.md)                 |
+| API key management             | [apikey.md](docs/en/apikey.md)                 |
+| RAM permissions (sub-accounts) | [ram-permissions.md](docs/en/ram-permissions.md) |
+| FAQ                            | [faq.md](docs/en/faq.md)                       |
 
-# 2. Create an API key (account real-name verification is required)
-agentbay apikey create "my-api-key"
+---
 
-# 3. List your API keys and find the API Key (akm-xxxxxxxxxxxxxxxx) from the output
-agentbay apikey list
+## Authentication
 
-# 4. Disable the API key when temporarily not needed
-agentbay apikey disable --api-key akm-xxxxxxxxxxxxxxxx
+AccessKey is recommended for scripts and CI. The CLI also supports STS and OAuth (not recommended). See [Authentication & Environment](docs/en/authentication.md) for details.
 
-# 5. Re-enable it later
-agentbay apikey enable --api-key akm-xxxxxxxxxxxxxxxx
-
-# 6. Delete the API key permanently (must be DISABLED first; --yes skips prompts)
-agentbay apikey delete --api-key akm-xxxxxxxxxxxxxxxx --yes
-```
-
-> **Tip:** For automation scripts, you can use `--api-key-id ak-xxxxxxxxxxxxxxxx` (returned by `apikey create`) instead of `--api-key`. See [API Key docs](docs/en/apikey.md#terminology) for details.
-
-For full command details, see the [Command Reference](docs/en/README.md).
+The main Alibaba Cloud account does **not** require any additional permission configuration. If you are using a RAM sub-account with AK/SK authentication, grant the required permissions via the [RAM console](https://ram.console.aliyun.com/users) — see [RAM Permissions](docs/en/ram-permissions.md) for the complete policy list.
 
 ---
 
@@ -163,16 +184,6 @@ See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ---
 
-## Notes
-
-- When both AccessKey env vars and OAuth tokens are present, the CLI prefers AccessKey for API calls.
-- System images are always available and don't need activation; only User images must be activated.
-- API keys require real-name verification before creation, and each key must have a unique name.
-- Use `--yes` / `-y` on destructive commands (`apikey delete`, `image delete`) to skip prompts in non-interactive environments.
-
----
-
 ## License
 
-This project is licensed under the Apache License 2.0 — see the [LICENSE](LICENSE) file for details.
 This project is licensed under the Apache License 2.0 — see the [LICENSE](LICENSE) file for details.
