@@ -113,6 +113,7 @@ agentbay image init -i code-space-debian-12
 
 - `code-space-debian-12`
 - `code-space-debian-12-enhanced`
+- `aio-ubuntu-2404`
 
 **输出：**
 
@@ -154,18 +155,24 @@ agentbay image create myapp -f ./Dockerfile -i code-space-debian-12
 >
 > 1. `agentbay image init -i <system-image-id>` —— 下载基础 Dockerfile 模板，根据需要在模板可编辑区域修改。
 > 2. `agentbay docker login` —— 自动登录本地 docker 并获取镜像上传地址（有效期约 1 小时）。
-> 3. `docker build -t <registry-path>:<your-tag> -f Dockerfile .` —— 本地构建。
+> 3. 本地构建 Docker 镜像 —— 执行 `docker build` 前需要确保本地已安装 Docker 环境：
+>    - **macOS**：推荐安装 [OrbStack](https://orbstack.dev/)（轻量、快速，资源占用远低于 Docker Desktop）
+>    - **Windows**：推荐安装 Docker Desktop + WSL2 后端
+>    - **Linux**：直接使用系统包管理器安装 Docker Engine
+>
+>    然后执行 `docker build -t <registry-path>:<your-tag> -f Dockerfile .`
+>
 > 4. `docker push <registry-path>:<your-tag>` —— 推送到 ACR。
 > 5. `agentbay image create-from-template ...` —— 基于上述镜像创建自定义镜像（即本命令）。
 
 ```bash
 agentbay image create-from-template \
-  --source-image ai-container-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/1160165251879674:<your-tag> \
+  --source-image /customer_cli/1160165251879674:<your-tag> \
   --name imageName \
   --imageId code-space-debian-12
 
 # 短参数形式
-agentbay image create-from-template -s ai-container-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/1160165251879674:<your-tag> -n imageName -i code-space-debian-12
+agentbay image create-from-template -s /customer_cli/1160165251879674:<your-tag> -n imageName -i code-space-debian-12
 ```
 
 **参数：**
@@ -175,6 +182,13 @@ agentbay image create-from-template -s ai-container-registry.cn-hangzhou.cr.aliy
 | `--source-image` | `-s`   | string | 是   | 已推送到 ACR 的源 Docker 镜像仓库路径（含 tag） |
 | `--name`         | `-n`   | string | 是   | 自定义镜像名称                                  |
 | `--imageId`      | `-i`   | string | 是   | 基础系统镜像 ID（如 `code-space-debian-12`）    |
+
+`--source-image` 支持两种格式：
+
+1. **推荐**：短路径 `/namespace/repo:tag`（与 `image list` 返回的 `physicalImage` 字段格式一致，可直接复制使用）
+2. **也支持**：完整 registry 路径 `registry.cn-hangzhou.cr.aliyuncs.com/namespace/repo:tag`
+
+CLI 会自动识别短路径并补全当前账号对应的 registry URL。
 
 **创建流程（服务端）：**
 

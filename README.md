@@ -90,187 +90,28 @@ See [Authentication & Environment](docs/en/authentication.md) for STS, OAuth (no
 
 ---
 
+## Documentation
+
+| Document                                                       | Description                                                           |
+| -------------------------------------------------------------- | --------------------------------------------------------------------- |
+| [Installation Guide](docs/en/installation.md)                  | Detailed installation steps and troubleshooting                       |
+| [Authentication & Environment](docs/en/authentication.md)      | AccessKey, STS, OAuth, and environment variables                      |
+| [Image Creation & Sharing Workflow](docs/en/image-workflow.md) | End-to-end tutorial from Dockerfile template to cross-account sharing |
+| [Image Management](docs/en/image.md)                           | Image lifecycle management command reference                          |
+| [Docker Operations](docs/en/docker.md)                         | ACR login, image push, and sharing                                    |
+| [API Key Management](docs/en/apikey.md)                        | Key creation, enable, disable, delete                                 |
+| [RAM Permissions](docs/en/ram-permissions.md)                  | Required RAM permissions by command group                             |
+| [FAQ](docs/en/faq.md)                                          | Frequently asked questions                                            |
+
+For full command details, see the [Command Reference](docs/en/README.md).
+
+---
+
 ## RAM Permissions (RAM Sub-accounts Only)
 
-> The main Alibaba Cloud account does **not** require any additional permission configuration.
-> This section applies only to **RAM sub-accounts** using AK/SK authentication.
+The main Alibaba Cloud account does **not** require any additional permission configuration. If you are using a **RAM sub-account** with AK/SK authentication, grant the required permissions via the [RAM console](https://ram.console.aliyun.com/users).
 
-If you are using a RAM sub-account's AK/SK, grant the required permissions via the [RAM console](https://ram.console.aliyun.com/users).
-
-### `apikey` Command Group
-
-| OpenAPI Action          | Required Permission              | Used By                                                                                     |
-| ----------------------- | -------------------------------- | ------------------------------------------------------------------------------------------- |
-| `CreateApiKey`          | `agentbay:CreateApiKey`          | `apikey create`                                                                             |
-| `DescribeMcpApiKey`     | `agentbay:DescribeMcpApiKey`     | `apikey enable`, `apikey disable`, `apikey delete`, `apikey list`, `apikey concurrency set` |
-| `DescribeApiKeys`       | `agentbay:DescribeApiKeys`       | `apikey delete`, `apikey list`                                                              |
-| `ModifyApiKeyStatus`    | `agentbay:ModifyApiKeyStatus`    | `apikey enable`, `apikey disable`, `apikey delete`                                          |
-| `DeleteApiKey`          | `agentbay:DeleteApiKey`          | `apikey delete`                                                                             |
-| `ModifyMcpApiKeyConfig` | `agentbay:ModifyMcpApiKeyConfig` | `apikey concurrency set`                                                                    |
-| `DescribeKeyContent`    | `agentbay:DescribeKeyContent`    | `apikey describe-key-content`                                                               |
-
-**RAM Policy example (full access to `apikey` commands):**
-
-```json
-{
-  "Version": "1",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "agentbay:CreateApiKey",
-        "agentbay:DescribeMcpApiKey",
-        "agentbay:DescribeApiKeys",
-        "agentbay:ModifyApiKeyStatus",
-        "agentbay:DeleteApiKey",
-        "agentbay:ModifyMcpApiKeyConfig",
-        "agentbay:DescribeKeyContent"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
-> If you only use specific commands, refer to the **Involved APIs** section in [API Key docs](docs/en/apikey.md) and grant only the required subset.
-
-### `image` Command Group
-
-| OpenAPI Action                                | Required Permission                                    | Used By                                                                                                       |
-| --------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `ListMcpImages`                               | `agentbay:ListMcpImages`                               | `image list`, `image deactivate`                                                                              |
-| `GetMcpImageInfo`                             | `agentbay:GetMcpImageInfo`                             | `image create`, `image activate`, `image deactivate`, `image delete`, `image status`, `image set-max-session` |
-| `GetDockerFileStoreCredential`                | `agentbay:GetDockerFileStoreCredential`                | `image create`                                                                                                |
-| `CreateDockerImageTask`                       | `agentbay:CreateDockerImageTask`                       | `image create`                                                                                                |
-| `GetDockerImageTask`                          | `agentbay:GetDockerImageTask`                          | `image create`                                                                                                |
-| `CreateImageFromTemplate`                     | `agentbay:CreateImageFromTemplate`                     | `image create-from-template`                                                                                  |
-| `DescribeInstanceTypes`                       | `agentbay:DescribeInstanceTypes`                       | `image activate`                                                                                              |
-| `DescribeMcpPolicyData`                       | `agentbay:DescribeMcpPolicyData`                       | `image activate`                                                                                              |
-| `CreateMcpPolicyData`                         | `agentbay:CreateMcpPolicyData`                         | `image activate`                                                                                              |
-| `ModifyMcpPolicyData`                         | `agentbay:ModifyMcpPolicyData`                         | `image activate`                                                                                              |
-| `DescribeOfficeSites`                         | `agentbay:DescribeOfficeSites`                         | `image activate`                                                                                              |
-| `SaveMcpPolicyData`                           | `agentbay:SaveMcpPolicyData`                           | `image activate`                                                                                              |
-| `CreateResourceGroup`                         | `agentbay:CreateResourceGroup`                         | `image activate`                                                                                              |
-| `DeleteResourceGroup`                         | `agentbay:DeleteResourceGroup`                         | `image deactivate`                                                                                            |
-| `DeleteMcpImage`                              | `agentbay:DeleteMcpImage`                              | `image delete`                                                                                                |
-| `GetDockerfileTemplate`                       | `agentbay:GetDockerfileTemplate`                       | `image init`                                                                                                  |
-| `BatchCreateHideResourceGroupsWithMaxSession` | `agentbay:BatchCreateHideResourceGroupsWithMaxSession` | `image set-max-session`                                                                                       |
-| `DescribeWarmUpStatusOpen`                    | `agentbay:DescribeWarmUpStatusOpen`                    | `image warmup-status`                                                                                         |
-
-**RAM Policy example (full access to `image` commands):**
-
-```json
-{
-  "Version": "1",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "agentbay:ListMcpImages",
-        "agentbay:GetMcpImageInfo",
-        "agentbay:GetDockerFileStoreCredential",
-        "agentbay:CreateDockerImageTask",
-        "agentbay:GetDockerImageTask",
-        "agentbay:CreateImageFromTemplate",
-        "agentbay:DescribeInstanceTypes",
-        "agentbay:DescribeMcpPolicyData",
-        "agentbay:CreateMcpPolicyData",
-        "agentbay:ModifyMcpPolicyData",
-        "agentbay:DescribeOfficeSites",
-        "agentbay:SaveMcpPolicyData",
-        "agentbay:CreateResourceGroup",
-        "agentbay:DeleteResourceGroup",
-        "agentbay:DeleteMcpImage",
-        "agentbay:GetDockerfileTemplate",
-        "agentbay:BatchCreateHideResourceGroupsWithMaxSession",
-        "agentbay:DescribeWarmUpStatusOpen"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
-> If you only use specific commands, refer to the **Involved APIs** section in [Image docs](docs/en/image.md) and grant only the required subset.
-
-### `network` Command Group
-
-| OpenAPI Action            | Required Permission                | Used By                |
-| ------------------------- | ---------------------------------- | ---------------------- |
-| `DescribeNetworkPackages` | `agentbay:DescribeNetworkPackages` | `network package list` |
-
-**RAM Policy example:**
-
-```json
-{
-  "Version": "1",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": ["agentbay:DescribeNetworkPackages"],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
-### `skills` Command Group
-
-| OpenAPI Action              | Required Permission                  | Used By                        |
-| --------------------------- | ------------------------------------ | ------------------------------ |
-| `ListTag`                   | `agentbay:ListTag`                   | `skills push`, `skills update` |
-| `CreateTag`                 | `agentbay:CreateTag`                 | `skills push`, `skills update` |
-| `GetMarketSkillCredential`  | `agentbay:GetMarketSkillCredential`  | `skills push`, `skills update` |
-| `CreateMarketSkill`         | `agentbay:CreateMarketSkill`         | `skills push`                  |
-| `UpdateMarketSkill`         | `agentbay:UpdateMarketSkill`         | `skills update`                |
-| `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` | `skills show`, `skills delete` |
-| `ListMarketSkillByPage`     | `agentbay:ListMarketSkillByPage`     | `skills list`                  |
-| `DeleteMarketSkill`         | `agentbay:DeleteMarketSkill`         | `skills delete`                |
-
-**RAM Policy example:**
-
-```json
-{
-  "Version": "1",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "agentbay:ListTag",
-        "agentbay:CreateTag",
-        "agentbay:GetMarketSkillCredential",
-        "agentbay:CreateMarketSkill",
-        "agentbay:DescribeMarketSkillDetail",
-        "agentbay:ListMarketSkillByPage"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
-### `docker` Command Group
-
-| OpenAPI Action         | Required Permission             | Used By        |
-| ---------------------- | ------------------------------- | -------------- |
-| `GetACRRepoCredential` | `agentbay:GetACRRepoCredential` | `docker login` |
-
-**RAM Policy example:**
-
-```json
-{
-  "Version": "1",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": ["agentbay:GetACRRepoCredential"],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
-> `docker tag` and `docker push` are wrappers around the native `docker` CLI and do not call any AgentBay API directly.
+For the complete list of required permissions and Policy JSON examples for each command group, see [RAM Permissions](docs/en/ram-permissions.md).
 
 ---
 
@@ -283,7 +124,7 @@ If you are using a RAM sub-account's AK/SK, grant the required permissions via t
 | API Key | `create`, `enable`, `disable`, `delete`, `list`, `concurrency set`, `describe-key-content`                                         | Key management   | [→](docs/en/apikey.md)  |
 | Network | `package list`                                                                                                                     | Network config   | [→](docs/en/network.md) |
 | Skills  | `push`, `update`, `show`, `list`, `delete`                                                                                         | Skill management | [→](docs/en/skills.md)  |
-| Docker  | `login`, `tag`, `push`                                                                                                             | Docker registry  | [→](docs/en/docker.md)  |
+| Docker  | `login`, `tag`, `push`, `share`, `unshare`, `list-shares`                                                                          | Docker registry  | [→](docs/en/docker.md)  |
 
 ---
 

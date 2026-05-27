@@ -2062,3 +2062,277 @@ func parseDeleteMarketSkillResponse(res map[string]interface{}) (*DeleteMarketSk
 	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
 	return out, nil
 }
+
+// --- ShareDockerRepo ---
+
+type shareDockerRepoJSONWireData struct {
+	TargetAliUid *int64  `json:"TargetAliUid"`
+	OwnerAliUid  *int64  `json:"OwnerAliUid"`
+	AcrRepoName  *string `json:"AcrRepoName"`
+	Status       *string `json:"Status"`
+}
+
+type shareDockerRepoJSONWire struct {
+	Code           *string                      `json:"Code"`
+	Message        *string                      `json:"Message"`
+	RequestId      *string                      `json:"RequestId"`
+	HttpStatusCode json.RawMessage              `json:"HttpStatusCode"`
+	Success        *bool                        `json:"Success"`
+	Data           *shareDockerRepoJSONWireData `json:"Data"`
+}
+
+type xmlShareDockerRepoResponseData struct {
+	TargetAliUid int64  `xml:"TargetAliUid"`
+	OwnerAliUid  int64  `xml:"OwnerAliUid"`
+	AcrRepoName  string `xml:"AcrRepoName"`
+	Status       string `xml:"Status"`
+}
+
+type xmlShareDockerRepoResponse struct {
+	XMLName        xml.Name                        `xml:"ShareDockerRepoResponse"`
+	RequestId      string                          `xml:"RequestId"`
+	HttpStatusCode string                          `xml:"HttpStatusCode"`
+	Code           string                          `xml:"Code"`
+	Success        bool                            `xml:"Success"`
+	Message        string                          `xml:"Message"`
+	Data           *xmlShareDockerRepoResponseData `xml:"Data"`
+}
+
+func parseShareDockerRepoResponse(res map[string]interface{}) (*ShareDockerRepoResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &ShareDockerRepoResponse{Headers: make(map[string]*string)}
+	parsed := &ShareDockerRepoResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xr xmlShareDockerRepoResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = dara.String(xr.Code)
+			parsed.RequestId = dara.String(xr.RequestId)
+			parsed.Success = dara.Bool(xr.Success)
+			parsed.Message = dara.String(xr.Message)
+			if s := strings.TrimSpace(xr.HttpStatusCode); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					parsed.HttpStatusCode = dara.Int32(int32(n))
+				}
+			}
+			if xr.Data != nil {
+				parsed.Data = &ShareDockerRepoResponseBodyData{
+					TargetAliUid: dara.Int64(xr.Data.TargetAliUid),
+					OwnerAliUid:  dara.Int64(xr.Data.OwnerAliUid),
+					AcrRepoName:  dara.String(xr.Data.AcrRepoName),
+					Status:       dara.String(xr.Data.Status),
+				}
+			}
+		} else {
+			var wire shareDockerRepoJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = wire.Code
+			parsed.Message = wire.Message
+			parsed.RequestId = wire.RequestId
+			parsed.Success = wire.Success
+			n, derr := int32FromFlexibleJSON(wire.HttpStatusCode)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: fmt.Errorf("HttpStatusCode: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.HttpStatusCode = n
+			if wire.Data != nil {
+				parsed.Data = &ShareDockerRepoResponseBodyData{
+					TargetAliUid: wire.Data.TargetAliUid,
+					OwnerAliUid:  wire.Data.OwnerAliUid,
+					AcrRepoName:  wire.Data.AcrRepoName,
+					Status:       wire.Data.Status,
+				}
+			}
+		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
+
+// --- UnshareDockerRepo ---
+
+type unshareDockerRepoJSONWireData struct {
+	Revoked *bool `json:"Revoked"`
+}
+
+type unshareDockerRepoJSONWire struct {
+	Code           *string                        `json:"Code"`
+	Message        *string                        `json:"Message"`
+	RequestId      *string                        `json:"RequestId"`
+	HttpStatusCode json.RawMessage                `json:"HttpStatusCode"`
+	Success        *bool                          `json:"Success"`
+	Data           *unshareDockerRepoJSONWireData `json:"Data"`
+}
+
+type xmlUnshareDockerRepoResponseData struct {
+	Revoked string `xml:"Revoked"`
+}
+
+type xmlUnshareDockerRepoResponse struct {
+	XMLName        xml.Name                          `xml:"UnshareDockerRepoResponse"`
+	RequestId      string                            `xml:"RequestId"`
+	HttpStatusCode string                            `xml:"HttpStatusCode"`
+	Code           string                            `xml:"Code"`
+	Success        bool                              `xml:"Success"`
+	Message        string                            `xml:"Message"`
+	Data           *xmlUnshareDockerRepoResponseData `xml:"Data"`
+}
+
+func parseUnshareDockerRepoResponse(res map[string]interface{}) (*UnshareDockerRepoResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &UnshareDockerRepoResponse{Headers: make(map[string]*string)}
+	parsed := &UnshareDockerRepoResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xr xmlUnshareDockerRepoResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = dara.String(xr.Code)
+			parsed.RequestId = dara.String(xr.RequestId)
+			parsed.Success = dara.Bool(xr.Success)
+			parsed.Message = dara.String(xr.Message)
+			if s := strings.TrimSpace(xr.HttpStatusCode); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					parsed.HttpStatusCode = dara.Int32(int32(n))
+				}
+			}
+			if xr.Data != nil {
+				if s := strings.TrimSpace(xr.Data.Revoked); s == "true" {
+					parsed.Data = &UnshareDockerRepoResponseBodyData{Revoked: dara.Bool(true)}
+				} else if s == "false" {
+					parsed.Data = &UnshareDockerRepoResponseBodyData{Revoked: dara.Bool(false)}
+				}
+			}
+		} else {
+			var wire unshareDockerRepoJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = wire.Code
+			parsed.Message = wire.Message
+			parsed.RequestId = wire.RequestId
+			parsed.Success = wire.Success
+			n, derr := int32FromFlexibleJSON(wire.HttpStatusCode)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: fmt.Errorf("HttpStatusCode: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.HttpStatusCode = n
+			if wire.Data != nil {
+				parsed.Data = &UnshareDockerRepoResponseBodyData{
+					Revoked: wire.Data.Revoked,
+				}
+			}
+		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
+
+// --- ListSharedDockerRepos ---
+
+type listSharedDockerReposJSONWireDataItem struct {
+	PeerAliUid *int64  `json:"PeerAliUid"`
+	Status     *string `json:"Status"`
+}
+
+type listSharedDockerReposJSONWire struct {
+	Code           *string                                  `json:"Code"`
+	Message        *string                                  `json:"Message"`
+	RequestId      *string                                  `json:"RequestId"`
+	HttpStatusCode json.RawMessage                          `json:"HttpStatusCode"`
+	Success        *bool                                    `json:"Success"`
+	Data           []*listSharedDockerReposJSONWireDataItem `json:"Data"`
+}
+
+type xmlListSharedDockerReposResponseDataItem struct {
+	PeerAliUid int64  `xml:"PeerAliUid"`
+	Status     string `xml:"Status"`
+}
+
+type xmlListSharedDockerReposResponse struct {
+	XMLName        xml.Name                                    `xml:"ListSharedDockerReposResponse"`
+	RequestId      string                                      `xml:"RequestId"`
+	HttpStatusCode string                                      `xml:"HttpStatusCode"`
+	Code           string                                      `xml:"Code"`
+	Success        bool                                        `xml:"Success"`
+	Message        string                                      `xml:"Message"`
+	Data           []*xmlListSharedDockerReposResponseDataItem `xml:"Data>object"`
+}
+
+func parseListSharedDockerReposResponse(res map[string]interface{}) (*ListSharedDockerReposResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &ListSharedDockerReposResponse{Headers: make(map[string]*string)}
+	parsed := &ListSharedDockerReposResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xr xmlListSharedDockerReposResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = dara.String(xr.Code)
+			parsed.RequestId = dara.String(xr.RequestId)
+			parsed.Success = dara.Bool(xr.Success)
+			parsed.Message = dara.String(xr.Message)
+			if s := strings.TrimSpace(xr.HttpStatusCode); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					parsed.HttpStatusCode = dara.Int32(int32(n))
+				}
+			}
+			for _, item := range xr.Data {
+				if item != nil {
+					parsed.Data = append(parsed.Data, &ListSharedDockerReposResponseBodyDataItem{
+						PeerAliUid: dara.Int64(item.PeerAliUid),
+						Status:     dara.String(item.Status),
+					})
+				}
+			}
+		} else {
+			var wire listSharedDockerReposJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = wire.Code
+			parsed.Message = wire.Message
+			parsed.RequestId = wire.RequestId
+			parsed.Success = wire.Success
+			n, derr := int32FromFlexibleJSON(wire.HttpStatusCode)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: fmt.Errorf("HttpStatusCode: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.HttpStatusCode = n
+			for _, item := range wire.Data {
+				if item != nil {
+					parsed.Data = append(parsed.Data, &ListSharedDockerReposResponseBodyDataItem{
+						PeerAliUid: item.PeerAliUid,
+						Status:     item.Status,
+					})
+				}
+			}
+		}
+	}
+	if parsed.Data == nil {
+		parsed.Data = []*ListSharedDockerReposResponseBodyDataItem{}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}

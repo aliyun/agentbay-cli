@@ -59,6 +59,10 @@ type Client interface {
 	BatchCreateHideResourceGroupsWithMaxSession(ctx context.Context, request *client.BatchCreateHideResourceGroupsWithMaxSessionRequest) (*client.BatchCreateHideResourceGroupsWithMaxSessionResponse, error)
 	// WarmUp Status
 	DescribeWarmUpStatusOpen(ctx context.Context, request *client.DescribeWarmUpStatusOpenRequest) (*client.DescribeWarmUpStatusOpenResponse, error)
+	// Docker Repo Sharing
+	ShareDockerRepo(ctx context.Context, request *client.ShareDockerRepoRequest) (*client.ShareDockerRepoResponse, error)
+	UnshareDockerRepo(ctx context.Context, request *client.UnshareDockerRepoRequest) (*client.UnshareDockerRepoResponse, error)
+	ListSharedDockerRepos(ctx context.Context, request *client.ListSharedDockerReposRequest) (*client.ListSharedDockerReposResponse, error)
 }
 
 // clientWrapper wraps the generated SDK client with additional functionality
@@ -439,5 +443,32 @@ func (cw *clientWrapper) DescribeWarmUpStatusOpen(ctx context.Context, request *
 	if err != nil {
 		return nil, err
 	}
-	return sdkClient.DescribeWarmUpStatusOpenWithContext(ctx, request, cw.getRuntimeOptions())
+	return sdkClient.DescribeWarmUpStatusOpenWithOptions(request, cw.getRuntimeOptions())
+}
+
+// ShareDockerRepo wraps the SDK client method
+func (cw *clientWrapper) ShareDockerRepo(ctx context.Context, request *client.ShareDockerRepoRequest) (*client.ShareDockerRepoResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.ShareDockerRepoWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// UnshareDockerRepo wraps the SDK client method
+func (cw *clientWrapper) UnshareDockerRepo(ctx context.Context, request *client.UnshareDockerRepoRequest) (*client.UnshareDockerRepoResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.UnshareDockerRepoWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// ListSharedDockerRepos wraps the SDK client method
+func (cw *clientWrapper) ListSharedDockerRepos(ctx context.Context, request *client.ListSharedDockerReposRequest) (*client.ListSharedDockerReposResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.ListSharedDockerReposWithContext(ctx, request, cw.getRuntimeOptions())
 }

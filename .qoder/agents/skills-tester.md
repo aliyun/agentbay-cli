@@ -284,12 +284,13 @@ SKILL_DIR_RENAMED=/tmp/${TEST_ID}-renamed
          判定: tags 字段丢失 → [FAIL]；tags 保持不变 → [PASS]
   [PASS] 清空所有标签（--clear-tags）
          前置: 技能有标签（同上）
-         命令: AGENTBAY_ENV=prerelease ./agentbay skills update --skill-id <skill-id> --clear-tags
-         RequestID: <UpdateMarketSkill-RID>（无 ListTag/CreateTag，直接 update）
+         命令: AGENTBAY_ENV=prerelease ./agentbay skills update --skill-id <skill-id> --file /tmp/<TEST_ID> --clear-tags
+         备注: --file 为必填参数，即使仅清空标签也必须提供
+         RequestID: <GetMarketSkillCredential-RID> / <UpdateMarketSkill-RID>
          验证: skills show <skill-id>，tags 字段为空 / []
          判定: tags 非空 → [FAIL]；tags 为空 → [PASS]
   [PASS] --tag 与 --clear-tags 互斥校验（预期失败）
-         命令: AGENTBAY_ENV=prerelease ./agentbay skills update --skill-id <skill-id> --tag "e2e-test" --clear-tags
+         命令: AGENTBAY_ENV=prerelease ./agentbay skills update --skill-id <skill-id> --file /tmp/<TEST_ID> --tag "e2e-test" --clear-tags
          RequestID: 无（本地参数校验，未发起 API 请求）
          预期: 输出含 [ERROR]，错误信息含 "cannot be used together" | EXIT_CODE: 1 ✓
   [PASS] 修改技能名后更新（预期失败）

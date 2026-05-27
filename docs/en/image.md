@@ -113,6 +113,7 @@ Available `sourceImageId` values for production:
 
 - `code-space-debian-12`
 - `code-space-debian-12-enhanced`
+- `aio-ubuntu-2404`
 
 **Output:**
 
@@ -166,18 +167,24 @@ Create a custom image from a system image template + your own Docker image (call
 >
 > 1. `agentbay image init -i <system-image-id>` — download the base Dockerfile template and edit the editable section as needed.
 > 2. `agentbay docker login` — automatically log in to local docker and obtain the image registry path (valid for ~1 hour).
-> 3. `docker build -t <registry-path>:<your-tag> -f Dockerfile .` — build locally.
+> 3. Build the Docker image locally — make sure Docker is installed before running `docker build`:
+>    - **macOS**: [OrbStack](https://orbstack.dev/) is recommended (lightweight, fast, much lower resource usage than Docker Desktop)
+>    - **Windows**: Docker Desktop + WSL2 backend is recommended
+>    - **Linux**: install Docker Engine directly via your system package manager
+>
+>    Then run `docker build -t <registry-path>:<your-tag> -f Dockerfile .`
+>
 > 4. `docker push <registry-path>:<your-tag>` — push to ACR.
 > 5. `agentbay image create-from-template ...` — create the custom image based on the pushed Docker image (this command).
 
 ```bash
 agentbay image create-from-template \
-  --source-image ai-container-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/1160165251879674:<your-tag> \
+  --source-image /customer_cli/1160165251879674:<your-tag> \
   --name imageName \
   --imageId code-space-debian-12
 
 # Short form
-agentbay image create-from-template -s ai-container-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/1160165251879674:<your-tag> -n imageName -i code-space-debian-12
+agentbay image create-from-template -s /customer_cli/1160165251879674:<your-tag> -n imageName -i code-space-debian-12
 ```
 
 **Flags:**
@@ -187,6 +194,13 @@ agentbay image create-from-template -s ai-container-registry.cn-hangzhou.cr.aliy
 | `--source-image` | `-s`  | string | Yes      | Source Docker image registry path (with tag) already pushed to ACR |
 | `--name`         | `-n`  | string | Yes      | Custom image name                                                  |
 | `--imageId`      | `-i`  | string | Yes      | Base system image ID (e.g. `code-space-debian-12`)                 |
+
+`--source-image` supports two formats:
+
+1. **Recommended**: short path `/namespace/repo:tag` (matches the `physicalImage` field returned by `image list`, can be copied directly)
+2. **Also supported**: full registry path `registry.cn-hangzhou.cr.aliyuncs.com/namespace/repo:tag`
+
+The CLI automatically recognizes short paths and fills in the registry URL for the current account.
 
 **Creation flow (server-side):**
 

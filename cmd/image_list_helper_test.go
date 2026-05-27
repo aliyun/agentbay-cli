@@ -187,6 +187,18 @@ func (m *mockImageListClient) DeleteMarketSkill(ctx context.Context, request *cl
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockImageListClient) ShareDockerRepo(ctx context.Context, request *client.ShareDockerRepoRequest) (*client.ShareDockerRepoResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockImageListClient) UnshareDockerRepo(ctx context.Context, request *client.UnshareDockerRepoRequest) (*client.UnshareDockerRepoResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockImageListClient) ListSharedDockerRepos(ctx context.Context, request *client.ListSharedDockerReposRequest) (*client.ListSharedDockerReposResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 // Helper functions for testing
 func boolPtr(b bool) *bool {
 	return &b

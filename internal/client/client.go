@@ -2477,28 +2477,24 @@ func (client *Client) DescribeWarmUpStatusOpenWithOptions(request *DescribeWarmU
 	return _result, _err
 }
 
-// DescribeWarmUpStatusOpen queries warm-up status for the current account (convenience method)
-func (client *Client) DescribeWarmUpStatusOpen(request *DescribeWarmUpStatusOpenRequest) (_result *DescribeWarmUpStatusOpenResponse, _err error) {
-	runtime := &dara.RuntimeOptions{}
-	return client.DescribeWarmUpStatusOpenWithOptions(request, runtime)
-}
-
-// DescribeWarmUpStatusOpenWithContext queries warm-up status for the current account with context
-func (client *Client) DescribeWarmUpStatusOpenWithContext(ctx context.Context, request *DescribeWarmUpStatusOpenRequest, runtime *dara.RuntimeOptions) (_result *DescribeWarmUpStatusOpenResponse, _err error) {
+// ShareDockerRepoWithOptions shares a Docker repo with the target Alibaba Cloud account (full options)
+func (client *Client) ShareDockerRepoWithOptions(request *ShareDockerRepoRequest, runtime *dara.RuntimeOptions) (_result *ShareDockerRepoResponse, _err error) {
 	_err = request.Validate()
 	if _err != nil {
 		return _result, _err
 	}
-	query := map[string]interface{}{}
-
+	body := map[string]interface{}{}
+	if request.TargetAliUid != nil {
+		body["TargetAliUid"] = request.TargetAliUid
+	}
 	req := &openapiutil.OpenApiRequest{
-		Query: openapiutil.Query(query),
+		Body: openapiutil.ParseToMap(body),
 		Headers: map[string]*string{
 			"Accept": dara.String("application/json"),
 		},
 	}
 	params := &openapiutil.Params{
-		Action:      dara.String("DescribeWarmUpStatusOpen"),
+		Action:      dara.String("ShareDockerRepo"),
 		Version:     dara.String("2025-05-01"),
 		Protocol:    dara.String("HTTPS"),
 		Pathname:    dara.String("/"),
@@ -2508,7 +2504,7 @@ func (client *Client) DescribeWarmUpStatusOpenWithContext(ctx context.Context, r
 		ReqBodyType: dara.String("formData"),
 		BodyType:    dara.String("string"),
 	}
-	_result = &DescribeWarmUpStatusOpenResponse{}
+	_result = &ShareDockerRepoResponse{}
 	_body, _err := client.CallApi(params, req, runtime)
 	if _err != nil {
 		reqID := ""
@@ -2517,6 +2513,119 @@ func (client *Client) DescribeWarmUpStatusOpenWithContext(ctx context.Context, r
 		}
 		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
 	}
-	_result, _err = parseDescribeWarmUpStatusOpenResponse(_body)
+	_result, _err = parseShareDockerRepoResponse(_body)
 	return _result, _err
+}
+
+// ShareDockerRepo shares a Docker repo with the target Alibaba Cloud account (convenience method)
+func (client *Client) ShareDockerRepo(request *ShareDockerRepoRequest) (_result *ShareDockerRepoResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	return client.ShareDockerRepoWithOptions(request, runtime)
+}
+
+// ShareDockerRepoWithContext shares a Docker repo with the target Alibaba Cloud account with context
+func (client *Client) ShareDockerRepoWithContext(ctx context.Context, request *ShareDockerRepoRequest, runtime *dara.RuntimeOptions) (_result *ShareDockerRepoResponse, _err error) {
+	return client.ShareDockerRepoWithOptions(request, runtime)
+}
+
+// UnshareDockerRepoWithOptions cancels sharing a Docker repo with the target Alibaba Cloud account (full options)
+func (client *Client) UnshareDockerRepoWithOptions(request *UnshareDockerRepoRequest, runtime *dara.RuntimeOptions) (_result *UnshareDockerRepoResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	body := map[string]interface{}{}
+	if request.TargetAliUid != nil {
+		body["TargetAliUid"] = request.TargetAliUid
+	}
+	req := &openapiutil.OpenApiRequest{
+		Body: openapiutil.ParseToMap(body),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("UnshareDockerRepo"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &UnshareDockerRepoResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseUnshareDockerRepoResponse(_body)
+	return _result, _err
+}
+
+// UnshareDockerRepo cancels sharing a Docker repo with the target Alibaba Cloud account (convenience method)
+func (client *Client) UnshareDockerRepo(request *UnshareDockerRepoRequest) (_result *UnshareDockerRepoResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	return client.UnshareDockerRepoWithOptions(request, runtime)
+}
+
+// UnshareDockerRepoWithContext cancels sharing a Docker repo with the target Alibaba Cloud account with context
+func (client *Client) UnshareDockerRepoWithContext(ctx context.Context, request *UnshareDockerRepoRequest, runtime *dara.RuntimeOptions) (_result *UnshareDockerRepoResponse, _err error) {
+	return client.UnshareDockerRepoWithOptions(request, runtime)
+}
+
+// ListSharedDockerReposWithOptions lists Docker repo sharing info (full options)
+func (client *Client) ListSharedDockerReposWithOptions(request *ListSharedDockerReposRequest, runtime *dara.RuntimeOptions) (_result *ListSharedDockerReposResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	body := map[string]interface{}{}
+	if request.Direction != nil {
+		body["Direction"] = request.Direction
+	}
+	req := &openapiutil.OpenApiRequest{
+		Body: openapiutil.ParseToMap(body),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("ListSharedDockerRepos"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &ListSharedDockerReposResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseListSharedDockerReposResponse(_body)
+	return _result, _err
+}
+
+// ListSharedDockerRepos lists Docker repo sharing info (convenience method)
+func (client *Client) ListSharedDockerRepos(request *ListSharedDockerReposRequest) (_result *ListSharedDockerReposResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	return client.ListSharedDockerReposWithOptions(request, runtime)
+}
+
+// ListSharedDockerReposWithContext lists Docker repo sharing info with context
+func (client *Client) ListSharedDockerReposWithContext(ctx context.Context, request *ListSharedDockerReposRequest, runtime *dara.RuntimeOptions) (_result *ListSharedDockerReposResponse, _err error) {
+	return client.ListSharedDockerReposWithOptions(request, runtime)
 }

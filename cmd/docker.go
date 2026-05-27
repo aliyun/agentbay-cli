@@ -1,24 +1,28 @@
 // Copyright 2025 AgentBay CLI Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-// docker.go implements "agentbay docker login|tag|push" commands.
+// docker.go implements "agentbay docker login|tag|push|share|unshare|list-shares" commands.
 // These wrap native docker CLI commands, with ACR credential management
 // via the GetACRRepoCredential POP Action (raw HTTP, POP RPC V1).
 
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	"github.com/agentbay/agentbay-cli/internal/agentbay"
+	"github.com/agentbay/agentbay-cli/internal/client"
 	"github.com/agentbay/agentbay-cli/internal/config"
 )
 
@@ -152,6 +156,17 @@ func init() {
 	DockerCmd.AddCommand(dockerLoginCmd)
 	DockerCmd.AddCommand(dockerTagCmd)
 	DockerCmd.AddCommand(dockerPushCmd)
+	DockerCmd.AddCommand(dockerShareCmd)
+	DockerCmd.AddCommand(dockerUnshareCmd)
+	DockerCmd.AddCommand(dockerListSharesCmd)
+
+	dockerShareCmd.Flags().Int64("target-uid", 0, "Target Alibaba Cloud account UID to share the Docker repo with")
+
+	dockerUnshareCmd.Flags().Int64("target-uid", 0, "Target Alibaba Cloud account UID to cancel sharing with")
+
+	dockerListSharesCmd.Flags().String("direction", "", `Sharing direction: "Outgoing" (repos you shared) or "Incoming" (repos shared with you)`)
+	_ = dockerListSharesCmd.MarkFlagRequired("direction")
+	dockerListSharesCmd.Flags().StringP("output", "o", "", `Output format. Use "json" for machine-readable output (e.g. for AI/scripts)`)
 }
 
 // ---------------------------------------------------------------------------
@@ -367,5 +382,288 @@ func runDockerPush(cobraCmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println("\n[SUCCESS] Image pushed.")
+	return nil
+}
+
+// ---------------------------------------------------------------------------
+// docker share
+// ---------------------------------------------------------------------------
+
+var dockerShareCmd = &cobra.Command{
+	Use:   "share [<target-uid>]",
+	Short: "Share the Docker repo with another Alibaba Cloud account",
+	Long: `Share your AgentBay Docker image repository with another Alibaba Cloud account.
+
+The target account will be able to pull images from your repository.
+
+Examples:
+  agentbay docker share 1234567890
+  agentbay docker share --target-uid 1234567890`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: runDockerShare,
+}
+
+func runDockerShare(cobraCmd *cobra.Command, args []string) error {
+	targetUID, _ := cobraCmd.Flags().GetInt64("target-uid")
+
+	// Prefer positional arg if provided, otherwise fall back to flag
+	if len(args) > 0 {
+		parsed, err := strconv.ParseInt(args[0], 10, 64)
+		if err != nil {
+			return fmt.Errorf("[ERROR] Invalid target-uid %q: %w", args[0], err)
+		}
+		targetUID = parsed
+	}
+
+	if targetUID == 0 {
+		return fmt.Errorf("[ERROR] target-uid is required. Provide it as a positional argument or use --target-uid")
+	}
+
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return fmt.Errorf("[ERROR] Failed to load configuration: %w", err)
+	}
+
+	apiClient := agentbay.NewClientFromConfig(cfg)
+	ctx := context.Background()
+
+	fmt.Printf("[STEP 1/1] Sharing Docker repo with UID %d...\n", targetUID)
+
+	req := &client.ShareDockerRepoRequest{TargetAliUid: &targetUID}
+	resp, err := apiClient.ShareDockerRepo(ctx, req)
+	if err != nil {
+		if reqID := extractRequestIDFromErr(err); reqID != "" {
+			fmt.Printf("[INFO] ShareDockerRepo Request ID: %s\n", reqID)
+		}
+		return fmt.Errorf("[ERROR] Failed to share Docker repo: %w", err)
+	}
+
+	if resp.Body != nil {
+		if reqID := resp.Body.GetRequestId(); reqID != "" {
+			fmt.Printf("[INFO] ShareDockerRepo Request ID: %s\n", reqID)
+		}
+	}
+
+	if resp.Body == nil {
+		return fmt.Errorf("[ERROR] Invalid response: missing body")
+	}
+
+	code := resp.Body.GetCode()
+	successPtr := resp.Body.Success
+	if (successPtr != nil && !*successPtr) || (code != "" && !strings.EqualFold(code, "ok")) {
+		msg := resp.Body.GetMessage()
+		return fmt.Errorf("[ERROR] Failed to share Docker repo: Code=%s, Message=%s", code, msg)
+	}
+
+	fmt.Println()
+	fmt.Printf("[SUCCESS] Docker repo shared successfully!\n")
+	if resp.Body.Data != nil {
+		d := resp.Body.Data
+		if d.TargetAliUid != nil {
+			fmt.Printf("  TargetAliUid : %d\n", *d.TargetAliUid)
+		}
+		if d.OwnerAliUid != nil {
+			fmt.Printf("  OwnerAliUid  : %d\n", *d.OwnerAliUid)
+		}
+		if d.AcrRepoName != nil {
+			fmt.Printf("  AcrRepoName  : %s\n", *d.AcrRepoName)
+		}
+		if d.Status != nil {
+			fmt.Printf("  Status       : %s\n", *d.Status)
+		}
+	}
+	return nil
+}
+
+// ---------------------------------------------------------------------------
+// docker unshare
+// ---------------------------------------------------------------------------
+
+var dockerUnshareCmd = &cobra.Command{
+	Use:   "unshare [<target-uid>]",
+	Short: "Cancel sharing the Docker repo with another Alibaba Cloud account",
+	Long: `Cancel sharing your AgentBay Docker image repository with a specific Alibaba Cloud account.
+
+Examples:
+  agentbay docker unshare 1234567890
+  agentbay docker unshare --target-uid 1234567890`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: runDockerUnshare,
+}
+
+func runDockerUnshare(cobraCmd *cobra.Command, args []string) error {
+	targetUID, _ := cobraCmd.Flags().GetInt64("target-uid")
+
+	// Prefer positional arg if provided, otherwise fall back to flag
+	if len(args) > 0 {
+		parsed, err := strconv.ParseInt(args[0], 10, 64)
+		if err != nil {
+			return fmt.Errorf("[ERROR] Invalid target-uid %q: %w", args[0], err)
+		}
+		targetUID = parsed
+	}
+
+	if targetUID == 0 {
+		return fmt.Errorf("[ERROR] target-uid is required. Provide it as a positional argument or use --target-uid")
+	}
+
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return fmt.Errorf("[ERROR] Failed to load configuration: %w", err)
+	}
+
+	apiClient := agentbay.NewClientFromConfig(cfg)
+	ctx := context.Background()
+
+	fmt.Printf("[STEP 1/1] Cancelling Docker repo sharing with UID %d...\n", targetUID)
+
+	req := &client.UnshareDockerRepoRequest{TargetAliUid: &targetUID}
+	resp, err := apiClient.UnshareDockerRepo(ctx, req)
+	if err != nil {
+		if reqID := extractRequestIDFromErr(err); reqID != "" {
+			fmt.Printf("[INFO] UnshareDockerRepo Request ID: %s\n", reqID)
+		}
+		return fmt.Errorf("[ERROR] Failed to cancel Docker repo sharing: %w", err)
+	}
+
+	if resp.Body != nil {
+		if reqID := resp.Body.GetRequestId(); reqID != "" {
+			fmt.Printf("[INFO] UnshareDockerRepo Request ID: %s\n", reqID)
+		}
+	}
+
+	if resp.Body == nil {
+		return fmt.Errorf("[ERROR] Invalid response: missing body")
+	}
+
+	code := resp.Body.GetCode()
+	successPtr := resp.Body.Success
+	if (successPtr != nil && !*successPtr) || (code != "" && !strings.EqualFold(code, "ok")) {
+		msg := resp.Body.GetMessage()
+		return fmt.Errorf("[ERROR] Failed to cancel Docker repo sharing: Code=%s, Message=%s", code, msg)
+	}
+
+	revoked := false
+	if resp.Body.Data != nil && resp.Body.Data.Revoked != nil {
+		revoked = *resp.Body.Data.Revoked
+	}
+
+	fmt.Println()
+	fmt.Printf("[SUCCESS] Docker repo sharing cancelled.\n")
+	fmt.Printf("  Revoked : %v\n", revoked)
+	return nil
+}
+
+// ---------------------------------------------------------------------------
+// docker list-shares
+// ---------------------------------------------------------------------------
+
+var dockerListSharesCmd = &cobra.Command{
+	Use:   "list-shares",
+	Short: "List Docker repo sharing information",
+	Long: `List Docker image repository sharing information.
+
+Use --direction to specify:
+  Outgoing  Repos you have shared with other accounts
+  Incoming  Repos that other accounts have shared with you
+
+Examples:
+  agentbay docker list-shares --direction Outgoing
+  agentbay docker list-shares --direction Incoming
+  agentbay docker list-shares --direction Outgoing --output json`,
+	Args: cobra.NoArgs,
+	RunE: runDockerListShares,
+}
+
+func runDockerListShares(cobraCmd *cobra.Command, args []string) error {
+	direction, _ := cobraCmd.Flags().GetString("direction")
+	outputFmt, _ := cobraCmd.Flags().GetString("output")
+
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return fmt.Errorf("[ERROR] Failed to load configuration: %w", err)
+	}
+
+	apiClient := agentbay.NewClientFromConfig(cfg)
+	ctx := context.Background()
+
+	req := &client.ListSharedDockerReposRequest{Direction: &direction}
+	resp, err := apiClient.ListSharedDockerRepos(ctx, req)
+	if err != nil {
+		if reqID := extractRequestIDFromErr(err); reqID != "" {
+			fmt.Printf("[INFO] ListSharedDockerRepos Request ID: %s\n", reqID)
+		}
+		return fmt.Errorf("[ERROR] Failed to list shared Docker repos: %w", err)
+	}
+
+	if resp.Body != nil {
+		if reqID := resp.Body.GetRequestId(); reqID != "" {
+			fmt.Printf("[INFO] ListSharedDockerRepos Request ID: %s\n", reqID)
+		}
+	}
+
+	if resp.Body == nil {
+		return fmt.Errorf("[ERROR] Invalid response: missing body")
+	}
+
+	code := resp.Body.GetCode()
+	successPtr := resp.Body.Success
+	if (successPtr != nil && !*successPtr) || (code != "" && !strings.EqualFold(code, "ok")) {
+		msg := resp.Body.GetMessage()
+		return fmt.Errorf("[ERROR] Failed to list shared Docker repos: Code=%s, Message=%s", code, msg)
+	}
+
+	items := resp.Body.Data
+	if items == nil {
+		items = []*client.ListSharedDockerReposResponseBodyDataItem{}
+	}
+
+	if strings.EqualFold(outputFmt, "json") {
+		type itemJSON struct {
+			PeerAliUid int64  `json:"peerAliUid"`
+			Status     string `json:"status"`
+		}
+		type outputJSON struct {
+			TotalCount int        `json:"totalCount"`
+			Items      []itemJSON `json:"items"`
+		}
+		out := outputJSON{TotalCount: len(items), Items: []itemJSON{}}
+		for _, item := range items {
+			j := itemJSON{}
+			if item.PeerAliUid != nil {
+				j.PeerAliUid = *item.PeerAliUid
+			}
+			if item.Status != nil {
+				j.Status = *item.Status
+			}
+			out.Items = append(out.Items, j)
+		}
+		b, err := json.MarshalIndent(out, "", "  ")
+		if err != nil {
+			return fmt.Errorf("json marshal: %w", err)
+		}
+		fmt.Println(string(b))
+		return nil
+	}
+
+	// Table output
+	if len(items) == 0 {
+		fmt.Printf("No shared Docker repos found for direction: %s\n", direction)
+		return nil
+	}
+	fmt.Printf("%-20s  %-15s\n", "PeerAliUid", "Status")
+	fmt.Printf("%-20s  %-15s\n", "--------------------", "---------------")
+	for _, item := range items {
+		uid := int64(0)
+		if item.PeerAliUid != nil {
+			uid = *item.PeerAliUid
+		}
+		status := ""
+		if item.Status != nil {
+			status = *item.Status
+		}
+		fmt.Printf("%-20d  %-15s\n", uid, status)
+	}
+	fmt.Printf("\nTotal: %d\n", len(items))
 	return nil
 }
