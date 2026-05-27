@@ -274,11 +274,18 @@ Permanently delete a skill from the cloud.
 
 By default, the command fetches the skill details and displays them before prompting for confirmation. With `--yes`, both the detail lookup and confirmation prompt are skipped and the deletion is performed directly — suitable for scripts/CI.
 
-```bash
-# Interactive deletion (shows skill info and prompts for confirmation)
-agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx
+The skill ID can be passed as a positional argument or via the `--skill-id` flag.
 
-# Skip detail lookup and confirmation, delete directly (scripts/CI)
+```bash
+# Delete using positional argument (interactive, shows skill info and prompts for confirmation)
+agentbay skills delete skill-xxxxxxxxxxxxxxxx
+
+# Delete using positional argument, skip confirmation (scripts/CI)
+agentbay skills delete skill-xxxxxxxxxxxxxxxx --yes
+agentbay skills delete skill-xxxxxxxxxxxxxxxx -y
+
+# Delete using named flag (compatible)
+agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx
 agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx --yes
 agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx -y
 ```
@@ -287,8 +294,10 @@ agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx -y
 
 | Flag         | Short | Type   | Required | Default | Description                                                          |
 | ------------ | ----- | ------ | -------- | ------- | -------------------------------------------------------------------- |
-| `--skill-id` |       | string | Yes      | (none)  | Skill ID to delete                                                   |
+| `--skill-id` |       | string | No\*     | (none)  | Skill ID to delete (alternative to positional argument)              |
 | `--yes`      | `-y`  | bool   | No       | `false` | Skip detail lookup and confirmation prompt (for non-interactive use) |
+
+> \* The skill ID must be provided either as a positional argument or via `--skill-id`.
 
 **Output (interactive mode):**
 

@@ -236,7 +236,7 @@ func TestSkillsCmd(t *testing.T) {
 		assert.Equal(t, "[]", tagFlag.DefValue)
 	})
 
-	t.Run("skills delete accepts no positional arguments", func(t *testing.T) {
+	t.Run("skills delete accepts up to 1 positional argument", func(t *testing.T) {
 		var deleteCmd *cobra.Command
 		for _, c := range cmd.SkillsCmd.Commands() {
 			if c.Name() == "delete" {
@@ -245,11 +245,15 @@ func TestSkillsCmd(t *testing.T) {
 			}
 		}
 		requireNotNil(t, deleteCmd)
+		// No args is valid (--skill-id flag may be used instead)
 		assert.NoError(t, deleteCmd.Args(deleteCmd, []string{}))
-		assert.Error(t, deleteCmd.Args(deleteCmd, []string{"extra"}))
+		// Single positional arg is valid
+		assert.NoError(t, deleteCmd.Args(deleteCmd, []string{"skill-xxxxxxxxxxxxxxxx"}))
+		// Two or more positional args is invalid
+		assert.Error(t, deleteCmd.Args(deleteCmd, []string{"skill-1", "skill-2"}))
 	})
 
-	t.Run("skills delete has --skill-id flag (required)", func(t *testing.T) {
+	t.Run("skills delete has --skill-id flag (optional)", func(t *testing.T) {
 		var deleteCmd *cobra.Command
 		for _, c := range cmd.SkillsCmd.Commands() {
 			if c.Name() == "delete" {
@@ -261,9 +265,9 @@ func TestSkillsCmd(t *testing.T) {
 		skillIdFlag := deleteCmd.Flags().Lookup("skill-id")
 		assert.NotNil(t, skillIdFlag)
 		assert.Equal(t, "", skillIdFlag.DefValue)
-		// Verify --skill-id is marked as required
+		// --skill-id is now optional (positional argument is an alternative)
 		requiredAnnotation := skillIdFlag.Annotations[cobra.BashCompOneRequiredFlag]
-		assert.Equal(t, []string{"true"}, requiredAnnotation)
+		assert.Nil(t, requiredAnnotation)
 	})
 
 	t.Run("skills delete has --yes flag with shorthand y", func(t *testing.T) {

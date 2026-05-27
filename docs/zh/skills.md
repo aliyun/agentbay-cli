@@ -274,11 +274,18 @@ agentbay skills list -o json
 
 默认情况下，命令会先查询技能详情并展示，再提示确认是否删除。指定 `--yes` 时跳过详情查询和确认提示，直接执行删除，适合脚本/CI 场景。
 
-```bash
-# 交互式删除（展示技能信息并确认）
-agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx
+Skill ID 可以作为位置参数直接传入，也可以通过 `--skill-id` 命名参数指定。
 
-# 跳过详情查询和确认，直接删除（脚本/CI）
+```bash
+# 使用位置参数删除（交互式，展示技能信息并确认）
+agentbay skills delete skill-xxxxxxxxxxxxxxxx
+
+# 使用位置参数 + 跳过确认（脚本/CI）
+agentbay skills delete skill-xxxxxxxxxxxxxxxx --yes
+agentbay skills delete skill-xxxxxxxxxxxxxxxx -y
+
+# 使用命名参数（兼容写法）
+agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx
 agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx --yes
 agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx -y
 ```
@@ -287,8 +294,10 @@ agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx -y
 
 | 参数         | 短参数 | 类型   | 必填 | 默认值  | 说明                                            |
 | ------------ | ------ | ------ | ---- | ------- | ----------------------------------------------- |
-| `--skill-id` |        | string | 是   | （无）  | 要删除的技能 ID                                 |
+| `--skill-id` |        | string | 否*  | （无）  | 要删除的技能 ID（与位置参数二选一）             |
 | `--yes`      | `-y`   | bool   | 否   | `false` | 跳过详情查询和确认提示（适合非交互式/脚本场景） |
+
+> \* Skill ID 必须通过位置参数或 `--skill-id` 至少提供一种。
 
 **输出（交互模式）：**
 

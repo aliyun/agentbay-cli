@@ -93,8 +93,7 @@ func init() {
 	skillsUpdateCmd.Flags().StringArray("tag", nil, `Tag name for the skill (can be specified multiple times, e.g. --tag "tag1" --tag "tag2")`)
 	skillsUpdateCmd.Flags().String("icon", "", "Icon for the skill (e.g. URL or identifier)")
 
-	skillsDeleteCmd.Flags().String("skill-id", "", "Skill ID to delete (required)")
-	_ = skillsDeleteCmd.MarkFlagRequired("skill-id")
+	skillsDeleteCmd.Flags().String("skill-id", "", "Skill ID to delete")
 	skillsDeleteCmd.Flags().BoolP("yes", "y", false, "Skip confirmation prompt and skill detail lookup (for non-interactive use)")
 }
 
@@ -1084,21 +1083,35 @@ var skillsDeleteCmd = &cobra.Command{
 	Short: "Delete a skill from the cloud",
 	Long: `Delete a skill permanently from the cloud by its skill ID.
 
+The skill ID can be passed as a positional argument or via --skill-id flag.
+
 Without --yes, the command first fetches the skill details and shows them before asking for confirmation.
 With --yes, the skill detail lookup is skipped and the deletion is performed directly.
 
 Examples:
-  # Delete a skill (interactive, shows skill info and prompts for confirmation)
-  agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx
+  # Delete a skill using positional argument (interactive)
+  agentbay skills delete skill-xxxxxxxxxxxxxxxx
 
-  # Delete without confirmation (for scripts/CI)
+  # Delete using positional argument, skip confirmation (for scripts/CI)
+  agentbay skills delete skill-xxxxxxxxxxxxxxxx --yes
+  agentbay skills delete skill-xxxxxxxxxxxxxxxx -y
+
+  # Delete using named flag (compatible)
+  agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx
   agentbay skills delete --skill-id skill-xxxxxxxxxxxxxxxx --yes`,
-	Args: cobra.NoArgs,
+	Args: cobra.MaximumNArgs(1),
 	RunE: runSkillsDelete,
 }
 
 func runSkillsDelete(cmd *cobra.Command, args []string) error {
 	skillId, _ := cmd.Flags().GetString("skill-id")
+	// Support positional argument as alternative to --skill-id
+	if skillId == "" && len(args) > 0 {
+		skillId = args[0]
+	}
+	if skillId == "" {
+		return fmt.Errorf("[ERROR] skill ID is required: provide it as a positional argument or via --skill-id")
+	}
 	autoYes, _ := cmd.Flags().GetBool("yes")
 
 	cfg, err := config.GetConfig()
