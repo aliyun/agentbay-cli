@@ -87,7 +87,7 @@ Update an existing skill by ID. Upload a new skill package and optionally update
 agentbay skills update --skill-id <id> --file ./my-skill
 agentbay skills update --skill-id <id> --file ./my-skill.zip --tag "tag1" --tag "tag2"
 agentbay skills update --skill-id <id> --file ./my-skill --icon 'https://example.com/icon.png'
-agentbay skills update --skill-id <id> --clear-tags
+agentbay skills update --skill-id <id> --file ./my-skill --clear-tags
 ```
 
 **Flags:**
@@ -95,12 +95,12 @@ agentbay skills update --skill-id <id> --clear-tags
 | Flag           | Type        | Required | Description                                                                                |
 | -------------- | ----------- | -------- | ------------------------------------------------------------------------------------------ |
 | `--skill-id`   | string      | Yes      | Skill ID to update                                                                         |
-| `--file`       | string      | No       | Path to skill directory or `.zip` file                                                     |
+| `--file`       | string      | Yes      | Path to skill directory or `.zip` file                                                     |
 | `--tag`        | stringArray | No       | Tag name for the skill (can be specified multiple times, e.g. `--tag "tag1" --tag "tag2"`) |
 | `--icon`       | string      | No       | Icon for the skill (e.g. URL or identifier)                                                |
 | `--clear-tags` | bool        | No       | Remove all tags from the skill                                                             |
 
-> At least one of `--file`, `--tag`, `--icon`, or `--clear-tags` must be specified.
+> `--skill-id` and `--file` are required; `--tag`, `--icon`, and `--clear-tags` are optional.
 
 **Tag behavior:**
 

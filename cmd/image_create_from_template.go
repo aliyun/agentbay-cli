@@ -73,10 +73,18 @@ func runImageCreateFromTemplate(cmd *cobra.Command, args []string) error {
 	// Validate: source-image must start with the cached registry path prefix
 	// Expected prefix: $RegistryUrl/$Namespace/$RepoName
 	expectedPrefix := fmt.Sprintf("%s/%s/%s", cache.RegistryURL, cache.Namespace, cache.RepoName)
+	shortPrefix := fmt.Sprintf("/%s/%s", cache.Namespace, cache.RepoName)
+
 	if !strings.HasPrefix(sourceImage, expectedPrefix) {
-		return fmt.Errorf("[ERROR] source-image '%s' does not match the authorized registry path.\n"+
-			"  Expected prefix: %s\n"+
-			"  Please use the image tagged via 'agentbay docker tag' command", sourceImage, expectedPrefix)
+		// Also accept short format: /$Namespace/$RepoName:<tag> — auto-complete with registry URL
+		if strings.HasPrefix(sourceImage, shortPrefix) {
+			sourceImage = cache.RegistryURL + sourceImage
+		} else {
+			return fmt.Errorf("[ERROR] source-image '%s' does not match the authorized registry path.\n"+
+				"  Expected prefix: %s\n"+
+				"  Or short format:  %s:<tag>\n"+
+				"  Please use the image tagged via 'agentbay docker tag' command", sourceImage, expectedPrefix, shortPrefix)
+		}
 	}
 
 	// Truncate: strip the registry URL, only send /$Namespace/$RepoName:<tag> to backend

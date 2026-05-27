@@ -87,7 +87,7 @@ agentbay skills push ./my-skill --tag "标签1" --icon 'https://example.com/icon
 agentbay skills update --skill-id <id> --file ./my-skill
 agentbay skills update --skill-id <id> --file ./my-skill.zip --tag "标签1" --tag "标签2"
 agentbay skills update --skill-id <id> --file ./my-skill --icon 'https://example.com/icon.png'
-agentbay skills update --skill-id <id> --clear-tags
+agentbay skills update --skill-id <id> --file ./my-skill --clear-tags
 ```
 
 **Flags：**
@@ -95,12 +95,12 @@ agentbay skills update --skill-id <id> --clear-tags
 | 参数           | 类型        | 必填 | 说明                                                         |
 | -------------- | ----------- | ---- | ------------------------------------------------------------ |
 | `--skill-id`   | string      | 是   | 要更新的技能 ID                                              |
-| `--file`       | string      | 否   | 技能目录或 `.zip` 文件路径                                   |
+| `--file`       | string      | 是   | 技能目录或 `.zip` 文件路径                                   |
 | `--tag`        | stringArray | 否   | 技能标签名称（可多次指定，如 `--tag "标签1" --tag "标签2"`） |
 | `--icon`       | string      | 否   | 技能图标（如 URL 或标识）                                    |
 | `--clear-tags` | bool        | 否   | 清空技能上的所有标签                                         |
 
-> `--file`、`--tag`、`--icon`、`--clear-tags` 至少需指定一个。
+> `--skill-id` 和 `--file` 为必填参数；`--tag`、`--icon`、`--clear-tags` 均为可选参数。
 
 **标签行为说明：**
 

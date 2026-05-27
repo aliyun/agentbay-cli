@@ -88,7 +88,8 @@ func init() {
 
 	skillsUpdateCmd.Flags().String("skill-id", "", "Skill ID to update (required)")
 	_ = skillsUpdateCmd.MarkFlagRequired("skill-id")
-	skillsUpdateCmd.Flags().String("file", "", "Path to skill directory or .zip file")
+	skillsUpdateCmd.Flags().String("file", "", "Path to skill directory or .zip file (required)")
+	_ = skillsUpdateCmd.MarkFlagRequired("file")
 	skillsUpdateCmd.Flags().StringArray("tag", nil, `Tag name for the skill (can be specified multiple times, e.g. --tag "tag1" --tag "tag2")`)
 	skillsUpdateCmd.Flags().String("icon", "", "Icon for the skill (e.g. URL or identifier)")
 	skillsUpdateCmd.Flags().Bool("clear-tags", false, "Remove all tags from the skill")
@@ -392,11 +393,6 @@ func runSkillsUpdate(cmd *cobra.Command, args []string) error {
 	// Validate: --tag and --clear-tags are mutually exclusive
 	if clearTags && len(tags) > 0 {
 		return fmt.Errorf("[ERROR] --clear-tags and --tag cannot be used together")
-	}
-
-	// Validate: at least one of --file, --tag, --icon, --clear-tags must be provided
-	if fileInput == "" && len(tags) == 0 && iconInput == "" && !clearTags {
-		return fmt.Errorf("[ERROR] at least one of --file, --tag, --icon, or --clear-tags must be specified")
 	}
 
 	cfg, err := config.GetConfig()
