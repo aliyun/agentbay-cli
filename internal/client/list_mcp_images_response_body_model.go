@@ -333,6 +333,7 @@ type ListMcpImagesResponseBodyDataImageInfo struct {
 	FotaVersion    *string `json:"FotaVersion,omitempty" xml:"FotaVersion,omitempty"`
 	OsName         *string `json:"OsName,omitempty" xml:"OsName,omitempty"`
 	OsVersion      *string `json:"OsVersion,omitempty" xml:"OsVersion,omitempty"`
+	PhysicalImage  *string `json:"PhysicalImage,omitempty" xml:"PhysicalImage,omitempty"`
 	PlatformName   *string `json:"PlatformName,omitempty" xml:"PlatformName,omitempty"`
 	Status         *string `json:"Status,omitempty" xml:"Status,omitempty"`
 	SystemDiskSize *int32  `json:"SystemDiskSize,omitempty" xml:"SystemDiskSize,omitempty"`
@@ -379,6 +380,10 @@ func (s *ListMcpImagesResponseBodyDataImageInfo) GetUpdateTime() *string {
 	return s.UpdateTime
 }
 
+func (s *ListMcpImagesResponseBodyDataImageInfo) GetPhysicalImage() *string {
+	return s.PhysicalImage
+}
+
 func (s *ListMcpImagesResponseBodyDataImageInfo) SetDataDiskSize(v int32) *ListMcpImagesResponseBodyDataImageInfo {
 	s.DataDiskSize = &v
 	return s
@@ -416,6 +421,11 @@ func (s *ListMcpImagesResponseBodyDataImageInfo) SetSystemDiskSize(v int32) *Lis
 
 func (s *ListMcpImagesResponseBodyDataImageInfo) SetUpdateTime(v string) *ListMcpImagesResponseBodyDataImageInfo {
 	s.UpdateTime = &v
+	return s
+}
+
+func (s *ListMcpImagesResponseBodyDataImageInfo) SetPhysicalImage(v string) *ListMcpImagesResponseBodyDataImageInfo {
+	s.PhysicalImage = &v
 	return s
 }
 

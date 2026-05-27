@@ -38,14 +38,14 @@ agentbay image list --output json        # JSON 输出（AI/脚本使用）
 
 ```
 === USER IMAGES (17) ===
-IMAGE ID              IMAGE NAME       TYPE                 STATUS        OS                 APPLY SCENE
---------              ----------       ----                 ------        --                 -----------
-imgc-xxxxx...xxx      my-app           DockerBuilder        Available     Android 14         CodeSpace
+IMAGE ID              IMAGE NAME       TYPE                 STATUS        OS                 PHYSICAL IMAGE                 APPLY SCENE
+--------              ----------       ----                 ------        --                 --------------                 -----------
+imgc-xxxxx...xxx      my-app           DockerBuilder        Available     Android 14         registry.example.com/img:tag   CodeSpace
 
 === SYSTEM IMAGES (3) ===
-IMAGE ID                  IMAGE NAME                     TYPE                 STATUS        OS                 APPLY SCENE
---------                  ----------                     ----                 ------        --                 -----------
-mobile-use-android-14     Mobile Use Android 14          DedicatedDesktop     Available     Android 14         MobileUse
+IMAGE ID                  IMAGE NAME                     TYPE                 STATUS        OS                 PHYSICAL IMAGE                 APPLY SCENE
+--------                  ----------                     ----                 ------        --                 --------------                 -----------
+mobile-use-android-14     Mobile Use Android 14          DedicatedDesktop     Available     Android 14                                        MobileUse
 ```
 
 使用 `--output json` 输出完整 JSON（注：`image list` 的 `-o` 短参数已被 `--os-type` 占用，请使用全称）：
@@ -67,6 +67,7 @@ agentbay image list --output json
       "osName": "Linux",
       "osVersion": "Debian 12",
       "osDisplay": "Linux Debian 12",
+      "physicalImage": "registry.example.com/my-app:latest",
       "applyScene": "CodeSpace"
     }
   ]

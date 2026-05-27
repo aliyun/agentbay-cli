@@ -205,8 +205,9 @@ func createMockImage(imageId, imageName, imageType, status string) *client.ListM
 		ImageBuildType:      stringPtr(buildType),
 		ImageResourceStatus: stringPtr(status),
 		ImageInfo: &client.ListMcpImagesResponseBodyDataImageInfo{
-			OsName:    stringPtr("Linux"),
-			OsVersion: stringPtr("Debian 12"),
+			OsName:        stringPtr("Linux"),
+			OsVersion:     stringPtr("Debian 12"),
+			PhysicalImage: stringPtr("registry.example.com/debian:12"),
 		},
 		ImageApplyScene: stringPtr("CodeSpace"),
 	}
@@ -386,7 +387,7 @@ func TestRunImageListWithBothTypes(t *testing.T) {
 }
 
 func TestPrintImageTable(t *testing.T) {
-	t.Run("should print table header correctly", func(t *testing.T) {
+	t.Run("should print table header correctly with physical image column", func(t *testing.T) {
 		// Capture stdout
 		var buf bytes.Buffer
 		oldStdout := os.Stdout
@@ -397,7 +398,7 @@ func TestPrintImageTable(t *testing.T) {
 			createMockImage("imgc-1234567890", "test-image", "User", "IMAGE_AVAILABLE"),
 		}
 
-		printImageTable(images)
+		printImageTable(images, true)
 
 		// Restore stdout and read output
 		w.Close()
@@ -411,6 +412,28 @@ func TestPrintImageTable(t *testing.T) {
 		assert.Contains(t, outputStr, "TYPE")
 		assert.Contains(t, outputStr, "STATUS")
 		assert.Contains(t, outputStr, "OS")
+		assert.Contains(t, outputStr, "PHYSICAL IMAGE")
+		assert.Contains(t, outputStr, "APPLY SCENE")
+	})
+
+	t.Run("should not show PHYSICAL IMAGE column when showPhysicalImage=false", func(t *testing.T) {
+		var buf bytes.Buffer
+		oldStdout := os.Stdout
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+
+		images := []*client.ListMcpImagesResponseBodyData{
+			createMockImage("code-space-debian-12", "Debian 12", "DedicatedDesktop", "IMAGE_AVAILABLE"),
+		}
+
+		printImageTable(images, false)
+
+		w.Close()
+		os.Stdout = oldStdout
+		io.Copy(&buf, r)
+		outputStr := buf.String()
+
+		assert.NotContains(t, outputStr, "PHYSICAL IMAGE", "system images table should not have PHYSICAL IMAGE column")
 		assert.Contains(t, outputStr, "APPLY SCENE")
 	})
 
@@ -423,7 +446,7 @@ func TestPrintImageTable(t *testing.T) {
 
 		images := []*client.ListMcpImagesResponseBodyData{}
 
-		printImageTable(images)
+		printImageTable(images, true)
 
 		// Restore stdout
 		w.Close()
@@ -446,7 +469,7 @@ func TestPrintImageTable(t *testing.T) {
 			nil,
 		}
 
-		printImageTable(images)
+		printImageTable(images, true)
 
 		// Restore stdout
 		w.Close()
@@ -470,7 +493,7 @@ func TestPrintImageTable(t *testing.T) {
 			createMockImage("imgc-1234567890", "my-custom-image", "User", "IMAGE_AVAILABLE"),
 		}
 
-		printImageTable(images)
+		printImageTable(images, true)
 
 		// Restore stdout and read output
 		w.Close()
@@ -517,5 +540,132 @@ func TestPrintImageTable(t *testing.T) {
 		assert.Greater(t, userSectionIndex, -1, "should have USER IMAGES section")
 		assert.Greater(t, systemSectionIndex, -1, "should have SYSTEM IMAGES section")
 		assert.Greater(t, systemSectionIndex, userSectionIndex, "system section should come after user section")
+	})
+}
+
+func TestPrintImageTablePhysicalImage(t *testing.T) {
+	t.Run("should show physical image in table output", func(t *testing.T) {
+		var buf bytes.Buffer
+		oldStdout := os.Stdout
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+
+		images := []*client.ListMcpImagesResponseBodyData{
+			createMockImage("imgc-1234567890", "test-image", "DockerBuilder", "IMAGE_AVAILABLE"),
+		}
+
+		printImageTable(images, true)
+
+		w.Close()
+		os.Stdout = oldStdout
+		io.Copy(&buf, r)
+		outputStr := buf.String()
+
+		assert.Contains(t, outputStr, "PHYSICAL IMAGE", "table header should contain PHYSICAL IMAGE column")
+		assert.Contains(t, outputStr, "registry.example.com/debian:12", "table row should contain physical image value")
+	})
+
+	t.Run("should show empty physical image when not set", func(t *testing.T) {
+		var buf bytes.Buffer
+		oldStdout := os.Stdout
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+
+		images := []*client.ListMcpImagesResponseBodyData{
+			{
+				ImageId:             stringPtr("imgc-no-physical"),
+				ImageName:           stringPtr("no-physical-image"),
+				ImageBuildType:      stringPtr("DockerBuilder"),
+				ImageResourceStatus: stringPtr("IMAGE_AVAILABLE"),
+				ImageInfo: &client.ListMcpImagesResponseBodyDataImageInfo{
+					OsName:    stringPtr("Linux"),
+					OsVersion: stringPtr("Debian 12"),
+					// PhysicalImage not set
+				},
+				ImageApplyScene: stringPtr("CodeSpace"),
+			},
+		}
+
+		printImageTable(images, true)
+
+		w.Close()
+		os.Stdout = oldStdout
+		io.Copy(&buf, r)
+		outputStr := buf.String()
+
+		assert.Contains(t, outputStr, "PHYSICAL IMAGE", "table header should still contain PHYSICAL IMAGE column")
+		assert.Contains(t, outputStr, "imgc-no-physical")
+	})
+}
+
+func TestPrintImagesAsJSON(t *testing.T) {
+	t.Run("should include physicalImage in JSON output", func(t *testing.T) {
+		var buf bytes.Buffer
+		oldStdout := os.Stdout
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+
+		images := []*client.ListMcpImagesResponseBodyData{
+			createMockImage("imgc-1234567890", "test-image", "DockerBuilder", "IMAGE_AVAILABLE"),
+		}
+
+		err := printImagesAsJSON(images, 1)
+
+		w.Close()
+		os.Stdout = oldStdout
+		io.Copy(&buf, r)
+		outputStr := buf.String()
+
+		require.NoError(t, err)
+		assert.Contains(t, outputStr, `"physicalImage"`)
+		assert.Contains(t, outputStr, "registry.example.com/debian:12")
+	})
+
+	t.Run("should output empty string for physicalImage when not set", func(t *testing.T) {
+		var buf bytes.Buffer
+		oldStdout := os.Stdout
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+
+		images := []*client.ListMcpImagesResponseBodyData{
+			{
+				ImageId:             stringPtr("imgc-no-physical"),
+				ImageName:           stringPtr("no-physical-image"),
+				ImageBuildType:      stringPtr("DockerBuilder"),
+				ImageResourceStatus: stringPtr("IMAGE_AVAILABLE"),
+				ImageInfo: &client.ListMcpImagesResponseBodyDataImageInfo{
+					OsName:    stringPtr("Linux"),
+					OsVersion: stringPtr("Debian 12"),
+				},
+				ImageApplyScene: stringPtr("CodeSpace"),
+			},
+		}
+
+		err := printImagesAsJSON(images, 1)
+
+		w.Close()
+		os.Stdout = oldStdout
+		io.Copy(&buf, r)
+		outputStr := buf.String()
+
+		require.NoError(t, err)
+		assert.Contains(t, outputStr, `"physicalImage": ""`)
+	})
+
+	t.Run("should output empty images array not null", func(t *testing.T) {
+		var buf bytes.Buffer
+		oldStdout := os.Stdout
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+
+		err := printImagesAsJSON([]*client.ListMcpImagesResponseBodyData{}, 0)
+
+		w.Close()
+		os.Stdout = oldStdout
+		io.Copy(&buf, r)
+		outputStr := buf.String()
+
+		require.NoError(t, err)
+		assert.Contains(t, outputStr, `"images": []`, "empty images should be [] not null")
 	})
 }

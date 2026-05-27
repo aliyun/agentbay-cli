@@ -815,6 +815,11 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Printf(" Done.\n")
 
+	// Always print RequestId for traceability
+	if resp.Body != nil && resp.Body.GetRequestId() != nil {
+		fmt.Printf("[INFO] Request ID: %s\n", *resp.Body.GetRequestId())
+	}
+
 	// Debug: Print response details
 	if log.GetLevel() >= log.DebugLevel && resp.Body != nil {
 		log.Debugf("[DEBUG] ListMcpImages Response:")
@@ -878,20 +883,41 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	}
 
 	// Display image table with consistent formatting
-	fmt.Printf("%s %s %s %s %s %s\n",
-		padString("IMAGE ID", 25),
-		padString("IMAGE NAME", 30),
-		padString("TYPE", 20),
-		padString("STATUS", 15),
-		padString("OS", 18),
-		"APPLY SCENE")
-	fmt.Printf("%s %s %s %s %s %s\n",
-		padString("--------", 25),
-		padString("----------", 30),
-		padString("----", 20),
-		padString("------", 15),
-		padString("--", 18),
-		"-----------")
+	// System images don't have physicalImage, only show the column for user images
+	showPhysicalImage := !systemOnly
+	if showPhysicalImage {
+		fmt.Printf("%s %s %s %s %s %s %s\n",
+			padString("IMAGE ID", 25),
+			padString("IMAGE NAME", 30),
+			padString("TYPE", 20),
+			padString("STATUS", 15),
+			padString("OS", 18),
+			padString("PHYSICAL IMAGE", 30),
+			"APPLY SCENE")
+		fmt.Printf("%s %s %s %s %s %s %s\n",
+			padString("--------", 25),
+			padString("----------", 30),
+			padString("----", 20),
+			padString("------", 15),
+			padString("--", 18),
+			padString("--------------", 30),
+			"-----------")
+	} else {
+		fmt.Printf("%s %s %s %s %s %s\n",
+			padString("IMAGE ID", 25),
+			padString("IMAGE NAME", 30),
+			padString("TYPE", 20),
+			padString("STATUS", 15),
+			padString("OS", 18),
+			"APPLY SCENE")
+		fmt.Printf("%s %s %s %s %s %s\n",
+			padString("--------", 25),
+			padString("----------", 30),
+			padString("----", 20),
+			padString("------", 15),
+			padString("--", 18),
+			"-----------")
+	}
 
 	for _, image := range images {
 		imageId := getStringValue(image.GetImageId())
@@ -902,13 +928,28 @@ func runImageList(cmd *cobra.Command, args []string) error {
 		applyScene := getStringValue(image.GetImageApplyScene())
 
 		// 使用支持中文的填充和截断函数，手动控制列间距
-		fmt.Printf("%s %s %s %s %s %s\n",
-			padString(truncateString(imageId, 25), 25),
-			padString(truncateString(imageName, 30), 30),
-			padString(truncateString(imageType, 20), 20),
-			padString(truncateString(status, 15), 15),
-			padString(truncateString(osInfo, 18), 18),
-			truncateString(applyScene, 15)) // 最后一列不需要填充
+		if showPhysicalImage {
+			physicalImage := ""
+			if imgInfo := image.GetImageInfo(); imgInfo != nil {
+				physicalImage = getStringValue(imgInfo.GetPhysicalImage())
+			}
+			fmt.Printf("%s %s %s %s %s %s %s\n",
+				padString(truncateString(imageId, 25), 25),
+				padString(truncateString(imageName, 30), 30),
+				padString(truncateString(imageType, 20), 20),
+				padString(truncateString(status, 15), 15),
+				padString(truncateString(osInfo, 18), 18),
+				padString(truncateString(physicalImage, 30), 30),
+				truncateString(applyScene, 15))
+		} else {
+			fmt.Printf("%s %s %s %s %s %s\n",
+				padString(truncateString(imageId, 25), 25),
+				padString(truncateString(imageName, 30), 30),
+				padString(truncateString(imageType, 20), 20),
+				padString(truncateString(status, 15), 15),
+				padString(truncateString(osInfo, 18), 18),
+				truncateString(applyScene, 15))
+		}
 	}
 
 	return nil

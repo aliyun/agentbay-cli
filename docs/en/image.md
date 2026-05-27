@@ -38,14 +38,14 @@ Default table output:
 
 ```
 === USER IMAGES (17) ===
-IMAGE ID              IMAGE NAME       TYPE                 STATUS        OS                 APPLY SCENE
---------              ----------       ----                 ------        --                 -----------
-imgc-xxxxx...xxx      my-app           DockerBuilder        Available     Android 14         CodeSpace
+IMAGE ID              IMAGE NAME       TYPE                 STATUS        OS                 PHYSICAL IMAGE                 APPLY SCENE
+--------              ----------       ----                 ------        --                 --------------                 -----------
+imgc-xxxxx...xxx      my-app           DockerBuilder        Available     Android 14         registry.example.com/img:tag   CodeSpace
 
 === SYSTEM IMAGES (3) ===
-IMAGE ID                  IMAGE NAME                     TYPE                 STATUS        OS                 APPLY SCENE
---------                  ----------                     ----                 ------        --                 -----------
-mobile-use-android-14     Mobile Use Android 14          DedicatedDesktop     Available     Android 14         MobileUse
+IMAGE ID                  IMAGE NAME                     TYPE                 STATUS        OS                 PHYSICAL IMAGE                 APPLY SCENE
+--------                  ----------                     ----                 ------        --                 --------------                 -----------
+mobile-use-android-14     Mobile Use Android 14          DedicatedDesktop     Available     Android 14                                        MobileUse
 ```
 
 Use `--output json` for complete JSON output (note: `-o` short flag is taken by `--os-type` on this command, use the full flag name):
@@ -67,6 +67,7 @@ agentbay image list --output json
       "osName": "Linux",
       "osVersion": "Debian 12",
       "osDisplay": "Linux Debian 12",
+      "physicalImage": "registry.example.com/my-app:latest",
       "applyScene": "CodeSpace"
     }
   ]
