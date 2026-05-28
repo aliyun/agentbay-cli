@@ -167,6 +167,8 @@ func init() {
 	dockerListSharesCmd.Flags().String("direction", "", `Sharing direction: "Outgoing" (repos you shared) or "Incoming" (repos shared with you)`)
 	_ = dockerListSharesCmd.MarkFlagRequired("direction")
 	dockerListSharesCmd.Flags().StringP("output", "o", "", `Output format. Use "json" for machine-readable output (e.g. for AI/scripts)`)
+	dockerListSharesCmd.Flags().Int("page", 1, "Page number (default: 1)")
+	dockerListSharesCmd.Flags().Int("size", 10, "Page size (default: 10)")
 }
 
 // ---------------------------------------------------------------------------
@@ -567,9 +569,12 @@ Use --direction to specify:
   Outgoing  Repos you have shared with other accounts
   Incoming  Repos that other accounts have shared with you
 
+Use --page and --size to paginate results (both optional, default page=1, size=10).
+
 Examples:
   agentbay docker list-shares --direction Outgoing
   agentbay docker list-shares --direction Incoming
+  agentbay docker list-shares --direction Outgoing --page 2 --size 5
   agentbay docker list-shares --direction Outgoing --output json`,
 	Args: cobra.NoArgs,
 	RunE: runDockerListShares,
@@ -578,6 +583,8 @@ Examples:
 func runDockerListShares(cobraCmd *cobra.Command, args []string) error {
 	direction, _ := cobraCmd.Flags().GetString("direction")
 	outputFmt, _ := cobraCmd.Flags().GetString("output")
+	page, _ := cobraCmd.Flags().GetInt("page")
+	size, _ := cobraCmd.Flags().GetInt("size")
 
 	cfg, err := config.GetConfig()
 	if err != nil {
@@ -588,6 +595,14 @@ func runDockerListShares(cobraCmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
 	req := &client.ListSharedDockerReposRequest{Direction: &direction}
+	if size > 0 {
+		sizeInt32 := int32(size)
+		req.PageSize = &sizeInt32
+	}
+	if page > 0 {
+		pageInt32 := int32(page)
+		req.PageStart = &pageInt32
+	}
 	resp, err := apiClient.ListSharedDockerRepos(ctx, req)
 	if err != nil {
 		if reqID := extractRequestIDFromErr(err); reqID != "" {
@@ -625,9 +640,16 @@ func runDockerListShares(cobraCmd *cobra.Command, args []string) error {
 		}
 		type outputJSON struct {
 			TotalCount int        `json:"totalCount"`
+			PageNumber int        `json:"pageNumber"`
+			PageSize   int        `json:"pageSize"`
 			Items      []itemJSON `json:"items"`
 		}
-		out := outputJSON{TotalCount: len(items), Items: []itemJSON{}}
+		out := outputJSON{
+			TotalCount: len(items),
+			PageNumber: page,
+			PageSize:   size,
+			Items:      []itemJSON{},
+		}
 		for _, item := range items {
 			j := itemJSON{}
 			if item.PeerAliUid != nil {

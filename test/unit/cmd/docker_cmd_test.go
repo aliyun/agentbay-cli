@@ -128,6 +128,20 @@ func TestDockerListSharesCmd(t *testing.T) {
 		assert.Equal(t, "", flag.DefValue)
 		assert.Equal(t, "o", flag.Shorthand)
 	})
+
+	t.Run("list-shares command has --page flag", func(t *testing.T) {
+		assert.NotNil(t, listSharesCmd)
+		flag := listSharesCmd.Flags().Lookup("page")
+		assert.NotNil(t, flag)
+		assert.Equal(t, "1", flag.DefValue)
+	})
+
+	t.Run("list-shares command has --size flag", func(t *testing.T) {
+		assert.NotNil(t, listSharesCmd)
+		flag := listSharesCmd.Flags().Lookup("size")
+		assert.NotNil(t, flag)
+		assert.Equal(t, "10", flag.DefValue)
+	})
 }
 
 // findSubCmd finds a subcommand by name within a parent command.

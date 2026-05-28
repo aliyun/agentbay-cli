@@ -9,6 +9,8 @@ import (
 // ListSharedDockerReposRequest is the request struct for ListSharedDockerRepos
 type ListSharedDockerReposRequest struct {
 	Direction *string `json:"Direction,omitempty" xml:"Direction,omitempty"`
+	PageSize  *int32  `json:"PageSize,omitempty" xml:"PageSize,omitempty"`
+	PageStart *int32  `json:"PageStart,omitempty" xml:"PageStart,omitempty"`
 }
 
 // Validate validates the ListSharedDockerReposRequest

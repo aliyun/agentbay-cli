@@ -420,6 +420,74 @@ if (successPtr != nil && !*successPtr) || (code != "" && !strings.EqualFold(code
 - 将相关功能组织为子命令（如 `apikey create`, `apikey concurrency set`）
 - 提供清晰的错误提示和使用示例
 
+### 📋 分页参数 Flag 设计规范
+
+**适用场景**：凡接口支持分页（页码式或游标式），CLI 层**必须**暴露分页参数，不得返回全量数据。
+
+#### 页码式分页（PageNumber / PageStart 类接口）
+
+| Flag     | 类型 | 默认值 | 短参数 | API 字段映射              |
+| -------- | ---- | ------ | ------ | ------------------------- |
+| `--page` | int  | 1      | 不加   | `PageNo` / `PageStart` 等 |
+| `--size` | int  | 10     | 不加   | `PageSize`                |
+
+统一使用 `Int`（不带短参数）注册：
+
+```go
+cmd.Flags().Int("page", 1, "Page number (default: 1)")
+cmd.Flags().Int("size", 10, "Page size (default: 10)")
+```
+
+传参逻辑：
+
+```go
+page, _ := cmd.Flags().GetInt("page")
+size, _ := cmd.Flags().GetInt("size")
+if size > 0 {
+    sizeInt32 := int32(size)
+    req.PageSize = &sizeInt32
+}
+if page > 0 {
+    pageInt32 := int32(page)
+    req.PageStart = &pageInt32  // 或 req.PageNo = &pageInt32，视接口而定
+}
+```
+
+> **历史遗留说明**：`image list` 使用了 `-p`/`-s` 短参数（`IntP`），属于早期不一致写法，**新命令不跟进，统一不加短参数**。
+
+#### 游标式分页（Token 类接口）
+
+| Flag            | 类型   | 默认值 | 说明                     |
+| --------------- | ------ | ------ | ------------------------ |
+| `--max-results` | int32  | 10     | 每次返回条数             |
+| `--next-token`  | string | —      | 上次返回的游标，首次不传 |
+
+参考实现：`cmd/apikey_list.go`
+
+#### JSON 输出字段要求
+
+支持分页的命令在 `--output json` 时，**必须**在顶层输出分页元信息：
+
+- 页码式：`pageNumber`、`pageSize`
+- 游标式：`nextToken`（`omitempty`）
+
+```go
+type outputJSON struct {
+    TotalCount int        `json:"totalCount"`
+    PageNumber int        `json:"pageNumber"`
+    PageSize   int        `json:"pageSize"`
+    Items      []itemJSON `json:"items"`
+}
+```
+
+#### 检查清单
+
+- [ ] 页码式接口使用 `--page`（默认 1）+ `--size`（默认 10），不加短参数
+- [ ] 游标式接口使用 `--max-results`（默认 10）+ `--next-token`
+- [ ] JSON 输出包含分页元信息字段（`pageNumber`/`pageSize` 或 `nextToken`）
+- [ ] 单元测试验证 flag 默认值（`page` → `"1"`，`size` → `"10"`）
+- [ ] **必查 SDK 序列化**：阅读 `internal/client/client.go` 中对应的 `XxxWithOptions` 函数，确认新增字段已加入 `body["FieldName"] = request.FieldName` 手动赋值（本项目 SDK **不**自动反射序列化，request model 加字段不等于会被发出去）
+
 ### ⚠️ 破坏性操作必须设计二次确认与 --yes 跳过（重要！）
 
 **规则**：凡命令会导致**不可逆的数据变更**（删除、永久停用、批量覆盖等），**必须**同时实现：

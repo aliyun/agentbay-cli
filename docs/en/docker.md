@@ -192,14 +192,17 @@ List Docker image repository sharing information. Use `--direction` to specify:
 ```bash
 agentbay docker list-shares --direction Outgoing
 agentbay docker list-shares --direction Incoming
+agentbay docker list-shares --direction Outgoing --page 2 --size 5
 ```
 
 **Flags:**
 
-| Flag              | Type   | Required | Description                                           |
-| ----------------- | ------ | -------- | ----------------------------------------------------- |
-| `--direction`     | string | Yes      | Sharing direction: `Outgoing` or `Incoming`           |
-| `--output` / `-o` | string | No       | Output format. Use `json` for machine-readable output |
+| Flag              | Type   | Required | Default | Description                                           |
+| ----------------- | ------ | -------- | ------- | ----------------------------------------------------- |
+| `--direction`     | string | Yes      | —       | Sharing direction: `Outgoing` or `Incoming`           |
+| `--page`          | int    | No       | 1       | Page number                                           |
+| `--size`          | int    | No       | 10      | Page size                                             |
+| `--output` / `-o` | string | No       | —       | Output format. Use `json` for machine-readable output |
 
 **Example output (default table):**
 
@@ -230,6 +233,8 @@ Total: 1
 ```json
 {
   "totalCount": 2,
+  "pageNumber": 1,
+  "pageSize": 10,
   "items": [
     {
       "peerAliUid": 1234567890,

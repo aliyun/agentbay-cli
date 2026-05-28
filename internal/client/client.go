@@ -2589,6 +2589,12 @@ func (client *Client) ListSharedDockerReposWithOptions(request *ListSharedDocker
 	if request.Direction != nil {
 		body["Direction"] = request.Direction
 	}
+	if request.PageSize != nil {
+		body["PageSize"] = request.PageSize
+	}
+	if request.PageStart != nil {
+		body["PageStart"] = request.PageStart
+	}
 	req := &openapiutil.OpenApiRequest{
 		Body: openapiutil.ParseToMap(body),
 		Headers: map[string]*string{
