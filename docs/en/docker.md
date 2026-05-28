@@ -209,7 +209,7 @@ Outgoing (repos you shared with others):
 [INFO] ListSharedDockerRepos Request ID: 89469103-92EF-12BD-BD9B-1F1B9A2F9D6D
 PeerAliUid            Status
 --------------------  ---------------
-1242716971377069      ACTIVE
+****7069              ACTIVE
 
 Total: 1
 ```
@@ -220,7 +220,7 @@ Incoming (repos shared with you):
 [INFO] ListSharedDockerRepos Request ID: A4C0FF35-AA8A-1BDA-B807-3FA595048431
 PeerAliUid            Status
 --------------------  ---------------
-1730408327554214      ACTIVE
+****4214              ACTIVE
 
 Total: 1
 ```

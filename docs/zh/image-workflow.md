@@ -6,8 +6,8 @@
 
 ## 场景
 
-- **A 账号**（UID: `1730408327554214`）：创建自定义镜像，并共享给 B 账号
-- **B 账号**（UID: `1242716971377069`）：接收 A 账号共享的镜像仓库，并基于其中的镜像创建自己的自定义镜像
+- **A 账号**（UID: `****4214`）：创建自定义镜像，并共享给 B 账号
+- **B 账号**（UID: `****7069`）：接收 A 账号共享的镜像仓库，并基于其中的镜像创建自己的自定义镜像
 
 ---
 
@@ -31,7 +31,7 @@ agentbay docker login
 
 ```
 Credential expires at: 2026-05-11 12:28:55
-Image registry path:   ai-container-pre-9543-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/1730408327554214
+Image registry path:   ai-container-pre-9543-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/****4214
 
 Login Succeeded
 ```
@@ -48,14 +48,14 @@ Login Succeeded
 
 ```bash
 docker build \
-  -t ai-container-pre-9543-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/1730408327554214:cli-test-0.0.1 \
+  -t ai-container-pre-9543-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/****4214:cli-test-0.0.1 \
   -f Dockerfile .
 ```
 
 ### Step 4：推送镜像到 ACR
 
 ```bash
-docker push ai-container-pre-9543-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/1730408327554214:cli-test-0.0.1
+docker push ai-container-pre-9543-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/****4214:cli-test-0.0.1
 ```
 
 ### Step 5：创建自定义镜像
@@ -64,7 +64,7 @@ docker push ai-container-pre-9543-registry.cn-hangzhou.cr.aliyuncs.com/customer_
 
 ```bash
 agentbay image create-from-template \
-  --source-image /customer_cli/1730408327554214:cli-test-0.0.1 \
+  --source-image /customer_cli/****4214:cli-test-0.0.1 \
   --name cli-template-create-1 \
   --imageId aio-ubuntu-2404
 ```
@@ -73,8 +73,8 @@ agentbay image create-from-template \
 
 ```
 [IMAGE] Creating custom image from template...
-  SourceImage:      ai-container-pre-9543-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/1730408327554214:cli-test-0.0.1
-  PhysicalImageId:  /customer_cli/1730408327554214:cli-test-0.0.1
+  SourceImage:      ai-container-pre-9543-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/****4214:cli-test-0.0.1
+  PhysicalImageId:  /customer_cli/****4214:cli-test-0.0.1
   Name:             cli-template-create-1
   ImageId:          aio-ubuntu-2404
 Requesting CreateImageFromTemplate... Done. (HTTP 200)
@@ -99,7 +99,7 @@ Requesting CreateImageFromTemplate... Done. (HTTP 200)
 将当前用户的 Docker 镜像仓库（整体）授权给指定用户只读拉取。被授权用户仅有 pull 权限，不可 push 或删除 A 的镜像。授权永久有效，直到主动调用 `docker unshare` 撤销。
 
 ```bash
-agentbay docker share --target-uid 1242716971377069
+agentbay docker share --target-uid ****7069
 ```
 
 ### Step 7：确认共享状态
@@ -114,7 +114,7 @@ agentbay docker list-shares --direction Outgoing
 [INFO] ListSharedDockerRepos Request ID: 89469103-92EF-12BD-BD9B-1F1B9A2F9D6D
 PeerAliUid            Status
 --------------------  ---------------
-1242716971377069      ACTIVE
+****7069              ACTIVE
 
 Total: 1
 ```
@@ -135,7 +135,7 @@ agentbay docker list-shares --direction Incoming
 [INFO] ListSharedDockerRepos Request ID: A4C0FF35-AA8A-1BDA-B807-3FA595048431
 PeerAliUid            Status
 --------------------  ---------------
-1730408327554214      ACTIVE
+****4214              ACTIVE
 
 Total: 1
 ```
@@ -146,7 +146,7 @@ Total: 1
 
 ```bash
 agentbay image create-from-template \
-  --source-image /customer_cli/1730408327554214:cli-test-0.0.1 \
+  --source-image /customer_cli/****4214:cli-test-0.0.1 \
   --name cli-test \
   --imageId aio-ubuntu-2404
 ```

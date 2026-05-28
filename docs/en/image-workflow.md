@@ -6,8 +6,8 @@ Below is an end-to-end example: Account A builds a custom image from a Dockerfil
 
 ## Scenario
 
-- **Account A** (UID: `1730408327554214`): creates a custom image and shares it with Account B
-- **Account B** (UID: `1242716971377069`): receives the shared repository and creates its own custom image from it
+- **Account A** (UID: `****4214`): creates a custom image and shares it with Account B
+- **Account B** (UID: `****7069`): receives the shared repository and creates its own custom image from it
 
 ---
 
@@ -31,7 +31,7 @@ Example output:
 
 ```
 Credential expires at: 2026-05-11 12:28:55
-Image registry path:   ai-container-pre-9543-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/1730408327554214
+Image registry path:   ai-container-pre-9543-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/****4214
 
 Login Succeeded
 ```
@@ -48,14 +48,14 @@ Make sure Docker is installed locally before running:
 
 ```bash
 docker build \
-  -t ai-container-pre-9543-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/1730408327554214:cli-test-0.0.1 \
+  -t ai-container-pre-9543-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/****4214:cli-test-0.0.1 \
   -f Dockerfile .
 ```
 
 ### Step 4: Push the Image to ACR
 
 ```bash
-docker push ai-container-pre-9543-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/1730408327554214:cli-test-0.0.1
+docker push ai-container-pre-9543-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/****4214:cli-test-0.0.1
 ```
 
 ### Step 5: Create the Custom Image
@@ -64,7 +64,7 @@ The short path `/namespace/repo:tag` is recommended (matches the `physicalImage`
 
 ```bash
 agentbay image create-from-template \
-  --source-image /customer_cli/1730408327554214:cli-test-0.0.1 \
+  --source-image /customer_cli/****4214:cli-test-0.0.1 \
   --name cli-template-create-1 \
   --imageId aio-ubuntu-2404
 ```
@@ -73,8 +73,8 @@ Example output:
 
 ```
 [IMAGE] Creating custom image from template...
-  SourceImage:      ai-container-pre-9543-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/1730408327554214:cli-test-0.0.1
-  PhysicalImageId:  /customer_cli/1730408327554214:cli-test-0.0.1
+  SourceImage:      ai-container-pre-9543-registry.cn-hangzhou.cr.aliyuncs.com/customer_cli/****4214:cli-test-0.0.1
+  PhysicalImageId:  /customer_cli/****4214:cli-test-0.0.1
   Name:             cli-template-create-1
   ImageId:          aio-ubuntu-2404
 Requesting CreateImageFromTemplate... Done. (HTTP 200)
@@ -99,7 +99,7 @@ Requesting CreateImageFromTemplate... Done. (HTTP 200)
 Share your entire Docker image repository with the specified user for read-only pull access. The recipient has pull permission only, cannot push or delete your images. The authorization is permanent until explicitly revoked via `docker unshare`.
 
 ```bash
-agentbay docker share --target-uid 1242716971377069
+agentbay docker share --target-uid ****7069
 ```
 
 ### Step 7: Verify the Share
@@ -114,7 +114,7 @@ Example output:
 [INFO] ListSharedDockerRepos Request ID: 89469103-92EF-12BD-BD9B-1F1B9A2F9D6D
 PeerAliUid            Status
 --------------------  ---------------
-1242716971377069      ACTIVE
+****7069              ACTIVE
 
 Total: 1
 ```
@@ -135,7 +135,7 @@ Example output:
 [INFO] ListSharedDockerRepos Request ID: A4C0FF35-AA8A-1BDA-B807-3FA595048431
 PeerAliUid            Status
 --------------------  ---------------
-1730408327554214      ACTIVE
+****4214              ACTIVE
 
 Total: 1
 ```
@@ -146,7 +146,7 @@ Use the `PhysicalImageId` returned by Account A's `image create-from-template` s
 
 ```bash
 agentbay image create-from-template \
-  --source-image /customer_cli/1730408327554214:cli-test-0.0.1 \
+  --source-image /customer_cli/****4214:cli-test-0.0.1 \
   --name cli-test \
   --imageId aio-ubuntu-2404
 ```
