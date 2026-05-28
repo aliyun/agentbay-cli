@@ -96,7 +96,7 @@ Requesting CreateImageFromTemplate... Done. (HTTP 200)
 
 > **Note**: The target account must be a **primary account** (RAM sub-accounts cannot be sharing targets).
 
-Share your entire Docker image repository with the specified user for read-only pull access. The recipient has pull permission only, cannot push or delete your images. The authorization is permanent until explicitly revoked via `docker unshare`.
+Share your entire Docker image repository with the specified user for read-only pull access. The recipient has pull permission only, cannot push or delete your images. The authorization is permanent until explicitly revoked via `agentbay docker unshare`.
 
 ```bash
 agentbay docker share --target-uid ****7069
@@ -118,6 +118,28 @@ PeerAliUid            Status
 
 Total: 1
 ```
+
+### Step 8 (Optional): Revoke the Share
+
+If you no longer want Account B to pull your images, revoke the authorization at any time. `target-uid` can be passed as a positional argument or via the `--target-uid` flag:
+
+```bash
+agentbay docker unshare ****7069
+# or
+agentbay docker unshare --target-uid ****7069
+```
+
+Example output:
+
+```
+[STEP 1/1] Cancelling Docker repo sharing with UID ****7069...
+[INFO] UnshareDockerRepo Request ID: 7F2A1B3C-4D5E-6F70-8192-A3B4C5D6E7F8
+
+[SUCCESS] Docker repo sharing cancelled.
+  Revoked : true
+```
+
+After revocation, run `agentbay docker list-shares --direction Outgoing` again to confirm the entry is gone.
 
 ---
 
@@ -156,6 +178,6 @@ agentbay image create-from-template \
 ## Key Notes
 
 1. **Permission Scope**: The recipient has **pull** permission only; they cannot push or delete images in Account A's repository.
-2. **Authorization Duration**: The share is **permanently valid** until Account A explicitly calls `docker unshare` to revoke it.
+2. **Authorization Duration**: The share is **permanently valid** until Account A explicitly calls `agentbay docker unshare` to revoke it.
 3. **Physical Image ID**: The `PhysicalImageId` returned by `image create-from-template` can be used directly as the short path; you can also find it in the `physicalImage` field from `image list`.
 4. **`--source-image` Format**: The short path `/namespace/repo:tag` is recommended (consistent with `image list` output); full registry paths are also supported.

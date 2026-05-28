@@ -96,7 +96,7 @@ Requesting CreateImageFromTemplate... Done. (HTTP 200)
 
 > **注意**：被授权账号必须是**主账号**（RAM 子账号无法作为共享目标）。
 
-将当前用户的 Docker 镜像仓库（整体）授权给指定用户只读拉取。被授权用户仅有 pull 权限，不可 push 或删除 A 的镜像。授权永久有效，直到主动调用 `docker unshare` 撤销。
+将当前用户的 Docker 镜像仓库（整体）授权给指定用户只读拉取。被授权用户仅有 pull 权限，不可 push 或删除 A 的镜像。授权永久有效，直到主动调用 `agentbay docker unshare` 撤销。
 
 ```bash
 agentbay docker share --target-uid ****7069
@@ -118,6 +118,28 @@ PeerAliUid            Status
 
 Total: 1
 ```
+
+### Step 8（可选）：撤销共享
+
+如果后续不再希望 B 账号继续拉取自己的镜像，可随时撤销授权。`target-uid` 既可作为位置参数传入，也可使用 `--target-uid` 标志：
+
+```bash
+agentbay docker unshare ****7069
+# 或
+agentbay docker unshare --target-uid ****7069
+```
+
+输出示例：
+
+```
+[STEP 1/1] Cancelling Docker repo sharing with UID ****7069...
+[INFO] UnshareDockerRepo Request ID: 7F2A1B3C-4D5E-6F70-8192-A3B4C5D6E7F8
+
+[SUCCESS] Docker repo sharing cancelled.
+  Revoked : true
+```
+
+撤销后可再次执行 `agentbay docker list-shares --direction Outgoing` 确认该条目已不在列表中。
 
 ---
 
@@ -156,6 +178,6 @@ agentbay image create-from-template \
 ## 关键说明
 
 1. **权限范围**：被共享方仅有 **pull** 权限，不可 push 或删除 A 账号的镜像。
-2. **授权有效期**：共享授权**永久有效**，直到 A 账号主动调用 `docker unshare` 撤销。
+2. **授权有效期**：共享授权**永久有效**，直到 A 账号主动调用 `agentbay docker unshare` 撤销。
 3. **物理镜像 ID 获取**：`image create-from-template` 成功后返回的 `PhysicalImageId` 即为后续可使用的短路径；也可通过 `image list` 查看已有镜像的 `physicalImage` 字段。
 4. **`--source-image` 格式**：推荐使用短路径 `/namespace/repo:tag`（与 `image list` 输出格式一致）；也支持完整 registry 路径。
