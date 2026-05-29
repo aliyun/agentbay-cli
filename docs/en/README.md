@@ -11,7 +11,7 @@ Welcome to the AgentBay CLI documentation. Use the links below to find detailed 
 
 ## Tutorials
 
-- [Image Creation & Sharing Workflow](image-workflow.md) — End-to-end tutorial from Dockerfile template to cross-account sharing
+- [Image Creation & Sharing](image-workflow.md) — Image creation flow, plus optional cross-account sharing tutorial
 
 ## Command Reference
 

@@ -111,14 +111,12 @@ agentbay apikey delete  --api-key akm-xxxxxxxxxxxxxxxx --yes
 
 ---
 
-## 进阶教程 —— 镜像端到端流程
+## 进阶教程 —— 镜像创建与共享
 
-基于 Dockerfile 模板构建自定义镜像、推送至 ACR，并跨阿里云账号共享。
-
-**场景：** A 账号构建自定义镜像并共享给 B 账号；B 账号基于共享仓库创建自己的镜像。
+基于 Dockerfile 模板构建自定义镜像、推送至 ACR，并按需跨阿里云账号共享。
 
 ```bash
-# ── A 账号：构建并发布 ─────────────────────────────────────
+# ── 镜像创建（任何账号都能独立完成） ─────────────────────────
 agentbay image init --sourceImageId aio-ubuntu-2404            # 1. 下载 Dockerfile 模板
 agentbay docker login                                          # 2. 登录 ACR（临时凭证，~1 小时）
 docker build -t <registry>/<namespace>/<uid>:<tag> -f Dockerfile .   # 3. 本地构建
@@ -126,15 +124,17 @@ docker push  <registry>/<namespace>/<uid>:<tag>                # 4. 推送到 AC
 agentbay image create-from-template \                          # 5. 创建自定义镜像
   --source-image /<namespace>/<uid>:<tag> \
   --name my-image --imageId aio-ubuntu-2404
-agentbay docker share <ACCOUNT_B_UID>                          # 6. 共享仓库给 B 账号
-agentbay docker list-shares --direction Outgoing               # 7. 确认共享生效
 
-# ── B 账号：接收并使用 ─────────────────────────────────────
-agentbay docker list-shares --direction Incoming               # 8. 查看收到的共享
-agentbay image create-from-template ...                        # 9. 基于 A 的镜像创建自己的镜像
+# ── 镜像共享（可选，A 账号 → B 账号） ────────────────────────
+# A 账号（共享方）：
+agentbay docker share <ACCOUNT_B_UID>                          # 1. 共享仓库给 B 账号
+agentbay docker list-shares --direction Outgoing               # 2. 确认共享生效
+# B 账号（接收方）：
+agentbay docker list-shares --direction Incoming               # 3. 查看收到的共享
+agentbay image create-from-template ...                        # 4. 基于 A 的镜像创建自己的镜像（复用上面 Step 5）
 ```
 
-→ **完整流程**（含真实参数示例、命令输出、故障排查）：**[镜像创建与共享完整流程](docs/zh/image-workflow.md)**
+→ **完整流程**（含真实参数示例、命令输出、故障排查）：**[镜像创建与共享](docs/zh/image-workflow.md)**
 
 > **前置条件：** 本机已安装 Docker。macOS 推荐使用 [OrbStack](https://orbstack.dev/) —— 轻量、快速，资源占用远低于 Docker Desktop。
 
@@ -161,7 +161,7 @@ agentbay image create-from-template ...                        # 9. 基于 A 的
 | -------------------------- | ------------------------------------------------- |
 | 安装与故障排除             | [installation.md](docs/zh/installation.md)        |
 | 认证与环境变量             | [authentication.md](docs/zh/authentication.md)    |
-| 镜像端到端流程             | [image-workflow.md](docs/zh/image-workflow.md)    |
+| 镜像创建与共享             | [image-workflow.md](docs/zh/image-workflow.md)    |
 | 镜像管理                   | [image.md](docs/zh/image.md)                      |
 | Docker 操作                | [docker.md](docs/zh/docker.md)                    |
 | API Key 管理               | [apikey.md](docs/zh/apikey.md)                    |

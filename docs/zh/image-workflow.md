@@ -1,17 +1,19 @@
 [English](../en/image-workflow.md) | **中文**
 
-# 镜像创建与共享完整流程
+# 镜像创建与共享
 
-以下是一个完整的端到端示例：A 账号基于 Dockerfile 模板构建自定义镜像，共享给 B 账号使用。
+本文档分为两章：
 
-## 场景
-
-- **A 账号**（UID: `****4214`）：创建自定义镜像，并共享给 B 账号
-- **B 账号**（UID: `****7069`）：接收 A 账号共享的镜像仓库，并基于其中的镜像创建自己的自定义镜像
+- [一、镜像创建](#一镜像创建)：任何账号都可以独立完成的流程 —— 基于 Dockerfile 模板构建并注册为自定义镜像。
+- [二、镜像共享](#二镜像共享)：把自己的镜像仓库共享给其他阿里云账号使用（可选）。
 
 ---
 
-## A 账号操作流程
+## 一、镜像创建
+
+**场景**：单账号基于 Dockerfile 模板构建镜像，推送至 ACR，并注册为可激活的自定义镜像。
+
+> 本章示例使用 UID `****4214` 的账号。如果你只是想为自己创建镜像，到本章末尾即可结束。
 
 ### Step 1：下载 Dockerfile 模板
 
@@ -92,7 +94,22 @@ Requesting CreateImageFromTemplate... Done. (HTTP 200)
 [SUCCESS] CreateImageFromTemplate call completed.
 ```
 
-### Step 6：共享镜像仓库给 B 账号
+### 关键说明
+
+1. **`--source-image` 格式**：推荐使用短路径 `/namespace/repo:tag`（与 `image list` 输出格式一致）；也支持完整 registry 路径。
+2. **物理镜像 ID 获取**：`image create-from-template` 成功后返回的 `PhysicalImageId` 即为后续可使用的短路径；也可通过 `image list` 查看已有镜像的 `physicalImage` 字段。
+
+---
+
+## 二、镜像共享
+
+**场景**：A 账号（UID: `****4214`）把自己的镜像仓库（整体）共享给 B 账号（UID: `****7069`），B 账号基于其中的镜像创建自己的自定义镜像。
+
+> 前置条件：A 账号已完成 [一、镜像创建](#一镜像创建) 中的全部步骤，仓库中至少有一个镜像。
+
+### A 账号（共享方）
+
+#### Step 1：共享镜像仓库给 B 账号
 
 > **注意**：被授权账号必须是**主账号**（RAM 子账号无法作为共享目标）。
 
@@ -102,7 +119,7 @@ Requesting CreateImageFromTemplate... Done. (HTTP 200)
 agentbay docker share --target-uid ****7069
 ```
 
-### Step 7：确认共享状态
+#### Step 2：确认共享状态
 
 ```bash
 agentbay docker list-shares --direction Outgoing
@@ -119,7 +136,7 @@ PeerAliUid            Status
 Total: 1
 ```
 
-### Step 8（可选）：撤销共享
+#### Step 3（可选）：撤销共享
 
 如果后续不再希望 B 账号继续拉取自己的镜像，可随时撤销授权。`target-uid` 既可作为位置参数传入，也可使用 `--target-uid` 标志：
 
@@ -141,11 +158,9 @@ agentbay docker unshare --target-uid ****7069
 
 撤销后可再次执行 `agentbay docker list-shares --direction Outgoing` 确认该条目已不在列表中。
 
----
+### B 账号（接收方）
 
-## B 账号操作流程
-
-### 查看接收到的共享仓库
+#### Step 1：查看接收到的共享仓库
 
 ```bash
 agentbay docker list-shares --direction Incoming
@@ -162,9 +177,9 @@ PeerAliUid            Status
 Total: 1
 ```
 
-### 使用 A 账号的镜像创建自定义镜像
+#### Step 2：基于 A 账号的镜像创建自定义镜像
 
-通过 A 账号 `image create-from-template` 成功之后返回的 `PhysicalImageId`，或通过 `image list` 查看到的物理镜像 ID，使用短路径格式创建：
+通过 A 账号 `image create-from-template` 成功之后返回的 `PhysicalImageId`，或通过 `image list` 查看到的物理镜像 ID，参考 [一、镜像创建 → Step 5](#step-5创建自定义镜像) 完成创建：
 
 ```bash
 agentbay image create-from-template \
@@ -173,11 +188,8 @@ agentbay image create-from-template \
   --imageId aio-ubuntu-2404
 ```
 
----
-
-## 关键说明
+### 关键说明
 
 1. **权限范围**：被共享方仅有 **pull** 权限，不可 push 或删除 A 账号的镜像。
 2. **授权有效期**：共享授权**永久有效**，直到 A 账号主动调用 `agentbay docker unshare` 撤销。
-3. **物理镜像 ID 获取**：`image create-from-template` 成功后返回的 `PhysicalImageId` 即为后续可使用的短路径；也可通过 `image list` 查看已有镜像的 `physicalImage` 字段。
-4. **`--source-image` 格式**：推荐使用短路径 `/namespace/repo:tag`（与 `image list` 输出格式一致）；也支持完整 registry 路径。
+3. **主账号限制**：被授权账号必须是阿里云**主账号**，RAM 子账号无法作为共享目标。

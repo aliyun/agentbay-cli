@@ -1,17 +1,19 @@
 [中文](../zh/image-workflow.md) | **English**
 
-# Image Creation & Sharing Workflow
+# Image Creation & Sharing
 
-Below is an end-to-end example: Account A builds a custom image from a Dockerfile template and shares it with Account B.
+This document is split into two chapters:
 
-## Scenario
-
-- **Account A** (UID: `****4214`): creates a custom image and shares it with Account B
-- **Account B** (UID: `****7069`): receives the shared repository and creates its own custom image from it
+- [Part 1: Image Creation](#part-1-image-creation) — the flow any account can complete on its own: build a custom image from a Dockerfile template and register it.
+- [Part 2: Image Sharing](#part-2-image-sharing) — share your image repository with another Alibaba Cloud account (optional).
 
 ---
 
-## Account A Workflow
+## Part 1: Image Creation
+
+**Scenario**: A single account builds an image from a Dockerfile template, pushes it to ACR, and registers it as an activatable custom image.
+
+> The examples in this chapter use account UID `****4214`. If you only need to create images for yourself, you can stop at the end of this chapter.
 
 ### Step 1: Download the Dockerfile Template
 
@@ -92,7 +94,22 @@ Requesting CreateImageFromTemplate... Done. (HTTP 200)
 [SUCCESS] CreateImageFromTemplate call completed.
 ```
 
-### Step 6: Share the Repository with Account B
+### Key Notes
+
+1. **`--source-image` Format**: The short path `/namespace/repo:tag` is recommended (consistent with `image list` output); full registry paths are also supported.
+2. **Physical Image ID**: The `PhysicalImageId` returned by `image create-from-template` can be used directly as the short path; you can also find it in the `physicalImage` field from `image list`.
+
+---
+
+## Part 2: Image Sharing
+
+**Scenario**: Account A (UID: `****4214`) shares its entire Docker image repository with Account B (UID: `****7069`); Account B then creates its own custom image from one of A's images.
+
+> Prerequisite: Account A has completed every step in [Part 1: Image Creation](#part-1-image-creation) and the repository contains at least one image.
+
+### Account A (the sharer)
+
+#### Step 1: Share the Repository with Account B
 
 > **Note**: The target account must be a **primary account** (RAM sub-accounts cannot be sharing targets).
 
@@ -102,7 +119,7 @@ Share your entire Docker image repository with the specified user for read-only 
 agentbay docker share --target-uid ****7069
 ```
 
-### Step 7: Verify the Share
+#### Step 2: Verify the Share
 
 ```bash
 agentbay docker list-shares --direction Outgoing
@@ -119,7 +136,7 @@ PeerAliUid            Status
 Total: 1
 ```
 
-### Step 8 (Optional): Revoke the Share
+#### Step 3 (Optional): Revoke the Share
 
 If you no longer want Account B to pull your images, revoke the authorization at any time. `target-uid` can be passed as a positional argument or via the `--target-uid` flag:
 
@@ -141,11 +158,9 @@ Example output:
 
 After revocation, run `agentbay docker list-shares --direction Outgoing` again to confirm the entry is gone.
 
----
+### Account B (the recipient)
 
-## Account B Workflow
-
-### View Incoming Shares
+#### Step 1: View Incoming Shares
 
 ```bash
 agentbay docker list-shares --direction Incoming
@@ -162,9 +177,9 @@ PeerAliUid            Status
 Total: 1
 ```
 
-### Create a Custom Image from A's Image
+#### Step 2: Create a Custom Image from A's Image
 
-Use the `PhysicalImageId` returned by Account A's `image create-from-template` success, or find it via `image list`, and create using the short path format:
+Use the `PhysicalImageId` returned by Account A's `image create-from-template` success, or find it via `image list`, then follow [Part 1 → Step 5](#step-5-create-the-custom-image) to create the image:
 
 ```bash
 agentbay image create-from-template \
@@ -173,11 +188,8 @@ agentbay image create-from-template \
   --imageId aio-ubuntu-2404
 ```
 
----
-
-## Key Notes
+### Key Notes
 
 1. **Permission Scope**: The recipient has **pull** permission only; they cannot push or delete images in Account A's repository.
 2. **Authorization Duration**: The share is **permanently valid** until Account A explicitly calls `agentbay docker unshare` to revoke it.
-3. **Physical Image ID**: The `PhysicalImageId` returned by `image create-from-template` can be used directly as the short path; you can also find it in the `physicalImage` field from `image list`.
-4. **`--source-image` Format**: The short path `/namespace/repo:tag` is recommended (consistent with `image list` output); full registry paths are also supported.
+3. **Primary Account Required**: The target account must be an Alibaba Cloud **primary account**; RAM sub-accounts cannot be sharing targets.

@@ -111,14 +111,12 @@ agentbay apikey delete  --api-key akm-xxxxxxxxxxxxxxxx --yes
 
 ---
 
-## Tutorial — Image Workflow (end-to-end)
+## Tutorial — Image Creation & Sharing
 
-Build a custom image from a Dockerfile template, push it to ACR, then share it across Alibaba Cloud accounts.
-
-**Scenario:** Account A builds a custom image and shares it with Account B; Account B creates its own image from the shared repository.
+Build a custom image from a Dockerfile template, push it to ACR, and optionally share it across Alibaba Cloud accounts.
 
 ```bash
-# ── Account A: build & publish ─────────────────────────────
+# ── Image Creation (any account can do this on its own) ────
 agentbay image init --sourceImageId aio-ubuntu-2404            # 1. download Dockerfile template
 agentbay docker login                                          # 2. ACR login (temp credentials, ~1h)
 docker build -t <registry>/<namespace>/<uid>:<tag> -f Dockerfile .   # 3. build locally
@@ -126,15 +124,17 @@ docker push  <registry>/<namespace>/<uid>:<tag>                # 4. push to ACR
 agentbay image create-from-template \                          # 5. create custom image
   --source-image /<namespace>/<uid>:<tag> \
   --name my-image --imageId aio-ubuntu-2404
-agentbay docker share <ACCOUNT_B_UID>                          # 6. share repo to Account B
-agentbay docker list-shares --direction Outgoing               # 7. verify the share
 
-# ── Account B: receive & use ───────────────────────────────
-agentbay docker list-shares --direction Incoming               # 8. view incoming shares
-agentbay image create-from-template ...                        # 9. create own image from A's repo
+# ── Image Sharing (optional, Account A → Account B) ────────
+# Account A (the sharer):
+agentbay docker share <ACCOUNT_B_UID>                          # 1. share repo with Account B
+agentbay docker list-shares --direction Outgoing               # 2. verify the share
+# Account B (the recipient):
+agentbay docker list-shares --direction Incoming               # 3. view incoming shares
+agentbay image create-from-template ...                        # 4. create your own image from A's repo (same as Step 5 above)
 ```
 
-→ **Full walkthrough** with concrete example values, expected output, and troubleshooting: **[Image Creation & Sharing Workflow](docs/en/image-workflow.md)**
+→ **Full walkthrough** with concrete example values, expected output, and troubleshooting: **[Image Creation & Sharing](docs/en/image-workflow.md)**
 
 > **Prerequisite:** Docker installed locally. On macOS we recommend [OrbStack](https://orbstack.dev/) — it is lightweight, fast, and uses far fewer resources than Docker Desktop.
 
@@ -161,7 +161,7 @@ Full command reference → [docs/en/README.md](docs/en/README.md)
 | ------------------------------ | ---------------------------------------------- |
 | Installation & troubleshooting | [installation.md](docs/en/installation.md)     |
 | Authentication & env vars      | [authentication.md](docs/en/authentication.md) |
-| Image workflow (end-to-end)    | [image-workflow.md](docs/en/image-workflow.md) |
+| Image creation & sharing       | [image-workflow.md](docs/en/image-workflow.md) |
 | Image management               | [image.md](docs/en/image.md)                   |
 | Docker operations              | [docker.md](docs/en/docker.md)                 |
 | API key management             | [apikey.md](docs/en/apikey.md)                 |
