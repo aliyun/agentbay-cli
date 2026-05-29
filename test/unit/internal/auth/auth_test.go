@@ -217,3 +217,91 @@ func TestCallbackServer(t *testing.T) {
 		}
 	})
 }
+
+func TestVerifyMainAccount(t *testing.T) {
+	t.Run("main account uid==aid returns nil", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "GET", r.Method)
+			assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"uid":"1730408327554214","aid":"1730408327554214","sub":"x","bid":"26842"}`))
+		}))
+		defer srv.Close()
+
+		err := auth.VerifyMainAccountAt(srv.URL, "test-token")
+		assert.NoError(t, err)
+	})
+
+	t.Run("RAM user uid!=aid returns ErrRamUserNotAllowed", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"uid":"20124982101502","aid":"1730408327554214","sub":"y"}`))
+		}))
+		defer srv.Close()
+
+		err := auth.VerifyMainAccountAt(srv.URL, "test-token")
+		require.Error(t, err)
+		assert.ErrorIs(t, err, auth.ErrRamUserNotAllowed)
+	})
+
+	t.Run("HTTP 403 returns ErrRamUserNotAllowed (real-world RAM signal)", func(t *testing.T) {
+		// Real-world observation: under OAuth Apps with narrow scope
+		// (e.g. /acs/xiaoying), RAM sub-accounts get 403 from /v1/userinfo
+		// before we ever see uid/aid. Main accounts always get 200.
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+		}))
+		defer srv.Close()
+
+		err := auth.VerifyMainAccountAt(srv.URL, "ram-token")
+		require.Error(t, err)
+		assert.ErrorIs(t, err, auth.ErrRamUserNotAllowed)
+	})
+
+	t.Run("HTTP 401 returns non-sentinel error (fail-open path)", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+		}))
+		defer srv.Close()
+
+		err := auth.VerifyMainAccountAt(srv.URL, "bad-token")
+		require.Error(t, err)
+		assert.NotErrorIs(t, err, auth.ErrRamUserNotAllowed)
+		assert.Contains(t, err.Error(), "401")
+	})
+
+	t.Run("HTTP 500 returns non-sentinel error (fail-open path)", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "server error", http.StatusInternalServerError)
+		}))
+		defer srv.Close()
+
+		err := auth.VerifyMainAccountAt(srv.URL, "test-token")
+		require.Error(t, err)
+		assert.NotErrorIs(t, err, auth.ErrRamUserNotAllowed)
+		assert.Contains(t, err.Error(), "500")
+	})
+
+	t.Run("malformed JSON returns non-sentinel error", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, _ = w.Write([]byte(`not json`))
+		}))
+		defer srv.Close()
+
+		err := auth.VerifyMainAccountAt(srv.URL, "test-token")
+		require.Error(t, err)
+		assert.NotErrorIs(t, err, auth.ErrRamUserNotAllowed)
+	})
+
+	t.Run("missing uid/aid returns non-sentinel error", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, _ = w.Write([]byte(`{"sub":"only-sub"}`))
+		}))
+		defer srv.Close()
+
+		err := auth.VerifyMainAccountAt(srv.URL, "test-token")
+		require.Error(t, err)
+		assert.NotErrorIs(t, err, auth.ErrRamUserNotAllowed)
+		assert.Contains(t, err.Error(), "missing uid/aid")
+	})
+}

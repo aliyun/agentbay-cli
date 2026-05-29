@@ -26,9 +26,9 @@ Endpoint: xiaoying.cn-shanghai.aliyuncs.com
 
 ---
 
-### `agentbay login` _(not recommended)_
+### `agentbay login`
 
-> NOTE: `agentbay login` is **not recommended**. Please prefer AccessKey or STS environment variables instead.
+> **Main account only.** RAM sub-accounts and RAM roles are rejected at login — use AccessKey environment variables instead (see [Authentication & Environment](authentication.md)).
 
 Opens a browser for Aliyun OAuth authentication. After completing the login in the browser, return to the terminal.
 

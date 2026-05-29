@@ -26,9 +26,9 @@ Endpoint: xiaoying.cn-shanghai.aliyuncs.com
 
 ---
 
-### `agentbay login`（不推荐使用）
+### `agentbay login`
 
-> 提示：`agentbay login` **不推荐使用**。请优先使用 AccessKey 或 STS 环境变量方式。
+> **仅支持主账号。** RAM 子账号和 RAM 角色登录时会被拒绝 —— 请使用 AccessKey 环境变量方式（详见 [认证与环境](authentication.md)）。
 
 打开浏览器进行阿里云 OAuth 认证。在浏览器中完成登录后返回终端。
 

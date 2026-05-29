@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -34,16 +35,18 @@ const (
 
 // Domestic (China) OAuth endpoints
 const (
-	authEndpointDomestic   = "https://signin.aliyun.com/oauth2/v1/auth"
-	tokenEndpointDomestic  = "https://oauth.aliyun.com/v1/token"
-	revokeEndpointDomestic = "https://oauth.aliyun.com/v1/revoke"
+	authEndpointDomestic     = "https://signin.aliyun.com/oauth2/v1/auth"
+	tokenEndpointDomestic    = "https://oauth.aliyun.com/v1/token"
+	revokeEndpointDomestic   = "https://oauth.aliyun.com/v1/revoke"
+	userinfoEndpointDomestic = "https://oauth.aliyun.com/v1/userinfo"
 )
 
 // International OAuth endpoints
 const (
-	authEndpointInternational   = "https://signin.alibabacloud.com/oauth2/v1/auth"
-	tokenEndpointInternational  = "https://oauth.alibabacloud.com/v1/token"
-	revokeEndpointInternational = "https://oauth.alibabacloud.com/v1/revoke"
+	authEndpointInternational     = "https://signin.alibabacloud.com/oauth2/v1/auth"
+	tokenEndpointInternational    = "https://oauth.alibabacloud.com/v1/token"
+	revokeEndpointInternational   = "https://oauth.alibabacloud.com/v1/revoke"
+	userinfoEndpointInternational = "https://oauth.alibabacloud.com/v1/userinfo"
 )
 
 // isInternationalEnv returns true when AGENTBAY_ENV indicates international (prod or pre).
@@ -57,19 +60,19 @@ func isInternationalEnv() bool {
 	return false
 }
 
-// getOAuthEndpoints returns auth, token, and revoke URLs.
+// getOAuthEndpoints returns auth, token, revoke, and userinfo URLs.
 // Uses AGENTBAY_OAUTH_REGION if set; otherwise when AGENTBAY_ENV is international production,
 // uses international endpoints. Else domestic (aliyun.com).
-func getOAuthEndpoints() (auth, token, revoke string) {
+func getOAuthEndpoints() (auth, token, revoke, userinfo string) {
 	region := strings.ToLower(strings.TrimSpace(os.Getenv("AGENTBAY_OAUTH_REGION")))
 	if region == "" && isInternationalEnv() {
 		region = oauthRegionInternational
 	}
 	if region == oauthRegionInternational {
 		log.Debugf("[DEBUG] Using international OAuth endpoints (signin.alibabacloud.com)")
-		return authEndpointInternational, tokenEndpointInternational, revokeEndpointInternational
+		return authEndpointInternational, tokenEndpointInternational, revokeEndpointInternational, userinfoEndpointInternational
 	}
-	return authEndpointDomestic, tokenEndpointDomestic, revokeEndpointDomestic
+	return authEndpointDomestic, tokenEndpointDomestic, revokeEndpointDomestic, userinfoEndpointDomestic
 }
 
 // OAuth client configuration
@@ -116,20 +119,25 @@ func parseOAuthExpiresIn(raw json.RawMessage) (int, error) {
 
 // BuildAuthURL constructs the OAuth authorization URL
 func BuildAuthURL(clientID, redirectURI, state string) string {
-	authURL, _, _ := getOAuthEndpoints()
+	authURL, _, _, _ := getOAuthEndpoints()
 	params := url.Values{}
 	params.Set("client_id", clientID)
 	params.Set("redirect_uri", redirectURI)
 	params.Set("response_type", "code")
 	params.Set("state", state)
-	params.Set("scope", "/acs/xiaoying")
+	// Intentionally NOT setting `scope` — the OAuth App grants its default
+	// scope (which empirically includes both /acs/xiaoying and aliuid).
+	// Explicitly setting scope=/acs/xiaoying narrows the token and makes
+	// /v1/userinfo return 403, breaking our main-vs-RAM detection.
+	// (Even passing `scope=/acs/xiaoying aliuid` is silently downgraded by
+	// the OAuth App since `aliuid` is not in its explicitly-requestable scope set.)
 
 	return authURL + "?" + params.Encode()
 }
 
 // ExchangeCodeForToken exchanges authorization code for access token
 func ExchangeCodeForToken(clientID, redirectURI, code string) (*TokenResponse, error) {
-	_, tokenURL, _ := getOAuthEndpoints()
+	_, tokenURL, _, _ := getOAuthEndpoints()
 	data := url.Values{}
 	data.Set("code", code)
 	data.Set("client_id", clientID)
@@ -156,7 +164,7 @@ func ExchangeCodeForToken(clientID, redirectURI, code string) (*TokenResponse, e
 
 // RefreshAccessToken refreshes the access token using refresh token
 func RefreshAccessToken(clientID, refreshToken string) (*RefreshResponse, error) {
-	_, tokenURL, _ := getOAuthEndpoints()
+	_, tokenURL, _, _ := getOAuthEndpoints()
 	data := url.Values{}
 	data.Set("refresh_token", refreshToken)
 	data.Set("client_id", clientID)
@@ -226,7 +234,7 @@ func RevokeTokenWithHint(clientID, token, tokenTypeHint string) error {
 		data.Set("token_type_hint", tokenTypeHint)
 	}
 
-	_, _, revokeURL := getOAuthEndpoints()
+	_, _, revokeURL, _ := getOAuthEndpoints()
 	resp, err := http.PostForm(revokeURL, data)
 	if err != nil {
 		return fmt.Errorf("failed to revoke token: %w", err)
@@ -475,5 +483,74 @@ func RefreshTokenIfNeeded(cfg TokenConfig, clientID string) error {
 		return fmt.Errorf("failed to save refreshed tokens: %w", err)
 	}
 
+	return nil
+}
+
+// UserInfo is the subset of /v1/userinfo response we care about.
+// See https://help.aliyun.com/document_detail/93693.html for the full schema:
+//   - aid: aliyun main-account ID of the logged-in user
+//   - uid: logged-in user ID (equal to aid for main accounts, different for RAM users / roles)
+type UserInfo struct {
+	Uid string `json:"uid"`
+	Aid string `json:"aid"`
+}
+
+// ErrRamUserNotAllowed is returned when VerifyMainAccount detects a RAM user
+// or RAM role. agentbay-cli intentionally rejects these via OAuth login because
+// the OAuth BearerToken grants full caller-scoped API access, which violates
+// least-privilege expectations for RAM identities.
+var ErrRamUserNotAllowed = errors.New(
+	"RAM sub-account login via OAuth is not supported by agentbay-cli. " +
+		"Please use AccessKey environment variables instead: " +
+		"AGENTBAY_ACCESS_KEY_ID and AGENTBAY_ACCESS_KEY_SECRET")
+
+// VerifyMainAccount calls OAuth /v1/userinfo with the given access token and
+// returns ErrRamUserNotAllowed when the caller is not an Aliyun main account
+// (uid != aid). Returns other errors verbatim when the userinfo call itself
+// fails (network / non-200 / malformed JSON) so callers can fail-open.
+func VerifyMainAccount(accessToken string) error {
+	_, _, _, userinfoURL := getOAuthEndpoints()
+	return VerifyMainAccountAt(userinfoURL, accessToken)
+}
+
+// VerifyMainAccountAt is the testable inner core of VerifyMainAccount; it
+// takes an explicit userinfo URL so tests can point it at httptest.NewServer.
+// Exported for testing only — production callers should use VerifyMainAccount.
+func VerifyMainAccountAt(userinfoURL, accessToken string) error {
+	req, err := http.NewRequest(http.MethodGet, userinfoURL, nil)
+	if err != nil {
+		return fmt.Errorf("build userinfo request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("call userinfo: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// HTTP 403 with "invalid token scope" is the signal we see when the
+	// caller's token lacks aliuid scope. Empirically, with the OAuth App's
+	// default scope (no explicit `scope` param in /oauth2/v1/auth), main
+	// accounts get 200 + uid==aid. A 403 here means the caller is on a
+	// narrower scope than the App's default and we cannot verify their
+	// identity — treat as RAM/non-main-account to be safe.
+	if resp.StatusCode == http.StatusForbidden {
+		return ErrRamUserNotAllowed
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("userinfo returned HTTP %d", resp.StatusCode)
+	}
+
+	var info UserInfo
+	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
+		return fmt.Errorf("decode userinfo: %w", err)
+	}
+	if info.Uid == "" || info.Aid == "" {
+		return fmt.Errorf("userinfo missing uid/aid")
+	}
+	if info.Uid != info.Aid {
+		return ErrRamUserNotAllowed
+	}
 	return nil
 }

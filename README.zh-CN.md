@@ -172,7 +172,7 @@ agentbay image create-from-template ...                        # 9. 基于 A 的
 
 ## 认证方式
 
-脚本和 CI 场景推荐使用 AccessKey。CLI 同时支持 STS 与 OAuth（不推荐）。详见 [认证与环境](docs/zh/authentication.md)。
+推荐使用 AccessKey（脚本/CI/RAM 子账号必选）。CLI 同时支持 STS 与 OAuth 登录（`agentbay login`，**仅支持阿里云主账号** —— RAM 子账号会被拒绝）。详见 [认证与环境](docs/zh/authentication.md)。
 
 阿里云**主账号**无需额外配置。若使用 **RAM 子账号**的 AK/SK 认证，请在 [RAM 控制台](https://ram.console.aliyun.com/users) 为该账号授予所需接口权限 —— 完整 Policy 列表参见 [RAM 权限配置](docs/zh/ram-permissions.md)。
 

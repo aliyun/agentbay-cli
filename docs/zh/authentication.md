@@ -27,9 +27,9 @@ export AGENTBAY_ACCESS_KEY_SECRET="your-sts-secret"
 export AGENTBAY_ACCESS_KEY_SESSION_TOKEN="your-sts-session-token"
 ```
 
-### 3. OAuth 登录（不推荐使用）
+### 3. OAuth 登录
 
-> 提示：`agentbay login` **不推荐使用**。请优先使用 AccessKey 或 STS 方式。
+> **仅支持主账号。** `agentbay login` 适合阿里云主账号的交互式登录使用。**不支持 RAM 子账号和 RAM 角色** —— 登录时会被拒绝。RAM 用户请使用上面的 AccessKey 环境变量方式（方式 1）。
 
 ```bash
 agentbay login    # 打开浏览器进行 OAuth 登录

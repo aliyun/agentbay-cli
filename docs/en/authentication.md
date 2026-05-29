@@ -27,9 +27,9 @@ export AGENTBAY_ACCESS_KEY_SECRET="your-sts-secret"
 export AGENTBAY_ACCESS_KEY_SESSION_TOKEN="your-sts-session-token"
 ```
 
-### 3. OAuth Login (not recommended)
+### 3. OAuth Login
 
-> NOTE: `agentbay login` is **not recommended**. Please prefer AccessKey or STS instead.
+> **Main account only.** `agentbay login` is convenient for interactive use with an Aliyun main account. **RAM sub-accounts and RAM roles are not supported** — they will be rejected at login. RAM users should use the AccessKey environment variables shown above (method 1).
 
 ```bash
 agentbay login    # Opens a browser for OAuth login
