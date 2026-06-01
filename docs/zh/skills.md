@@ -178,11 +178,13 @@ agentbay skills show <skill-id>
 SkillId:       <技能ID>
 Name:          <技能名称>
 Tags:          标签1, 标签2
+FileUrl:       https://example.com/skill.zip
 Description:
   <描述文本>
 ```
 
 > `Tags` 仅在技能存在用户自定义租户标签时显示。
+> `FileUrl` 仅在技能存在文件下载链接时显示。
 
 **涉及接口：**
 

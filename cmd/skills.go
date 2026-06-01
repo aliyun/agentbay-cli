@@ -1077,6 +1077,10 @@ func runSkillsShow(cmd *cobra.Command, args []string) error {
 	if tags := d.GetTenantTags(); len(tags) > 0 {
 		fmt.Printf("%-*s %s\n", skillDetailLabelW, "Tags:", strings.Join(tags, ", "))
 	}
+	fileUrl := strPtr(d.GetFileUrl())
+	if fileUrl != "" {
+		fmt.Printf("%-*s %s\n", skillDetailLabelW, "FileUrl:", fileUrl)
+	}
 	desc := strPtr(d.GetDescription())
 	if desc != "" {
 		fmt.Printf("%-*s\n", skillDetailLabelW, "Description:")

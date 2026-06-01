@@ -757,6 +757,7 @@ type describeMarketSkillDetailResponseXML struct {
 		SkillId     *string  `xml:"SkillId"`
 		SkillID     *string  `xml:"SkillID"`
 		Name        *string  `xml:"Name"`
+		FileUrl     *string  `xml:"FileUrl"`
 		Description *string  `xml:"Description"`
 		TenantTags  []string `xml:"TenantTags"`
 	} `xml:"Data"`
@@ -797,6 +798,7 @@ func parseDescribeMarketSkillDetailResponse(res map[string]interface{}) (*Descri
 				parsed.Data = &DescribeMarketSkillDetailResponseBodyData{
 					SkillId:     skillIdVal,
 					Name:        xmlResp.Data.Name,
+					FileUrl:     xmlResp.Data.FileUrl,
 					Description: xmlResp.Data.Description,
 					TenantTags:  xmlResp.Data.TenantTags,
 				}

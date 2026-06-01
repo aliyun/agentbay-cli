@@ -16,7 +16,7 @@ description: 将前端 API 能力封装成 agentbay-cli 命令的标准化流程
 
 **执行铁律**：
 
-1. **开发前**：必须先执行 `feature-development-workflow` 的 Phase 0（变更档案初始化）和分支创建，确认当前在 `feat-<name>` 分支且基于 `aliyun/master`，否则不得进入本 skill 的 Phase 1。
+1. **开发前**：必须先执行 `feature-development-workflow` 的 Phase 0（变更档案初始化）和分支创建，确认当前在 `feat-<name>` 分支且基于 `aliyun/master`，否则不得进入本 skill 的 Phase 1。⚠️ **切分支前必须先询问用户**：用户可能已在当前分支开发，不要自动切换 feat 分支。
 2. **开发中**：按本 skill 的 Phase 1-5 实现代码和测试。
 3. **提交/推送**：切回 `feature-development-workflow` 的 Phase 4-6 完成 commit、双远程 push（origin 先、aliyun 后）、PR、trace.md 更新。
 4. **禁止跳过**：不得在未拉 feat 分支时直接在 master 上开发，不得单远程推送，不得跳过变更档案。

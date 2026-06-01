@@ -15,6 +15,8 @@ type iDescribeMarketSkillDetailResponseBodyData interface {
 	SetSkillId(v string) *DescribeMarketSkillDetailResponseBodyData
 	GetName() *string
 	SetName(v string) *DescribeMarketSkillDetailResponseBodyData
+	GetFileUrl() *string
+	SetFileUrl(v string) *DescribeMarketSkillDetailResponseBodyData
 	GetDescription() *string
 	SetDescription(v string) *DescribeMarketSkillDetailResponseBodyData
 	GetTenantTags() []string
@@ -24,6 +26,7 @@ type iDescribeMarketSkillDetailResponseBodyData interface {
 type DescribeMarketSkillDetailResponseBodyData struct {
 	SkillId     *string  `json:"SkillId,omitempty" xml:"SkillId,omitempty"`
 	Name        *string  `json:"Name,omitempty" xml:"Name,omitempty"`
+	FileUrl     *string  `json:"FileUrl,omitempty" xml:"FileUrl,omitempty"`
 	Description *string  `json:"Description,omitempty" xml:"Description,omitempty"`
 	TenantTags  []string `json:"TenantTags,omitempty" xml:"TenantTags,omitempty"`
 }
@@ -44,6 +47,11 @@ func (s *DescribeMarketSkillDetailResponseBodyData) SetSkillId(v string) *Descri
 func (s *DescribeMarketSkillDetailResponseBodyData) GetName() *string { return s.Name }
 func (s *DescribeMarketSkillDetailResponseBodyData) SetName(v string) *DescribeMarketSkillDetailResponseBodyData {
 	s.Name = &v
+	return s
+}
+func (s *DescribeMarketSkillDetailResponseBodyData) GetFileUrl() *string { return s.FileUrl }
+func (s *DescribeMarketSkillDetailResponseBodyData) SetFileUrl(v string) *DescribeMarketSkillDetailResponseBodyData {
+	s.FileUrl = &v
 	return s
 }
 func (s *DescribeMarketSkillDetailResponseBodyData) GetDescription() *string { return s.Description }

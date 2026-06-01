@@ -120,7 +120,11 @@ git remote remove <name>
    **决策分发**:
    - ✅ 全部满足 → **主动询问用户**:
      > "检测到当前在 `feat/xxx` 分支,已与 `aliyun/master` 同步且工作区干净。是 **直接复用当前分支** 继续开发,还是 **从 `aliyun/master` 新切一条 feat 分支**?"
-   - ❌ 任一不满足 → **必须新切**,不再询问,按第 3 步执行。
+   - ❌ 任一不满足 → **仍须先询问用户**（⚠️ 不得自动新切）:
+     > "当前分支为 `<branch-name>`，[简述不满足的条件，如：落后 aliyun/master / 工作区有未提交改动 / 分支名不以 feat- 开头]。请确认：是 **在当前分支继续开发**，还是 **从 `aliyun/master` 新切一条 feat 分支**？"
+
+     用户选择继续当前分支→ 跳过第 3 步，直接进入 Phase 2（由用户自行承担分支状态风险）。
+     用户选择新切分支→ 按第 3 步执行。
 
 3. **新切 feat 分支(默认路径)**
 
@@ -274,11 +278,12 @@ make release-prep VERSION=X.Y.Z
 ## 🔒 关键原则
 
 1. **显式授权原则**:`commit` 和 `push` 都需要用户明确指示后才执行
-2. **真源原则**:feat 分支从 `aliyun/master` 拉出,确保起点是对客主线
-3. **双远程原则**:推送仅限 `origin` 和 `aliyun`,不引入额外 fork
-4. **可回滚原则**:每次提交必须是本地验证通过的稳定状态
-5. **分支隔离原则**:每个需求独立 feat 分支,禁止混合多个需求
-6. **可追溯原则**:每个需求必须在 `.qoder/specs/`(Quest Mode Download 自动落盘)或 `.qoder/changes/`(手动 CR)下建立档案,档案随代码一并入库
+2. **分支切换先确认原则**:开发新功能或需求时，如需切换到 feat 分支，**必须先询问用户确认**，不得自动切换 —— 用户可能正在当前分支继续迭代
+3. **真源原则**:feat 分支从 `aliyun/master` 拉出,确保起点是对客主线
+4. **双远程原则**:推送仅限 `origin` 和 `aliyun`,不引入额外 fork
+5. **可回滚原则**:每次提交必须是本地验证通过的稳定状态
+6. **分支隔离原则**:每个需求独立 feat 分支,禁止混合多个需求
+7. **可追溯原则**:每个需求必须在 `.qoder/specs/`(Quest Mode Download 自动落盘)或 `.qoder/changes/`(手动 CR)下建立档案,档案随代码一并入库
 
 ## ✅ 流程检查清单
 
@@ -320,7 +325,7 @@ make release-prep VERSION=X.Y.Z
 | --------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------- |
 | 在 master 直接改      | `git status` 显示 HEAD 是 master 且有 diff                 | 开发前先 `git checkout -b feat-xxx aliyun/master`                       |
 | 从 origin/master 起点 | feat 分支基点滞后于 aliyun 主线,PR 有冲突                  | 明确从 `aliyun/master` 拉分支                                           |
-| 盲目复用旧 feat 分支  | 复用了落后于 aliyun/master 或工作区有残留的分支,污染新需求 | Phase 1 步骤 2 按充要条件严格校验,任一不满足必须新切                    |
+| 盲目复用旧 feat 分支  | 复用了落后于 aliyun/master 或工作区有残留的分支,污染新需求 | Phase 1 步骤 2 按充要条件校验，任一不满足时先询问用户意愿，由用户决定是继续当前分支还是新切 |
 | 未授权自动 push       | 用户还没审查就已推送                                       | 推送动作必须等用户说"推送"/"push"                                       |
 | mock 漏改 CI 报错     | `*mockClient does not implement agentbay.Client`           | 接口变更后立即 `grep -r "type mock.*Client struct"` 全量补齐            |
 | 残留 upstream         | `git remote -v` 仍有个人 fork                              | 执行 `git remote remove upstream`                                       |

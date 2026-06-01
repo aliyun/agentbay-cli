@@ -178,11 +178,13 @@ agentbay skills show <skill-id>
 SkillId:       <skill-id>
 Name:          <skill-name>
 Tags:          tag1, tag2
+FileUrl:       https://example.com/skill.zip
 Description:
   <description text>
 ```
 
 > `Tags` is only displayed when the skill has user-defined tenant tags.
+> `FileUrl` is only displayed when the skill has a file download link.
 
 **Involved APIs:**
 
