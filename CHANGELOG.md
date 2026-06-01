@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🚀 Features
 
+- Add FileUrl field display to skills show command ([09c2914](https://github.com/aliyun/agentbay-cli/commit/09c2914505ff51de839441f1eb323859da1f0049))
 - Add TenantTags display to skills show command ([8efaf9b](https://github.com/aliyun/agentbay-cli/commit/8efaf9ba0160a3a550099221ee031086abb0cb04))
 - Add --tag flag to skills push command ([47c2ce4](https://github.com/aliyun/agentbay-cli/commit/47c2ce4cfe25bf992668be467386bc017a04b408))
 - Add skills update command and skills push --icon support ([cb30097](https://github.com/aliyun/agentbay-cli/commit/cb3009725d2441c2d46b773014e3baa28b4451ec))
@@ -43,11 +44,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🚀 功能
 
-- **skills**：增强 skills 命令组能力，包括 `skills show` 展示 TenantTags、`skills push` 支持 `--tag` 与 `--icon`、新增 `skills update` / `skills delete`，并支持 `skills update --clear-tags` 与 `skills delete` 位置参数；同时优化 `skills list` 的终端自适应展示并支持 `--output json`。
-- **image**：`image create-from-template` 支持短 source-image 路径；`image list` 增加 `--output json` 并优化终端自适应表格展示。
-- **apikey**：`apikey list` 支持 `--output json`，便于脚本和 AI 场景读取结构化结果。
-- **docker**：新增 docker repo share/unshare/list 与 docker shared repos list 能力，其中 shared repos list 支持 `--output json`，并补充相关 RAM 权限说明。
-- **全局**：新增 skills-tester agent、分页测试规则，以及双语 CHANGELOG 发版流程。
+- **skills**
+  - `skills show`：新增 FileUrl 与 TenantTags 字段展示
+  - `skills push`：支持 `--tag` 与 `--icon` 参数
+  - `skills list`：支持 `--output json`，优化终端自适应展示
+  - `skills update`：新增命令，支持 `--clear-tags` 参数
+  - `skills delete`：新增命令，支持位置参数
+- **image**
+  - `image create-from-template`：支持短 source-image 路径
+  - `image list`：新增 `--output json`，优化终端自适应表格展示
+- **apikey**：`apikey list` 支持 `--output json`，便于脚本和 AI 场景读取结构化结果
+- **docker**
+  - `docker repo share/unshare/list`：新增仓库分享、取消分享、列表命令，并补充 RAM 权限说明
+  - `docker shared repos list`：支持 `--output json`
+- **全局**
+  - 新增 skills-tester agent 与分页测试规则
+  - 新增双语 CHANGELOG 发版流程
 
 #### 🐞 缺陷修复
 
@@ -90,15 +102,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🚀 功能
 
-- **apikey**：增强 API Key 命令体系，相关命令支持 `--api-key-id` 参数，并新增 `apikey describe-key-content`。
+- **apikey**
+  - 相关命令支持 `--api-key-id` 参数
+  - 新增 `apikey describe-key-content` 命令
 
 #### 📖 文档
 
-- **全局**：将文档重组为 en/zh 双语结构，修复双语切换链接并补充文档治理规范。
+- **全局**
+  - 将文档重组为 en/zh 双语结构
+  - 修复双语切换链接，补充文档治理规范
 - **core/auth**：将 `agentbay login` 文案从“已废弃”调整为“不推荐”，弱化误导性表达。
 - **docker/image**：补充 docker login 与 `image create-from-template` 使用说明。
 - **apikey/RAM 权限**：补充 apikey 命令 RAM 权限要求，并扩展到所有命令组。
-- **发版**：回填历史 CHANGELOG 中文翻译，补充安装文档中的更新与卸载说明。
+- **发版**
+  - 回填历史 CHANGELOG 中文翻译
+  - 补充安装文档中的更新与卸载说明
 
 ---
 
@@ -166,7 +184,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🚀 功能
 
-- **apikey**：新增 enable/disable、delete、list 命令，并为 `apikey concurrency set` 支持 `--api-key` 参数。
+- **apikey**
+  - 新增 enable/disable 命令
+  - 新增 delete 命令
+  - 新增 list 命令
+  - `apikey concurrency set` 支持 `--api-key` 参数
 - **image**：新增 `image warmup-status` 命令。
 - **发版**：集成 git-cliff 自动生成 CHANGELOG。
 
@@ -221,8 +243,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🚀 功能
 
-- **image**：新增 `image set-max-session`，用于配置最大并发会话数。
-- **image**：`image activate` 支持指定地域。
+- **image**
+  - 新增 `image set-max-session`，用于配置最大并发会话数
+  - `image activate` 支持指定地域
 
 #### 🐞 缺陷修复
 
@@ -231,7 +254,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### 📖 文档
 
 - **qoder**：在规则、skill 与参考文档中固化响应解析容错规范。
-- **image**：说明 `set-max-session` 支持的镜像类型和白名单要求，并补充 `image activate` 地域规范。
+- **image**
+  - 说明 `set-max-session` 支持的镜像类型和白名单要求
+  - 补充 `image activate` 地域规范
 - **构建**：补充构建验证规则。
 
 ---
@@ -250,9 +275,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🚀 功能
 
-- **docker/image**：新增 `docker login` 和 `image create-from-template` 命令。
-- **image**：为 create-from-template 增加 source-image 校验与路径截断。
-- **image**：`image init` 相关接口新增 UsePublicNetwork 参数，并打印 RequestId。
+- **docker**：新增 `docker login` 命令。
+- **image**
+  - 新增 `image create-from-template` 命令，支持 source-image 校验与路径截断
+  - `image init` 新增 UsePublicNetwork 参数，并打印 RequestId
 
 ---
 
@@ -339,8 +365,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🚀 功能
 
-- **network**：新增 network package list 命令（DescribeNetworkPackages）。
-- **network**：移除 UserAliUid 参数，增加默认 BizRegionId，并展示 OfficeSiteId。
+- **network**
+  - 新增 network package list 命令（DescribeNetworkPackages）
+  - 移除 UserAliUid 参数，增加默认 BizRegionId，并展示 OfficeSiteId
 
 #### 📖 文档
 
@@ -365,8 +392,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🚀 功能
 
-- **network**：ADVANCED 网络激活流程新增 DescribeOfficeSites，并支持 DNS 默认值。
-- **network**：调整 DEFAULT 网络激活流程，增加 DescribeMcpPolicyData 和 SaveMcpPolicyData 调用。
+- **network**
+  - ADVANCED 网络激活流程新增 DescribeOfficeSites，并支持 DNS 默认值
+  - 调整 DEFAULT 网络激活流程，增加 DescribeMcpPolicyData 和 SaveMcpPolicyData 调用
 
 #### 📖 文档
 
@@ -401,7 +429,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🚀 功能
 
-- **apikey**：新增 CreateApiKey CLI 命令和 API Key 并发管理命令。
+- **apikey**
+  - 新增 `apikey create` 命令
+  - 新增 API Key 并发管理命令
 - **docker/image/skills**：为 OSS 上传和 skill push 增加 COPY/ADD 文件大小校验。
 
 #### 🐞 缺陷修复
@@ -515,9 +545,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🚀 功能
 
-- **image**：增强 image list，支持系统镜像展示、`--include-system` / `--system-only` 参数和分区展示。
-- **image**：新增 Dockerfile demo、init Dockerfile template 和 image init 用户指南。
-- **core/auth**：登录命令增加端口可用性检测、重试和端口占用建议。
+- **image**
+  - 增强 image list，支持系统镜像展示及 `--include-system` / `--system-only` 参数
+  - 新增 Dockerfile demo 与 init Dockerfile template
+  - 新增 image init 用户指南
+- **core/auth**
+  - 登录命令增加端口可用性检测与重试
+  - 端口被占用时给出使用建议
 - **安装**：新增 Windows 安装脚本和 Linux/Mac 安装指南。
 - **CI/CD**：更新 workflow 配置。
 
@@ -654,25 +688,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🚀 功能
 
-- **core/auth**：新增 refresh token、环境切换能力、国际站环境（prod/pre）默认 Endpoint 与 OAuth 支持，并改进认证错误识别和处理。
-- **image**：新增系统镜像列表展示、Dockerfile demo、init Dockerfile template、image init 指南、image status 命令，以及 create image verbose 模式 RequestId 输出。
-- **image**：新增 Dockerfile COPY/ADD 文件上传能力，支持 sourceImageId 必填、默认环境/地域映射、镜像初始化信息和镜像修改信息展示。
-- **skills**：实现 Skills CLI 与相关 API，包括 skills push/list/show、skills group create/list/show/add-skill/remove-skill，并注册 skills 命令和测试 mock。
-- **client/agentbay**：新增 CreateMarketSkill、DescribeMarketSkillDetail、Market SkillGroup 等 API，并扩展 agentbay client。
-- **安装/CI/CD**：新增 Windows 安装脚本、CI/CD 配置、成功页和基础文档。
+- **core/auth**
+  - 新增 refresh token 与环境切换能力
+  - 支持国际站（prod/pre）默认 Endpoint 与 OAuth
+  - 改进认证错误识别和处理
+- **image**
+  - 新增系统镜像列表展示及 `--include-system` / `--system-only` 参数
+  - 新增 Dockerfile demo、init Dockerfile template 和 image init 指南
+  - 新增 image status 命令，create image verbose 模式输出 RequestId
+  - 新增 Dockerfile COPY/ADD 文件上传能力
+  - 支持 sourceImageId 必填、默认环境/地域映射、镜像初始化信息和修改信息展示
+- **skills**
+  - 实现 skills push/list/show 命令
+  - 实现 skills group create/list/show/add-skill/remove-skill 命令
+  - 注册 skills 命令并完善测试 mock
+- **client/agentbay**
+  - 新增 CreateMarketSkill、DescribeMarketSkillDetail API
+  - 新增 Market SkillGroup 系列 API（create/list/add-skill/remove-skill）
+  - 扩展 agentbay client 支持以上 API
+- **安装**：新增 Windows 安装脚本。
+- **CI/CD**：新增 CI/CD 配置、发布流程与成功页。
 
 #### 🐞 缺陷修复
 
-- **skills**：修复 ListMarketGroupSkill 预发环境 403 UnsupportedHTTPMethod、CreateMarketSkillGroup Data 解析、DescribeMarketSkillDetail/AddMarketGroupSkill/RemoveMarketGroupSkill XML/JSON 解析等问题。
+- **skills**
+  - 修复 ListMarketGroupSkill 预发环境 403 UnsupportedHTTPMethod 问题
+  - 修复 CreateMarketSkillGroup Data 字段解析
+  - 修复 DescribeMarketSkillDetail / AddMarketGroupSkill / RemoveMarketGroupSkill XML/JSON 解析
 - **skills/image**：修复 OSS 上传和 API 响应处理问题。
-- **image**：适配 DeleteResourceGroup 接口，修复 deactivate 停止镜像失败问题；修复 image init 解析与测试问题。
-- **core/auth**：修复 logout warning、OAuth 登录解析、refresh token client 复用和 AK/SK skill push 解析问题。
-- **client**：对齐 Skills API HTTP 方法，修复编译与解析相关问题。
+- **image**
+  - 适配 DeleteResourceGroup 接口，修复 deactivate 停止镜像失败问题
+  - 修复 image init 解析与单元测试问题
+- **core/auth**
+  - 修复 logout warning、OAuth 登录解析、refresh token client 复用
+  - 修复 AK/SK skill push 解析问题
+- **client**
+  - 对齐 Skills API HTTP 方法（GET/POST）
+  - 修复编译与响应解析相关问题
 - **CI/CD**：更新 Aone Makefile 以兼容最新 glibc。
 
 #### 📖 文档
 
-- **skills**：新增 Skills CLI 使用说明、输出示例和手动测试结果，并将 README/USER_GUIDE 与 skills CLI 实现对齐。
+- **skills**
+  - 新增 Skills CLI 使用说明与输出示例
+  - 补充手动测试结果，将 README/USER_GUIDE 与 skills CLI 实现对齐
 - **内部参考**：新增 Skills API BodyType 分析和后端格式参考。
 - **环境配置**：更新 Windows 脚本中的环境变量名称。
 
@@ -682,8 +741,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 📦 其他变更
 
-- **image**：整理 image list、getdockerfile、image init、镜像修改信息展示和 sourceImageId 必填等历史实现更新。
-- **core**：更新默认 Endpoint 为 xiaoying.cn-shanghai，展示原始错误信息以替代自定义错误文案。
+- **image**
+  - 整理 image list、getdockerfile、image init 历史实现更新
+  - 补充 sourceImageId 必填与默认 Endpoint 更新
+  - 展示原始错误信息以替代自定义错误文案
 - **CI/CD**：重构 GitHub Homebrew workflow。
 - **发版**：发布 v0.1.0。
 

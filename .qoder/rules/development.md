@@ -185,9 +185,37 @@ feat(apikey): add concurrency management command
 ### 中文段组织规则
 
 - 中文分类标题必须翻译：`Features` → `功能`，`Bug Fixes` → `缺陷修复`，`Documentation` → `文档`，`Refactoring` → `重构`，`Performance` → `性能优化`，`Security` → `安全`，`Breaking Changes` → `不兼容变更`。
-- 对 CLI 命令相关条目，优先按命令组归类（如 `apikey`、`image`、`docker`、`skills`、`network`、`core/auth`），并用加粗前缀呈现：`**skills**：...`。
+- 对 CLI 命令相关条目，优先按命令组归类（如 `apikey`、`image`、`docker`、`skills`、`network`、`core/auth`），父条目使用加粗命令组名；格式视改动数量而定（见下方格式规范）。
 - 无法归入具体命令组或属于全局能力 / 基础设施 / 发版流程的改动，可归为“全局”“安全合规”“RAM 权限”等用户可理解的主题。
 - 允许在中文段做粗粒度聚合，但不得丢失用户可感知的功能、缺陷修复或重要文档变更。
+
+#### 📐 命令组条目格式规范（多改动必须拆行）
+
+**核心原则：一行只描述一个子命令或功能点，禁止在同一行用顿号、分号并列多个改动。**
+
+| 改动数量                          | 格式                                                                 |
+| --------------------------------- | -------------------------------------------------------------------- |
+| 命令组下有 **2 个及以上**独立改动 | 父条目只写加粗命令组名（不加冒号和说明），子条目两空格缩进，每行一项 |
+| 命令组下仅有 **1 个**改动         | 单行：父条目直接加冒号说明                                           |
+
+多改动示例（正确）：
+
+```markdown
+- **skills**
+  - `skills show`：新增 FileUrl 与 TenantTags 字段展示
+  - `skills push`：支持 `--tag` 与 `--icon` 参数
+  - `skills list`：支持 `--output json`，优化终端自适应展示
+  - `skills update`：新增命令，支持 `--clear-tags` 参数
+  - `skills delete`：新增命令，支持位置参数
+```
+
+单改动示例（正确）：
+
+```markdown
+- **apikey**：`apikey list` 支持 `--output json`，便于脚本和 AI 场景读取结构化结果
+```
+
+子条目格式：`  - \`<子命令>\`：<简洁描述>`（两个空格缩进 + 破折号）
 
 ### 翻译术语
 
