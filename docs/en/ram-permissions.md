@@ -5,7 +5,7 @@
 > The main Alibaba Cloud account does **not** require any additional permission configuration.
 > This section applies only to **RAM sub-accounts** using AK/SK authentication.
 
-If you are using a RAM sub-account's AK/SK, grant the required permissions via the [RAM console](https://ram.console.aliyun.com/users).
+If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.console.aliyun.com/policies) to create or modify a permission policy first, and then attach the policy to the corresponding RAM sub-account.
 
 ---
 

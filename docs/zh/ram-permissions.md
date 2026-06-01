@@ -5,7 +5,7 @@
 > 阿里云**主账号**无需任何额外权限配置。
 > 本节仅适用于使用 AK/SK 认证的 **RAM 子账号**。
 
-如果使用 RAM 子账号的 AK/SK，请在 [RAM 控制台](https://ram.console.aliyun.com/users) 为该账号授予所需接口权限。
+如果使用 RAM 子账号的 AK/SK，可以到 [RAM 控制台](https://ram.console.aliyun.com/policies) 先新建或修改权限策略，再将策略授权给对应的 RAM 子账号。
 
 ---
 

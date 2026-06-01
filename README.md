@@ -174,7 +174,7 @@ Full command reference → [docs/en/README.md](docs/en/README.md)
 
 AccessKey is the recommended authentication method (required for scripts, CI, and RAM users). The CLI also supports STS and OAuth login (`agentbay login`, **main account only** — RAM sub-accounts are rejected). See [Authentication & Environment](docs/en/authentication.md) for details.
 
-The main Alibaba Cloud account does **not** require any additional permission configuration. If you are using a RAM sub-account with AK/SK authentication, grant the required permissions via the [RAM console](https://ram.console.aliyun.com/users) — see [RAM Permissions](docs/en/ram-permissions.md) for the complete policy list.
+The main Alibaba Cloud account does **not** require any additional permission configuration. If you are using a RAM sub-account with AK/SK authentication, go to the [RAM console](https://ram.console.aliyun.com/policies) to create or modify a permission policy first, and then attach the policy to the corresponding RAM sub-account — see [RAM Permissions](docs/en/ram-permissions.md) for the complete policy list.
 
 ---
 
