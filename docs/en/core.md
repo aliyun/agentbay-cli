@@ -28,7 +28,7 @@ Endpoint: xiaoying.cn-shanghai.aliyuncs.com
 
 ### `agentbay login`
 
-> **Main account only.** RAM sub-accounts and RAM roles are rejected at login — use AccessKey environment variables instead (see [Authentication & Environment](authentication.md)).
+> **Main account only.** RAM sub-accounts and RAM roles are rejected at login — use AccessKey environment variables instead (recommended). To continue with OAuth, open the [Alibaba Cloud website](https://www.aliyun.com/) in your browser and sign out of the current Aliyun account, then run `agentbay login` again and select/sign in with an Aliyun main account (see [Authentication & Environment](authentication.md)).
 
 Opens a browser for Aliyun OAuth authentication. After completing the login in the browser, return to the terminal.
 

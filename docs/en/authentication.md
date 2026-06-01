@@ -29,7 +29,7 @@ export AGENTBAY_ACCESS_KEY_SESSION_TOKEN="your-sts-session-token"
 
 ### 3. OAuth Login
 
-> **Main account only.** `agentbay login` is convenient for interactive use with an Aliyun main account. **RAM sub-accounts and RAM roles are not supported** — they will be rejected at login. RAM users should use the AccessKey environment variables shown above (method 1).
+> **Main account only.** `agentbay login` is convenient for interactive use with an Aliyun main account. **RAM sub-accounts and RAM roles are not supported** — they will be rejected at login. RAM users should use the AccessKey environment variables shown above (method 1, recommended). To continue with OAuth, open the [Alibaba Cloud website](https://www.aliyun.com/) in your browser and sign out of the current Aliyun account, then run `agentbay login` again and select/sign in with an Aliyun main account in the browser.
 
 ```bash
 agentbay login    # Opens a browser for OAuth login

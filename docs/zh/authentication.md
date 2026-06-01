@@ -29,7 +29,7 @@ export AGENTBAY_ACCESS_KEY_SESSION_TOKEN="your-sts-session-token"
 
 ### 3. OAuth 登录
 
-> **仅支持主账号。** `agentbay login` 适合阿里云主账号的交互式登录使用。**不支持 RAM 子账号和 RAM 角色** —— 登录时会被拒绝。RAM 用户请使用上面的 AccessKey 环境变量方式（方式 1）。
+> **仅支持主账号。** `agentbay login` 适合阿里云主账号的交互式登录使用。**不支持 RAM 子账号和 RAM 角色** —— 登录时会被拒绝。RAM 用户推荐使用上面的 AccessKey 环境变量方式（方式 1）；如果要继续使用 OAuth，请先在浏览器访问 [阿里云官网](https://www.aliyun.com/) 并退出当前阿里云登录态，再重新运行 `agentbay login`，然后在浏览器中选择/登录阿里云主账号。
 
 ```bash
 agentbay login    # 打开浏览器进行 OAuth 登录

@@ -501,8 +501,9 @@ type UserInfo struct {
 // least-privilege expectations for RAM identities.
 var ErrRamUserNotAllowed = errors.New(
 	"RAM sub-account login via OAuth is not supported by agentbay-cli. " +
-		"Please use AccessKey environment variables instead: " +
-		"AGENTBAY_ACCESS_KEY_ID and AGENTBAY_ACCESS_KEY_SECRET")
+		"Recommended: use AccessKey environment variables (AK/SK). " +
+		"Alternatively, sign out of the current Aliyun account at https://www.aliyun.com/ " +
+		"in your browser, then run agentbay login again with an Aliyun main account")
 
 // VerifyMainAccount calls OAuth /v1/userinfo with the given access token and
 // returns ErrRamUserNotAllowed when the caller is not an Aliyun main account
