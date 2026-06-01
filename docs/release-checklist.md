@@ -17,7 +17,7 @@ The two workflows are intentionally separated so you can verify the formula on
 
 ## Pre-flight (before tagging)
 
-- [ ] `CHANGELOG.md` is current, or you are happy for `git-cliff` to regenerate it automatically as part of the release.
+- [ ] **Run `make release-prep VERSION=X.Y.Z` locally** to generate the bilingual `CHANGELOG.md` section for the new version (English from git-cliff + Chinese `TRANSLATE_ME` placeholder). Then translate the Chinese sub-section in Claude Code (say: `翻译 CHANGELOG.md 顶部 [X.Y.Z] 那段`), `git commit` the updated `CHANGELOG.md`, and only then proceed to tag + push. The workflow extracts this committed section verbatim for the GitHub Release body — see [docs/internal/bilingual-changelog-proposal.md](internal/bilingual-changelog-proposal.md) §4.7.
 - [ ] `homebrew/agentbay.rb` is committed (its contents will be overwritten by the workflow — the file just needs to exist for validation).
 - [ ] All required secrets exist on the repo:
   - `GITHUB_TOKEN` — provided automatically; needs `contents: write` (already declared in `homebrew.yml`).

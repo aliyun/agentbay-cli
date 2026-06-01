@@ -255,8 +255,10 @@ help:
 	@echo "  build-all-upx      - Build UPX-compressed binaries for all platforms"
 	@echo "  release            - Build and upload release to production OSS"
 	@echo "  release-dry-run    - Preview release without uploading"
-	@echo "  changelog          - Generate/update CHANGELOG.md from git history"
-	@echo "  changelog-next     - Preview changes for the next release (stdout)"
+	@echo "  release-prep       - Generate bilingual CHANGELOG section for a new release (run BEFORE tagging). Usage: make release-prep VERSION=0.4.0"
+	@echo "  changelog-preview  - Preview the [Unreleased] section as it will be rendered (stdout)"
+	@echo "  changelog          - [Legacy] Full regenerate CHANGELOG.md from git history (use only for emergency repair)"
+	@echo "  changelog-next     - [Legacy] Preview the next bumped section (stdout)"
 	@echo "  changelog-install  - Install git-cliff tool (brew install git-cliff)"
 
 # Release to production OSS
@@ -276,11 +278,33 @@ release-dry-run:
 		bash scripts/release-to-oss.sh --version "$(VERSION)" --description "$(DESC)" --dry-run; \
 	fi
 
-# Changelog generation (requires git-cliff: brew install git-cliff)
+# Release preparation (v3 bilingual changelog pipeline)
+# Run this BEFORE tagging. It generates the bilingual CHANGELOG section
+# for the new version (English from git-cliff + Chinese TRANSLATE_ME placeholder),
+# replaces the [Unreleased] section in CHANGELOG.md, and prints next-step
+# instructions. The developer then translates the Chinese sub-section
+# (typically via Claude Code), commits, tags, and pushes.
+.PHONY: release-prep changelog-preview changelog changelog-next changelog-install
+release-prep:
+	@if [ -z "$(VERSION)" ]; then \
+		echo "Usage: make release-prep VERSION=0.4.0"; \
+		exit 1; \
+	fi
+	@bash scripts/release-prep.sh $(VERSION)
+
+# Preview the [Unreleased] section as git-cliff would render it (stdout, no file write)
+changelog-preview:
+	@if ! command -v git-cliff >/dev/null 2>&1; then echo "git-cliff is required. Install with: make changelog-install"; exit 1; fi
+	@git-cliff --unreleased --strip header
+
+# [Legacy] Full regenerate CHANGELOG.md. Under v3, CHANGELOG.md is normally
+# maintained by `release-prep` per-version. Use this target only for emergency
+# repair (e.g. you need to re-render every historical section).
 changelog:
 	@if ! command -v git-cliff >/dev/null 2>&1; then echo "git-cliff is required. Install with: make changelog-install"; exit 1; fi
 	git-cliff -o CHANGELOG.md
 
+# [Legacy] Preview the next-bumped section. Kept for backward compatibility.
 changelog-next:
 	@if ! command -v git-cliff >/dev/null 2>&1; then echo "git-cliff is required. Install with: make changelog-install"; exit 1; fi
 	git-cliff --unreleased --bump

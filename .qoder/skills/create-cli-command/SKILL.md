@@ -12,7 +12,7 @@ description: 将前端 API 能力封装成 agentbay-cli 命令的标准化流程
 | Skill                            | 负责                                                                                          | 触发时机       |
 | -------------------------------- | --------------------------------------------------------------------------------------------- | -------------- |
 | **feature-development-workflow** | 分支管理（从 `aliyun/master` 拉 feat 分支）、双远程推送（origin → aliyun）、PR 流程、变更档案 | 开发前、提交后 |
-| **create-cli-command**（本文件） | SDK 模型 → Client 接口 → Cobra 命令 → mock 同步 → 单测 → 对客文档                             | 开发中         |
+| **create-cli-command**（本文件） | SDK 模型 → Client 接口 → Cobra 命令 → mock 同步 → 单测 → 对客文档 readiness                   | 开发中         |
 
 **执行铁律**：
 
@@ -204,12 +204,12 @@ if err != nil {
 
 **哪些情况触发**：
 
-| 操作类型 | 示例 | 是否需要 |
-|---------|------|---------|
-| 永久删除资源 | `apikey delete`, `image delete` | ✅ 必须 |
-| 多步骤前置依赖（如先禁用才能删除）| 每步都提示 | ✅ 每步 |
-| 可逆状态变更 | `enable`, `disable` | ❌ 不需要 |
-| 查询/只读操作 | `list`, `status` | ❌ 不需要 |
+| 操作类型                           | 示例                            | 是否需要  |
+| ---------------------------------- | ------------------------------- | --------- |
+| 永久删除资源                       | `apikey delete`, `image delete` | ✅ 必须   |
+| 多步骤前置依赖（如先禁用才能删除） | 每步都提示                      | ✅ 每步   |
+| 可逆状态变更                       | `enable`, `disable`             | ❌ 不需要 |
+| 查询/只读操作                      | `list`, `status`                | ❌ 不需要 |
 
 **标准实现**（复用 `cmd/confirm.go` 中已有的 `ConfirmPrompt`）：
 
@@ -232,6 +232,7 @@ if !confirmed {
 ```
 
 **`ConfirmPrompt` 三种行为**：
+
 - `--yes` 传入 → 直接 true，无任何输出
 - 交互式 TTY → 打印提示，读取输入（仅 y/Y/yes/YES 通过）
 - 非 TTY 且无 `--yes` → 返回错误，提示用户加 `--yes`
@@ -239,6 +240,7 @@ if !confirmed {
 **多步骤命令**：每步单独调用 `ConfirmPrompt(prompt, autoYes)`，一个 `--yes` 跳过全部步骤。
 
 **参考实现**：
+
 - `cmd/apikey_delete.go` —— 多步骤（禁用确认 + 删除确认）
 - `cmd/image.go` `runImageDelete` —— 单步骤确认
 
@@ -330,9 +332,10 @@ Test<子命令>Cmd           // 测试子命令
 **本阶段委托 `update-cli-command-docs` skill 执行**，不在本 skill 内展开。
 
 加载并执行 `.qoder/skills/update-cli-command-docs/SKILL.md`，该 skill 将完成：
+
 - 更新 `docs/en/<group>.md` 和 `docs/zh/<group>.md`
 - 更新 `README.md` 和 `README.zh-CN.md` Command Overview 表格
-- 更新 `CHANGELOG.md`（git-cliff 生成 + 中文翻译）
+- 更新 `CHANGELOG.md` readiness（校验 commit/PR title 可被 release-prep 采集；不在日常命令开发中全量生成 CHANGELOG）
 
 > ⚠️ 不得在本 Phase 中内联执行文档操作，必须遵循 `update-cli-command-docs` 的 Phase 0-3 完整流程。
 
@@ -403,11 +406,12 @@ git commit -m "feat: add <功能描述> CLI command
 
 ### Git 提交
 
-✅ **提交规范**:
+✅ **提交与 CHANGELOG readiness**:
 
 - [ ] 询问用户是否提交
-- [ ] 使用 Conventional Commits 格式
-- [ ] 包含详细的 commit body
+- [ ] 使用 Conventional Commits 格式，优先带命令组 scope（如 `feat(apikey): ...`）
+- [ ] 若为不兼容变更，使用 `!` 或 `BREAKING CHANGE:`
+- [ ] 已确认本次变更可在发版时由 `make release-prep VERSION=X.Y.Z` 生成到 CHANGELOG
 - [ ] 展示提交结果
 
 ## 📚 参考资料

@@ -39,12 +39,13 @@ trigger: always_on
 
 **凡符合下列任一特征的任务，AI 必须主动加载并遵循对应的 `.qoder/skills/` 指南**（包括但不限于 Quest Design/Execute 阶段、直接对话、Execute Directly 模式）：
 
-| 任务特征                                                    | 必须加载的 Skill                                                                                                                       | Skill 路径                                            |
-| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| 新增 / 修改 CLI 命令、参数、子命令，或将前端 API 封装为命令 | **create-cli-command**                                                                                                                 | `.qoder/skills/create-cli-command/SKILL.md`           |
-| 涉及分支管理、commit、push、PR、变更档案（Quest/CR 目录）   | **feature-development-workflow**                                                                                                       | `.qoder/skills/feature-development-workflow/SKILL.md` |
-| 更新/同步 CLI 命令文档（README、docs/、CHANGELOG）          | **update-cli-command-docs**                                                                                                            | `.qoder/skills/update-cli-command-docs/SKILL.md`      |
-| 新增 CLI 命令类需求（同时触发上述三条）                     | **三者组合使用**：先 workflow 拉分支/建档 → 再 create-cli-command 实现 → 再 update-cli-command-docs 同步文档 → 回到 workflow 提交/推送 | 同上                                                  |
+| 任务特征                                                          | 必须加载的 Skill                                                                                                                       | Skill 路径                                            |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| 新增 / 修改 CLI 命令、参数、子命令，或将前端 API 封装为命令       | **create-cli-command**                                                                                                                 | `.qoder/skills/create-cli-command/SKILL.md`           |
+| 涉及分支管理、commit、push、PR、变更档案（Quest/CR 目录）         | **feature-development-workflow**                                                                                                       | `.qoder/skills/feature-development-workflow/SKILL.md` |
+| 更新/同步 CLI 命令文档（README、docs/、CHANGELOG readiness）      | **update-cli-command-docs**                                                                                                            | `.qoder/skills/update-cli-command-docs/SKILL.md`      |
+| 发版、双语 CHANGELOG、GitHub Release notes、release-prep/backfill | **bilingual-changelog-release**                                                                                                        | `.qoder/skills/bilingual-changelog-release/SKILL.md`  |
+| 新增 CLI 命令类需求（同时触发上述三条）                           | **三者组合使用**：先 workflow 拉分支/建档 → 再 create-cli-command 实现 → 再 update-cli-command-docs 同步文档 → 回到 workflow 提交/推送 | 同上                                                  |
 
 **执行铁律**:
 
@@ -53,6 +54,7 @@ trigger: always_on
 3. **Quest 场景**：Quest 生成 spec 后的 Execute 阶段，等同于"对话入口"，本规则照常生效，无需 spec 里额外声明。
 4. **Execute Directly 场景**：即便跳过 Design 阶段，AI 也必须在动手前主动加载匹配的 skill。
 5. **文档同步**：`create-cli-command` 的 Phase 5 已委托 `update-cli-command-docs` skill，文档操作不得在 `create-cli-command` 中内联执行。
+6. **发版同步**：凡涉及 `CHANGELOG.md` 版本段、GitHub Release notes、tag 发布或 release notes 回灌，必须切换到 `bilingual-changelog-release` skill；不得继续使用旧的 `git-cliff -o CHANGELOG.md` 全量覆盖流程。
 
 **目的**：让 Skill 指南在所有入口（slash command / Quest spec / 直接对话 / Execute Directly）下统一自动生效，避免重复约定。
 
@@ -92,25 +94,34 @@ trigger: always_on
 使用 Conventional Commits 规范：
 
 ```
-<type>: <description>
+<type>[(<scope>)][!]: <description>
 
 [optional body]
+
+[optional footer]
 ```
 
 **Type 类型**:
 
-- `feat`: 新功能
-- `fix`: 修复 bug
-- `test`: 添加或修改测试
-- `docs`: 文档更新
-- `refactor`: 代码重构
-- `style`: 代码格式调整（不影响功能）
-- `chore`: 构建过程或辅助工具的变动
+- `feat`: 新功能（进入 CHANGELOG）
+- `fix`: 修复 bug（进入 CHANGELOG）
+- `docs`: 文档更新（进入 CHANGELOG）
+- `refactor`: 代码重构（进入 CHANGELOG）
+- `perf`: 性能优化（进入 CHANGELOG）
+- `revert`: 回退变更（进入 CHANGELOG 兜底分类）
+- `test`: 添加或修改测试（默认不进 CHANGELOG）
+- `style`: 代码格式调整（不影响功能，默认不进 CHANGELOG）
+- `chore`: 构建过程或辅助工具的变动（默认不进 CHANGELOG）
+- `ci` / `build`: CI 或构建系统变更（默认不进 CHANGELOG）
+
+**Scope 建议**：优先使用 CLI 命令组或模块名，例如 `apikey`、`image`、`network`、`skills`、`docker`、`core`、`client`。
+
+**Breaking Changes**：不兼容变更必须在 subject 加 `!` 或在 footer 写 `BREAKING CHANGE:`，以便 git-cliff 归入 `⚠️ Breaking Changes`。
 
 **示例**:
 
 ```bash
-feat: add API key concurrency management CLI command
+feat(apikey): add concurrency management command
 
 - Add 'agentbay apikey concurrency set' command
 - Use named parameters for better UX
@@ -137,6 +148,51 @@ feat: add API key concurrency management CLI command
    ```bash
    git log --oneline -3
    ```
+
+---
+
+## 🗒️ 双语 CHANGELOG / GitHub Release SOP
+
+### 核心原则
+
+- `CHANGELOG.md` 是 GitHub Release body 的**唯一事实源**。
+- 发版前在本地执行 `make release-prep VERSION=X.Y.Z` 生成双语版本段；workflow 只抽取该版本段，不再生成、不再翻译、不再 commit-back `CHANGELOG.md`。
+- 日常 CLI 功能开发**不再手动运行 `git-cliff -o CHANGELOG.md` 全量覆盖**；CHANGELOG 内容由符合 Conventional Commits 的提交在 release-prep 时统一生成。
+- 中文翻译必须在 commit/tag 之前完成并人工 review，禁止发布带 `TRANSLATE_ME` 或旧 `中文翻译待补充` 占位符的版本段。
+
+### 发版前标准流程
+
+1. 确保待发布功能已合入发布主线且工作区干净。
+2. 执行：
+
+   ```bash
+   make release-prep VERSION=X.Y.Z
+   ```
+
+3. 翻译 `CHANGELOG.md` 顶部 `## [X.Y.Z]` 版本段中的 `### English` 内容到 `### 中文`，删除 `TRANSLATE_ME` 占位。
+4. 验证：
+
+   ```bash
+   grep -nE 'TRANSLATE_ME|中文翻译待补充' CHANGELOG.md
+   bash scripts/extract-changelog-section.sh X.Y.Z CHANGELOG.md >/tmp/release-notes.md
+   ```
+
+   第一条应无输出，第二条应成功且输出非空。
+
+5. 用户明确授权后再提交、打 tag、push。
+6. 如需修订已发布 Release：先改 `CHANGELOG.md`，再用 `scripts/backfill-release-notes.sh --dry-run --tag vX.Y.Z` 预览，确认后回灌。
+
+### 翻译术语
+
+- 保留英文不翻译：API Key、AK/SK、CLI、OSS、SDK、PR、Homebrew、OAuth、apikey、image、docker
+- `image` → 镜像；`container` → 容器；`warmup` → 预热；`session` → 会话；`context` → 上下文
+- `scope` 在权限语境译为“范围”，变量语境译为“作用域”
+- `flag` 译为“参数”或“选项”，不要译为“标志”
+- 命令名、参数名、scope、PR 链接、author 保持原样
+
+### 对应 Skill
+
+发版、翻译 CHANGELOG、tag 发布、GitHub Release notes 回灌必须遵循 `.qoder/skills/bilingual-changelog-release/SKILL.md`。
 
 ---
 
@@ -612,10 +668,11 @@ assert.Equal(t, "y", yesFlag.Shorthand)
    - 修改命令：同步更新参数说明、示例和注意事项
    - **中英文文档必须同步更新**，保持结构一致
 
-3. **更新 `CHANGELOG.md`** — 发布前补充中文翻译
-   - git-cliff 自动生成的条目包含英文内容 + `<!-- 中文翻译待补充 -->` 占位
-   - 发版前**必须**将占位符替换为准确的中文翻译
-   - 翻译格式：在英文条目下方，用 `* * *` 分隔后添加中文翻译（参考已有版本的格式）
+3. **CHANGELOG readiness** — 发布前由 release-prep 统一生成
+   - 日常 CLI 需求开发不再手动运行 `git-cliff -o CHANGELOG.md` 全量覆盖
+   - 本次变更必须使用可被 git-cliff 识别的 Conventional Commit（如 `feat(apikey): ...`、`fix(image): ...`）
+   - 发版前按 `bilingual-changelog-release` skill 执行 `make release-prep VERSION=X.Y.Z`，生成双语版本段并补齐中文翻译
+   - 发布前必须确保 `CHANGELOG.md` 无 `TRANSLATE_ME` / `中文翻译待补充` 占位符残留
 
 4. **同步更新对外文档**
    - 钉钉文档（对外使用手册）和 `cli-analysis/Agentbay cli 使用手册.md` 需同步更新
@@ -639,6 +696,8 @@ assert.Equal(t, "y", yesFlag.Shorthand)
 - [ ] mock 类已同步更新（如有接口变更）
 - [ ] `go build -o agentbay .` 构建出可执行二进制并通过
 - [ ] `go test ./... -count=1` 全部通过
+- [ ] commit message 符合 Conventional Commits，确保 release-prep 可正确生成 CHANGELOG
+- [ ] 如本次任务包含发版：已执行 `bilingual-changelog-release` skill，`CHANGELOG.md` 无 `TRANSLATE_ME` / `中文翻译待补充` 残留
 - [ ] `update-cli-command-docs` skill 已执行（或已完成等效的手动文档同步）
 
 ---
