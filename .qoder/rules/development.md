@@ -247,6 +247,31 @@ func runXxxList(cmd *cobra.Command, args []string) error {
 
 ## 💻 Go 代码规范
 
+### ⚠️ OpenAPI 接口请求头规范（重要！）
+
+**规则**：所有 OpenAPI 接口请求**必须**在 `Headers` 中显式设置 `Accept: application/json`，禁止使用 `application/xml` 或省略该头。
+
+**标准写法**：
+
+```go
+req := &openapiutil.OpenApiRequest{
+    Query: openapiutil.Query(query),  // 或 Body 字段
+    Headers: map[string]*string{
+        "Accept": dara.String("application/json"),
+    },
+}
+```
+
+**背景**：`DescribeMarketSkillDetail` 接口历史上曾使用 `application/xml`（因服务端响应格式不稳定），现已统一改为 `application/json`。`dual_format_responses.go` 中的双格式 parser 仍保留 XML 分支作为容错兜底，但请求头统一为 JSON。
+
+**检查清单**：
+
+- [ ] 新增接口时，`Headers` 中设置 `"Accept": dara.String("application/json")`
+- [ ] 禁止设置 `Accept: application/xml`
+- [ ] 新增接口后，用 `grep -n 'application/xml' internal/client/` 确认无遗漏
+
+---
+
 ### ⚠️ 接口变更必须同步更新 Mock（重要！）
 
 **规则**: 当给接口（interface）添加新方法时，**必须立即更新所有实现该接口的 mock 类**！

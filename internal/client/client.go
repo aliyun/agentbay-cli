@@ -849,7 +849,7 @@ func (client *Client) DescribeMarketSkillDetailWithOptions(request *DescribeMark
 	req := &openapiutil.OpenApiRequest{
 		Query: openapiutil.Query(query),
 		Headers: map[string]*string{
-			"Accept": dara.String("application/xml"),
+			"Accept": dara.String("application/json"),
 		},
 	}
 	params := &openapiutil.Params{
