@@ -73,10 +73,24 @@ make changelog-install
 默认使用方式 A（AI 对话翻译）：
 
 1. 读取 `CHANGELOG.md` 顶部目标版本段。
-2. 将 `### English` 下的分类与条目翻译到 `### 中文` 下。
+2. 将 `### English` 下的分类与条目翻译到 `### 中文` 下；中文段的分类标题必须使用中文，不得保留 `Bug Fixes` / `Documentation` 等英文标题。
 3. 删除 `TRANSLATE_ME` 注释。
 4. 如条目过细，可在不丢语义的前提下做粗粒度聚合。
-5. 如需要 Highlights，在版本标题下添加 2-3 条用户视角亮点。
+5. 对 CLI 命令相关条目，优先按命令组归类（如 `apikey`、`image`、`docker`、`skills`、`network`、`core/auth`）；无法归入命令组或属于全局能力 / 基础设施 / 发版流程的改动，可归为“全局”“安全合规”“RAM 权限”等用户可理解的主题。
+6. 如需要 Highlights，在版本标题下添加 2-3 条用户视角亮点。
+
+中文分类标题建议：
+
+| 英文分类           | 中文分类     |
+| ------------------ | ------------ |
+| `Breaking Changes` | `不兼容变更` |
+| `Features`         | `功能`       |
+| `Bug Fixes`        | `缺陷修复`   |
+| `Performance`      | `性能优化`   |
+| `Refactoring`      | `重构`       |
+| `Documentation`    | `文档`       |
+| `Security`         | `安全`       |
+| `Other Changes`    | `其他变更`   |
 
 术语约束：
 
@@ -136,23 +150,115 @@ tag push 后，检查 `.github/workflows/homebrew.yml`：
 
 ### Phase 6：已发布 Release 说明修订 / 历史回灌
 
-若 release 已发布后要修订说明：
+若 release 已发布后要修订说明（包括统一整理历史 CHANGELOG）：
 
-1. 先编辑 `CHANGELOG.md` 对应版本段。
-2. 经用户授权后提交并推送 `CHANGELOG.md`。
-3. 预览回灌：
+1. 先编辑 `CHANGELOG.md` 对应版本段；历史版本也必须保持双语结构，即每个版本包含 `### English` 与 `### 中文`，不得为了回灌只保留中文段。
+2. 注意：仅修改并提交 `CHANGELOG.md` **不会自动更新 GitHub 上已存在的 Release body**；必须在变更推送到 GitHub 后执行 backfill，才能让历史 Release 说明同步。
+3. 经用户授权后提交并推送 `CHANGELOG.md`。
+4. 若本次同时准备新版本（如 `vX.Y.Z`）和历史回灌，推荐顺序是：先推送包含 CHANGELOG 的代码 → 先完成新版本 Release / tag workflow → 确认新 Release 正常 → 再对历史 Release 执行 backfill dry-run → 最后正式 backfill。
+5. 预览单版本回灌：
 
 ```bash
 bash scripts/backfill-release-notes.sh --dry-run --tag vX.Y.Z
 ```
 
-4. 用户确认后执行：
+6. 用户确认后执行单版本回灌：
 
 ```bash
 bash scripts/backfill-release-notes.sh --tag vX.Y.Z
 ```
 
-全量历史回灌必须先 `--dry-run`，再经用户确认后执行无参数脚本。
+全量历史回灌必须先执行 `bash scripts/backfill-release-notes.sh --dry-run` 预览，再经用户确认后执行 `bash scripts/backfill-release-notes.sh` 无参数脚本；不得在未预览和未授权的情况下直接调用 `gh release edit`。
+
+## 🧾 常用命令速查
+
+> 复制前把 `X.Y.Z` / `vX.Y.Z` 替换成真实版本号。所有 `git add` / `git commit` / `git tag` / `git push` / `gh release edit` 相关动作都必须在用户明确授权后执行。
+
+### 1. 生成新版本 CHANGELOG 骨架
+
+```bash
+make release-prep VERSION=X.Y.Z
+```
+
+### 2. 验证目标版本段可用于 GitHub Release
+
+```bash
+grep -nE 'TRANSLATE_ME|中文翻译待补充' CHANGELOG.md
+bash scripts/extract-changelog-section.sh X.Y.Z CHANGELOG.md >/tmp/release-notes.md
+test -s /tmp/release-notes.md
+```
+
+期望结果：第一条无输出；后两条成功退出。
+
+### 3. 提交 CHANGELOG（不打 tag）
+
+适用于“先在功能分支准备 CHANGELOG，后续合入发布主线再发版”的场景。
+
+```bash
+git add CHANGELOG.md
+git commit -m "docs: changelog for vX.Y.Z"
+```
+
+### 4. 标准发布提交 + tag + push
+
+适用于已在发布主线、准备触发 GitHub Release workflow 的场景。
+
+```bash
+git add CHANGELOG.md
+git commit -m "docs: changelog for vX.Y.Z"
+git tag vX.Y.Z
+git push origin master vX.Y.Z
+```
+
+如发布远程不是 `origin` 或发布分支不是 `master`，必须先确认远程名和分支名，不得猜测。
+
+### 5. 已发布版本：预览单版本回灌
+
+```bash
+bash scripts/backfill-release-notes.sh --dry-run --tag vX.Y.Z
+```
+
+### 6. 已发布版本：正式单版本回灌
+
+```bash
+bash scripts/backfill-release-notes.sh --tag vX.Y.Z
+```
+
+### 7. 历史 Release：预览全量回灌
+
+```bash
+bash scripts/backfill-release-notes.sh --dry-run
+```
+
+### 8. 历史 Release：正式全量回灌
+
+```bash
+bash scripts/backfill-release-notes.sh
+```
+
+### 9. 推荐顺序：新版本 + 历史回灌同批处理
+
+```bash
+# 1. 推送包含 CHANGELOG.md 的代码到 GitHub 发布分支
+# 2. 先完成新版本 Release / tag workflow，并确认新 Release 正常
+# 3. 再预览历史回灌
+bash scripts/backfill-release-notes.sh --dry-run
+
+# 4. 人工确认 dry-run 输出无误后，再正式全量回灌
+bash scripts/backfill-release-notes.sh
+```
+
+### 10. 检查 gh 登录状态
+
+```bash
+gh auth status
+```
+
+如果未登录，先执行：
+
+```bash
+gh auth login
+```
 
 ## ✅ 输出标准
 

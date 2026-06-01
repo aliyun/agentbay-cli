@@ -169,7 +169,7 @@ feat(apikey): add concurrency management command
    make release-prep VERSION=X.Y.Z
    ```
 
-3. 翻译 `CHANGELOG.md` 顶部 `## [X.Y.Z]` 版本段中的 `### English` 内容到 `### 中文`，删除 `TRANSLATE_ME` 占位。
+3. 翻译 `CHANGELOG.md` 顶部 `## [X.Y.Z]` 版本段中的 `### English` 内容到 `### 中文`，删除 `TRANSLATE_ME` 占位；中文段分类标题必须使用中文，不得保留 `Bug Fixes` / `Documentation` 等英文标题。
 4. 验证：
 
    ```bash
@@ -180,7 +180,14 @@ feat(apikey): add concurrency management command
    第一条应无输出，第二条应成功且输出非空。
 
 5. 用户明确授权后再提交、打 tag、push。
-6. 如需修订已发布 Release：先改 `CHANGELOG.md`，再用 `scripts/backfill-release-notes.sh --dry-run --tag vX.Y.Z` 预览，确认后回灌。
+6. 如需修订已发布 Release 或统一整理历史 CHANGELOG：先改 `CHANGELOG.md`，历史版本也必须保留 `### English` 与 `### 中文` 双语结构；注意这不会自动更新 GitHub 上已存在的 Release body。若同时准备新版本和历史回灌，先完成新版本 Release，再用 `scripts/backfill-release-notes.sh --dry-run` 预览历史回灌内容，确认后再执行正式回灌。
+
+### 中文段组织规则
+
+- 中文分类标题必须翻译：`Features` → `功能`，`Bug Fixes` → `缺陷修复`，`Documentation` → `文档`，`Refactoring` → `重构`，`Performance` → `性能优化`，`Security` → `安全`，`Breaking Changes` → `不兼容变更`。
+- 对 CLI 命令相关条目，优先按命令组归类（如 `apikey`、`image`、`docker`、`skills`、`network`、`core/auth`），并用加粗前缀呈现：`**skills**：...`。
+- 无法归入具体命令组或属于全局能力 / 基础设施 / 发版流程的改动，可归为“全局”“安全合规”“RAM 权限”等用户可理解的主题。
+- 允许在中文段做粗粒度聚合，但不得丢失用户可感知的功能、缺陷修复或重要文档变更。
 
 ### 翻译术语
 
