@@ -9,6 +9,82 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
 
 ---
 
+## `apikey` Command Group
+
+| OpenAPI Action              | Required Permission                 | Used By                                                                                                                                                       |
+| --------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CreateApiKey`              | `agentbay:CreateApiKey`             | `apikey create`                                                                                                                                               |
+| `DescribeApiKeys`           | `agentbay:DescribeApiKeys`          | `apikey list`, `apikey delete` (when `--api-key-id` is used)                                                                                                   |
+| `DescribeMcpApiKey`         | `agentbay:DescribeMcpApiKey`        | `apikey list`, `apikey delete`, `apikey enable`, `apikey disable`, `apikey concurrency set` (when `--api-key` is used)                                        |
+| `ModifyMcpApiKeyConfig`     | `agentbay:ModifyMcpApiKeyConfig`    | `apikey concurrency set`                                                                                                                                      |
+| `ModifyApiKeyStatus`        | `agentbay:ModifyApiKeyStatus`       | `apikey enable`, `apikey disable`, `apikey delete` (when deleting an ENABLED API key, the command disables it first)                                           |
+| `DeleteApiKey`              | `agentbay:DeleteApiKey`             | `apikey delete`                                                                                                                                               |
+| `DescribeKeyContent`        | `agentbay:DescribeKeyContent`       | `apikey describe-key-content`                                                                                                                                 |
+
+**RAM Policy example:**
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "agentbay:CreateApiKey",
+        "agentbay:DescribeApiKeys",
+        "agentbay:DescribeMcpApiKey",
+        "agentbay:ModifyMcpApiKeyConfig",
+        "agentbay:ModifyApiKeyStatus",
+        "agentbay:DeleteApiKey",
+        "agentbay:DescribeKeyContent"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+---
+
+## `core` Command Group
+
+`login`, `logout`, and `version` do not call AgentBay OpenAPI directly. No additional RAM permissions are required.
+
+---
+
+## `docker` Command Group
+
+| OpenAPI Action          | Required Permission              | Used By              |
+| ----------------------- | -------------------------------- | -------------------- |
+| `GetACRRepoCredential`  | `agentbay:GetACRRepoCredential`  | `docker login`       |
+| `ShareDockerRepo`       | `agentbay:ShareDockerRepo`       | `docker share`       |
+| `UnshareDockerRepo`     | `agentbay:UnshareDockerRepo`     | `docker unshare`     |
+| `ListSharedDockerRepos` | `agentbay:ListSharedDockerRepos` | `docker list-shares` |
+
+**RAM Policy example:**
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "agentbay:GetACRRepoCredential",
+        "agentbay:ShareDockerRepo",
+        "agentbay:UnshareDockerRepo",
+        "agentbay:ListSharedDockerRepos"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+> `docker tag` and `docker push` are wrappers around the native `docker` CLI and do not call any AgentBay API directly. No additional RAM permissions are required.
+
+---
+
 ## `image` Command Group
 
 | OpenAPI Action                                | Required Permission                                    | Used By                                                                                                       |
@@ -70,14 +146,11 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
 
 ---
 
-## `docker` Command Group
+## `network` Command Group
 
-| OpenAPI Action          | Required Permission              | Used By              |
-| ----------------------- | -------------------------------- | -------------------- |
-| `GetACRRepoCredential`  | `agentbay:GetACRRepoCredential`  | `docker login`       |
-| `ShareDockerRepo`       | `agentbay:ShareDockerRepo`       | `docker share`       |
-| `UnshareDockerRepo`     | `agentbay:UnshareDockerRepo`     | `docker unshare`     |
-| `ListSharedDockerRepos` | `agentbay:ListSharedDockerRepos` | `docker list-shares` |
+| OpenAPI Action              | Required Permission                 | Used By                |
+| --------------------------- | ----------------------------------- | ---------------------- |
+| `DescribeNetworkPackages`   | `agentbay:DescribeNetworkPackages`  | `network package list` |
 
 **RAM Policy example:**
 
@@ -88,10 +161,7 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
     {
       "Effect": "Allow",
       "Action": [
-        "agentbay:GetACRRepoCredential",
-        "agentbay:ShareDockerRepo",
-        "agentbay:UnshareDockerRepo",
-        "agentbay:ListSharedDockerRepos"
+        "agentbay:DescribeNetworkPackages"
       ],
       "Resource": "*"
     }
@@ -99,4 +169,41 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
 }
 ```
 
-> `docker tag` and `docker push` are wrappers around the native `docker` CLI and do not call any AgentBay API directly. No additional RAM permissions are required.
+---
+
+## `skills` Command Group
+
+| OpenAPI Action                 | Required Permission                    | Used By                                           |
+| ------------------------------ | -------------------------------------- | ------------------------------------------------- |
+| `ListTag`                      | `agentbay:ListTag`                     | `skills push`, `skills update` (when `--tag` is provided) |
+| `CreateTag`                    | `agentbay:CreateTag`                   | `skills push`, `skills update` (when new tags are provided) |
+| `GetMarketSkillCredential`     | `agentbay:GetMarketSkillCredential`    | `skills push`, `skills update` (`skills update` requires `--file`) |
+| `CreateMarketSkill`            | `agentbay:CreateMarketSkill`           | `skills push`                                     |
+| `UpdateMarketSkill`            | `agentbay:UpdateMarketSkill`           | `skills update`                                   |
+| `ListMarketSkillByPage`        | `agentbay:ListMarketSkillByPage`       | `skills list`                                     |
+| `DescribeMarketSkillDetail`    | `agentbay:DescribeMarketSkillDetail`   | `skills show`, `skills delete` (when `--yes` is not provided) |
+| `DeleteMarketSkill`            | `agentbay:DeleteMarketSkill`           | `skills delete`                                   |
+
+**RAM Policy example:**
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "agentbay:ListTag",
+        "agentbay:CreateTag",
+        "agentbay:GetMarketSkillCredential",
+        "agentbay:CreateMarketSkill",
+        "agentbay:UpdateMarketSkill",
+        "agentbay:ListMarketSkillByPage",
+        "agentbay:DescribeMarketSkillDetail",
+        "agentbay:DeleteMarketSkill"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```

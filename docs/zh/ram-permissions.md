@@ -9,6 +9,82 @@
 
 ---
 
+## `apikey` 命令分组
+
+| OpenAPI Action              | 所需权限                             | 调用命令                                                                                                                                           |
+| --------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CreateApiKey`              | `agentbay:CreateApiKey`              | `apikey create`                                                                                                                                    |
+| `DescribeApiKeys`           | `agentbay:DescribeApiKeys`           | `apikey list`、`apikey delete`（使用 `--api-key-id` 时）                                                                                            |
+| `DescribeMcpApiKey`         | `agentbay:DescribeMcpApiKey`         | `apikey list`、`apikey delete`、`apikey enable`、`apikey disable`、`apikey concurrency set`（使用 `--api-key` 时）                                  |
+| `ModifyMcpApiKeyConfig`     | `agentbay:ModifyMcpApiKeyConfig`     | `apikey concurrency set`                                                                                                                           |
+| `ModifyApiKeyStatus`        | `agentbay:ModifyApiKeyStatus`        | `apikey enable`、`apikey disable`、`apikey delete`（删除 ENABLED 状态 API Key 时会先禁用）                                                          |
+| `DeleteApiKey`              | `agentbay:DeleteApiKey`              | `apikey delete`                                                                                                                                    |
+| `DescribeKeyContent`        | `agentbay:DescribeKeyContent`        | `apikey describe-key-content`                                                                                                                      |
+
+**RAM Policy 示例：**
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "agentbay:CreateApiKey",
+        "agentbay:DescribeApiKeys",
+        "agentbay:DescribeMcpApiKey",
+        "agentbay:ModifyMcpApiKeyConfig",
+        "agentbay:ModifyApiKeyStatus",
+        "agentbay:DeleteApiKey",
+        "agentbay:DescribeKeyContent"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+---
+
+## `core` 命令分组
+
+`login`、`logout` 和 `version` 不直接调用 AgentBay OpenAPI 接口，无需配置额外的 RAM 权限。
+
+---
+
+## `docker` 命令分组
+
+| OpenAPI Action          | 所需权限                         | 调用命令             |
+| ----------------------- | -------------------------------- | -------------------- |
+| `GetACRRepoCredential`  | `agentbay:GetACRRepoCredential`  | `docker login`       |
+| `ShareDockerRepo`       | `agentbay:ShareDockerRepo`       | `docker share`       |
+| `UnshareDockerRepo`     | `agentbay:UnshareDockerRepo`     | `docker unshare`     |
+| `ListSharedDockerRepos` | `agentbay:ListSharedDockerRepos` | `docker list-shares` |
+
+**RAM Policy 示例：**
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "agentbay:GetACRRepoCredential",
+        "agentbay:ShareDockerRepo",
+        "agentbay:UnshareDockerRepo",
+        "agentbay:ListSharedDockerRepos"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+> `docker tag` 和 `docker push` 是对原生 `docker` CLI 的封装，不直接调用任何 AgentBay API，无需额外 RAM 权限。
+
+---
+
 ## `image` 命令分组
 
 | OpenAPI Action                                | 所需权限                                               | 调用命令                                                                                                      |
@@ -70,14 +146,11 @@
 
 ---
 
-## `docker` 命令分组
+## `network` 命令分组
 
-| OpenAPI Action          | 所需权限                         | 调用命令             |
-| ----------------------- | -------------------------------- | -------------------- |
-| `GetACRRepoCredential`  | `agentbay:GetACRRepoCredential`  | `docker login`       |
-| `ShareDockerRepo`       | `agentbay:ShareDockerRepo`       | `docker share`       |
-| `UnshareDockerRepo`     | `agentbay:UnshareDockerRepo`     | `docker unshare`     |
-| `ListSharedDockerRepos` | `agentbay:ListSharedDockerRepos` | `docker list-shares` |
+| OpenAPI Action              | 所需权限                             | 调用命令               |
+| --------------------------- | ------------------------------------ | ---------------------- |
+| `DescribeNetworkPackages`   | `agentbay:DescribeNetworkPackages`   | `network package list` |
 
 **RAM Policy 示例：**
 
@@ -88,10 +161,7 @@
     {
       "Effect": "Allow",
       "Action": [
-        "agentbay:GetACRRepoCredential",
-        "agentbay:ShareDockerRepo",
-        "agentbay:UnshareDockerRepo",
-        "agentbay:ListSharedDockerRepos"
+        "agentbay:DescribeNetworkPackages"
       ],
       "Resource": "*"
     }
@@ -99,4 +169,41 @@
 }
 ```
 
-> `docker tag` 和 `docker push` 是对原生 `docker` CLI 的封装，不直接调用任何 AgentBay API，无需额外 RAM 权限。
+---
+
+## `skills` 命令分组
+
+| OpenAPI Action                 | 所需权限                                | 调用命令                                      |
+| ------------------------------ | --------------------------------------- | --------------------------------------------- |
+| `ListTag`                      | `agentbay:ListTag`                      | `skills push`、`skills update`（提供 `--tag` 时） |
+| `CreateTag`                    | `agentbay:CreateTag`                    | `skills push`、`skills update`（提供新标签时）     |
+| `GetMarketSkillCredential`     | `agentbay:GetMarketSkillCredential`     | `skills push`、`skills update`（`skills update` 需提供 `--file`） |
+| `CreateMarketSkill`            | `agentbay:CreateMarketSkill`            | `skills push`                                  |
+| `UpdateMarketSkill`            | `agentbay:UpdateMarketSkill`            | `skills update`                                |
+| `ListMarketSkillByPage`        | `agentbay:ListMarketSkillByPage`        | `skills list`                                  |
+| `DescribeMarketSkillDetail`    | `agentbay:DescribeMarketSkillDetail`    | `skills show`、`skills delete`（未提供 `--yes` 时） |
+| `DeleteMarketSkill`            | `agentbay:DeleteMarketSkill`            | `skills delete`                                |
+
+**RAM Policy 示例：**
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "agentbay:ListTag",
+        "agentbay:CreateTag",
+        "agentbay:GetMarketSkillCredential",
+        "agentbay:CreateMarketSkill",
+        "agentbay:UpdateMarketSkill",
+        "agentbay:ListMarketSkillByPage",
+        "agentbay:DescribeMarketSkillDetail",
+        "agentbay:DeleteMarketSkill"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
