@@ -11,57 +11,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### 🚀 Features
 
 - **skills**
-  - Add FileUrl field display to skills show command ([09c2914](https://github.com/aliyun/agentbay-cli/commit/09c2914505ff51de839441f1eb323859da1f0049))
-  - Add TenantTags display to skills show command ([8efaf9b](https://github.com/aliyun/agentbay-cli/commit/8efaf9ba0160a3a550099221ee031086abb0cb04))
-  - Add --tag flag to skills push command ([47c2ce4](https://github.com/aliyun/agentbay-cli/commit/47c2ce4cfe25bf992668be467386bc017a04b408))
-  - Add skills update command and skills push --icon support ([cb30097](https://github.com/aliyun/agentbay-cli/commit/cb3009725d2441c2d46b773014e3baa28b4451ec))
-  - Add --output json support to skills list command ([d15ae5f](https://github.com/aliyun/agentbay-cli/commit/d15ae5f991477a7b6f6d4150fd23660894984f08))
-  - Add skills delete command ([94c558f](https://github.com/aliyun/agentbay-cli/commit/94c558f0fb73de0082824b9834b646949f56b5e5))
-  - Add skills-tester agent and pagination test rules ([4d53866](https://github.com/aliyun/agentbay-cli/commit/4d538664c183b5bb1c91b93d62335b385756b2cb))
-  - Support positional argument for skills delete command ([d147f9c](https://github.com/aliyun/agentbay-cli/commit/d147f9c896f3e0211856f3d019ef4eae93c58857))
-  - Add --clear-tags flag to skills update command ([9f3bdf9](https://github.com/aliyun/agentbay-cli/commit/9f3bdf9aeaf238395c4582d9539f678fd8f83a63))
-  - Enhance skills list with terminal adaptation and JSON output ([5e1075a](https://github.com/aliyun/agentbay-cli/commit/5e1075a05f104e1ca7fbc491dc33ca6c8a4c775d))
+  - `skills show`: Display FileUrl and TenantTags fields ([09c2914](https://github.com/aliyun/agentbay-cli/commit/09c2914505ff51de839441f1eb323859da1f0049), [8efaf9b](https://github.com/aliyun/agentbay-cli/commit/8efaf9ba0160a3a550099221ee031086abb0cb04))
+  - `skills push`: Support `--tag` and `--icon` flags ([47c2ce4](https://github.com/aliyun/agentbay-cli/commit/47c2ce4cfe25bf992668be467386bc017a04b408), [cb30097](https://github.com/aliyun/agentbay-cli/commit/cb3009725d2441c2d46b773014e3baa28b4451ec))
+  - `skills list`: Support `--output json` and improve terminal-adaptive display ([d15ae5f](https://github.com/aliyun/agentbay-cli/commit/d15ae5f991477a7b6f6d4150fd23660894984f08), [5e1075a](https://github.com/aliyun/agentbay-cli/commit/5e1075a05f104e1ca7fbc491dc33ca6c8a4c775d))
+  - `skills update`: Add command and support `--clear-tags` flag ([cb30097](https://github.com/aliyun/agentbay-cli/commit/cb3009725d2441c2d46b773014e3baa28b4451ec), [9f3bdf9](https://github.com/aliyun/agentbay-cli/commit/9f3bdf9aeaf238395c4582d9539f678fd8f83a63))
+  - `skills delete`: Add command and support positional argument ([94c558f](https://github.com/aliyun/agentbay-cli/commit/94c558f0fb73de0082824b9834b646949f56b5e5), [d147f9c](https://github.com/aliyun/agentbay-cli/commit/d147f9c896f3e0211856f3d019ef4eae93c58857))
 - **image**
-  - Support short source-image path in image create-from-template ([5e1075a](https://github.com/aliyun/agentbay-cli/commit/5e1075a05f104e1ca7fbc491dc33ca6c8a4c775d))
-  - Add --output json support and terminal-adaptive table to image list ([f751e5c](https://github.com/aliyun/agentbay-cli/commit/f751e5c7151cb41ad766d5cca93b389b8431b0b4))
-- **apikey**: Add --output json support to apikey list command ([d15ae5f](https://github.com/aliyun/agentbay-cli/commit/d15ae5f991477a7b6f6d4150fd23660894984f08))
+  - `image create-from-template`: Support short source-image path ([5e1075a](https://github.com/aliyun/agentbay-cli/commit/5e1075a05f104e1ca7fbc491dc33ca6c8a4c775d))
+  - `image list`: Support `--output json` and improve terminal-adaptive table display ([f751e5c](https://github.com/aliyun/agentbay-cli/commit/f751e5c7151cb41ad766d5cca93b389b8431b0b4))
+- **apikey**: `apikey list` supports `--output json` for structured script and AI consumption ([d15ae5f](https://github.com/aliyun/agentbay-cli/commit/d15ae5f991477a7b6f6d4150fd23660894984f08))
 - **docker**
-  - Add docker repo share/unshare/list commands and related docs, RAM permissions guide ([bf8cdf5](https://github.com/aliyun/agentbay-cli/commit/bf8cdf5e2c9ce16ac6ff72cfe2a3162124d7153b))
-  - Add docker shared repos list command with --output json support ([639234d](https://github.com/aliyun/agentbay-cli/commit/639234d4c9d236642143608e84bf697589cded0b))
-- **release**: Add bilingual changelog workflow ([3373cce](https://github.com/aliyun/agentbay-cli/commit/3373cceecd4c39fd2606057531615e6b9643851d))
+  - `docker repo share/unshare/list`: Add repository sharing, unsharing, and listing commands with RAM permission guidance ([bf8cdf5](https://github.com/aliyun/agentbay-cli/commit/bf8cdf5e2c9ce16ac6ff72cfe2a3162124d7153b))
+  - `docker shared repos list`: Support `--output json` ([639234d](https://github.com/aliyun/agentbay-cli/commit/639234d4c9d236642143608e84bf697589cded0b))
+- **global**
+  - Add skills-tester agent and pagination test rules ([4d53866](https://github.com/aliyun/agentbay-cli/commit/4d538664c183b5bb1c91b93d62335b385756b2cb))
+  - Add bilingual CHANGELOG release workflow ([3373cce](https://github.com/aliyun/agentbay-cli/commit/3373cceecd4c39fd2606057531615e6b9643851d))
 
 #### 🐞 Bug Fixes
 
-- **core/auth**
-  - Reject RAM identities during OAuth login ([e4453de](https://github.com/aliyun/agentbay-cli/commit/e4453de6190d7a505b5b089f137cf96a68aad500))
-  - Improve RAM OAuth login guidance ([063ebca](https://github.com/aliyun/agentbay-cli/commit/063ebcadfedf8995b536c2ca2a155986a6805e55))
-- **skills**: Use json accept header for market skill detail ([ab9aac9](https://github.com/aliyun/agentbay-cli/commit/ab9aac9f96283a5fa339cddd55344185f076d7c5))
+- **core/auth**: Reject RAM identities during OAuth login and improve RAM OAuth login guidance ([e4453de](https://github.com/aliyun/agentbay-cli/commit/e4453de6190d7a505b5b089f137cf96a68aad500), [063ebca](https://github.com/aliyun/agentbay-cli/commit/063ebcadfedf8995b536c2ca2a155986a6805e55))
+- **skills**: Use JSON Accept request header for Market skill detail API to improve response parsing stability ([ab9aac9](https://github.com/aliyun/agentbay-cli/commit/ab9aac9f96283a5fa339cddd55344185f076d7c5))
 
 #### 📖 Documentation
 
-- **global**
-  - Restructure README.md and README.zh-CN.md for clarity and completeness ([59789cb](https://github.com/aliyun/agentbay-cli/commit/59789cb601e58be13b47f9cd247b0dce335db45d))
-  - Mask AliUID in docs and add sensitive info redaction rule ([9604e55](https://github.com/aliyun/agentbay-cli/commit/9604e550c2c8c4bf91591c01a4a46b8048eb21ed))
-- **image**
-  - Update image workflow docs in zh and en ([76989e1](https://github.com/aliyun/agentbay-cli/commit/76989e106810dc39f4fd146c346a41104d032051))
-  - Update image workflow guide ([f8ec1e3](https://github.com/aliyun/agentbay-cli/commit/f8ec1e3d80d66bbe95a8259ccdc27dd811786995))
-- **RAM permissions**
-  - Update RAM permissions guidance ([96ce1bb](https://github.com/aliyun/agentbay-cli/commit/96ce1bb061c978ebcaa4ad519ee4420366d2c312))
-  - Organize RAM permissions sections ([c400cf0](https://github.com/aliyun/agentbay-cli/commit/c400cf00dda2f4860f63641f69c1b7569b60f83f))
+- **global**: Restructure README.md and README.zh-CN.md for clarity and completeness ([59789cb](https://github.com/aliyun/agentbay-cli/commit/59789cb601e58be13b47f9cd247b0dce335db45d))
+- **security/compliance**: Mask AliUID in docs and add sensitive info redaction rule ([9604e55](https://github.com/aliyun/agentbay-cli/commit/9604e550c2c8c4bf91591c01a4a46b8048eb21ed))
+- **image**: Update image workflow bilingual docs and usage guide ([76989e1](https://github.com/aliyun/agentbay-cli/commit/76989e106810dc39f4fd146c346a41104d032051), [f8ec1e3](https://github.com/aliyun/agentbay-cli/commit/f8ec1e3d80d66bbe95a8259ccdc27dd811786995))
+- **RAM permissions**: Update RAM permissions guidance and organize RAM permissions sections ([96ce1bb](https://github.com/aliyun/agentbay-cli/commit/96ce1bb061c978ebcaa4ad519ee4420366d2c312), [c400cf0](https://github.com/aliyun/agentbay-cli/commit/c400cf00dda2f4860f63641f69c1b7569b60f83f))
 
 ### 中文
 
 #### 🚀 功能
 
 - **skills**
-  - `skills show`：新增 FileUrl 与 TenantTags 字段展示
+  - `skills show`：展示 FileUrl 与 TenantTags 字段
   - `skills push`：支持 `--tag` 与 `--icon` 参数
   - `skills list`：支持 `--output json`，优化终端自适应展示
   - `skills update`：新增命令，支持 `--clear-tags` 参数
   - `skills delete`：新增命令，支持位置参数
 - **image**
   - `image create-from-template`：支持短 source-image 路径
-  - `image list`：新增 `--output json`，优化终端自适应表格展示
+  - `image list`：支持 `--output json`，优化终端自适应表格展示
 - **apikey**：`apikey list` 支持 `--output json`，便于脚本和 AI 场景读取结构化结果
 - **docker**
   - `docker repo share/unshare/list`：新增仓库分享、取消分享、列表命令，并补充 RAM 权限说明
@@ -72,15 +62,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🐞 缺陷修复
 
-- **core/auth**：OAuth 登录拒绝 RAM 身份，并优化 RAM OAuth 登录引导。
-- **skills**：Market skill detail 接口统一使用 JSON Accept 请求头，提升响应解析稳定性。
+- **core/auth**：OAuth 登录拒绝 RAM 身份，并优化 RAM OAuth 登录引导
+- **skills**：Market skill detail 接口统一使用 JSON Accept 请求头，提升响应解析稳定性
 
 #### 📖 文档
 
-- **全局**：重构 README.md 与 README.zh-CN.md，提升结构清晰度和完整性。
-- **安全合规**：对文档中的 AliUID 做脱敏处理，并补充敏感信息脱敏规则。
-- **image**：更新 image workflow 中英文文档和使用指南。
-- **RAM 权限**：更新 RAM 权限说明，并整理 RAM permissions 章节。
+- **全局**：重构 README.md 与 README.zh-CN.md，提升结构清晰度和完整性
+- **安全合规**：对文档中的 AliUID 做脱敏处理，并补充敏感信息脱敏规则
+- **image**：更新 image workflow 中英文文档和使用指南
+- **RAM 权限**：更新 RAM 权限说明，并整理 RAM permissions 章节
 
 ---
 
@@ -93,22 +83,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### 🚀 Features
 
 - **apikey**
-  - Enhance apikey commands with --api-key-id param
-  - Add 'apikey describe-key-content' command
+  - Support `--api-key-id` parameter for related commands
+  - Add `apikey describe-key-content` command
 
 #### 📖 Documentation
 
 - **global**
-  - Reorganize documentation into en/zh structure
-  - Fix bilingual switch links and add docs governance spec
-  - Update CHANGELOG.md for v0.2.10
-  - Backfill Chinese translations for all historical CHANGELOG versions
-- **core/auth**: Soften 'agentbay login' wording from deprecated to not recommended
-- **docker/image**: Enrich docker login & image create-from-template usage notes
-- **apikey/RAM permissions**
-  - Add RAM permission requirements for apikey commands
-  - Extend RAM permission docs to all command groups
-- **installation**: Add update and uninstall instructions to install guides
+  - Reorganize documentation into en/zh bilingual structure
+  - Fix bilingual switch links and add documentation governance spec
+- **core/auth**: Change `agentbay login` wording from “deprecated” to “not recommended” to reduce misleading guidance
+- **docker/image**: Enrich docker login and `image create-from-template` usage notes
+- **apikey/RAM permissions**: Add RAM permission requirements for apikey commands and extend RAM permission docs to all command groups
+- **release**
+  - Backfill Chinese translations for historical CHANGELOG versions
+  - Add update and uninstall instructions to installation docs
 
 ### 中文
 
@@ -123,9 +111,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **全局**
   - 将文档重组为 en/zh 双语结构
   - 修复双语切换链接，补充文档治理规范
-- **core/auth**：将 `agentbay login` 文案从“已废弃”调整为“不推荐”，弱化误导性表达。
-- **docker/image**：补充 docker login 与 `image create-from-template` 使用说明。
-- **apikey/RAM 权限**：补充 apikey 命令 RAM 权限要求，并扩展到所有命令组。
+- **core/auth**：将 `agentbay login` 文案从“已废弃”调整为“不推荐”，弱化误导性表达
+- **docker/image**：补充 docker login 与 `image create-from-template` 使用说明
+- **apikey/RAM 权限**：补充 apikey 命令 RAM 权限要求，并扩展到所有命令组
 - **发版**
   - 回填历史 CHANGELOG 中文翻译
   - 补充安装文档中的更新与卸载说明
@@ -138,35 +126,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🚀 Features
 
-- **apikey**: Support positional arg for apikey create and improve auth error hint
-- **image**: Add AvailableInstanceSize field to warmup-status image output
+- **apikey**: `apikey create` supports positional argument and improves auth error hint
+- **image**: `image warmup-status` output adds AvailableInstanceSize field
 
 #### 📖 Documentation
 
-- **release**: Update CHANGELOG.md for v0.2.9
-- **image**: Add image warmup-status command to README (EN & CN)
-- **core**: Refine Quick Start to focus on API Key lifecycle with list step
+- **release**: Update v0.2.9 CHANGELOG
+- **image**: Add `image warmup-status` command to English and Chinese README
+- **core**: Refine Quick Start to focus on API Key lifecycle and add list step
 
 #### 🛠 Refactoring
 
-- **core/auth**: Replace OAuth login hints with AK/SK env var guidance
+- **core/auth**: Replace OAuth login hints with AK/SK environment variable guidance
 
 ### 中文
 
 #### 🚀 功能
 
-- **apikey**：`apikey create` 支持位置参数，并优化认证错误提示。
-- **image**：`image warmup-status` 输出新增 AvailableInstanceSize 字段。
+- **apikey**：`apikey create` 支持位置参数，并优化认证错误提示
+- **image**：`image warmup-status` 输出新增 AvailableInstanceSize 字段
 
 #### 📖 文档
 
-- **发版**：更新 v0.2.9 CHANGELOG。
-- **image**：在中英文 README 中补充 `image warmup-status` 命令。
-- **core**：重构 Quick Start，使其聚焦 API Key 生命周期并加入 list 步骤。
+- **发版**：更新 v0.2.9 CHANGELOG
+- **image**：在中英文 README 中补充 `image warmup-status` 命令
+- **core**：重构 Quick Start，使其聚焦 API Key 生命周期并加入 list 步骤
 
 #### 🛠 重构
 
-- **core/auth**：将 OAuth 登录提示替换为 AK/SK 环境变量指引。
+- **core/auth**：将 OAuth 登录提示替换为 AK/SK 环境变量指引
 
 ---
 
@@ -177,21 +165,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### 🚀 Features
 
 - **apikey**
-  - Add apikey enable/disable commands
-  - Add apikey delete command with robust success check
-  - Support --api-key for apikey concurrency set command
-  - Add apikey list command
-- **image**: Add image warmup-status command
-- **release**: Integrate git-cliff for automated changelog generation
+  - Add enable/disable commands
+  - Add delete command
+  - Add list command
+  - `apikey concurrency set` supports `--api-key` parameter
+- **image**: Add `image warmup-status` command
+- **release**: Integrate git-cliff to generate CHANGELOG automatically
 
 #### 🐞 Bug Fixes
 
-- **CI/CD**: Correct git-cliff download URL in homebrew workflow
+- **CI/CD**: Fix git-cliff download URL in homebrew workflow
 
 #### 📖 Documentation
 
-- **global**: Restructure README with bilingual support, env vars, and command groups
-- **internal**: Add CLI command to OpenAPI action mapping reference
+- **global**: Restructure README with bilingual support, environment variables, and command group descriptions
+- **internal reference**: Add CLI command to OpenAPI Action mapping document
 
 ### 中文
 
@@ -202,17 +190,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 新增 delete 命令
   - 新增 list 命令
   - `apikey concurrency set` 支持 `--api-key` 参数
-- **image**：新增 `image warmup-status` 命令。
-- **发版**：集成 git-cliff 自动生成 CHANGELOG。
+- **image**：新增 `image warmup-status` 命令
+- **发版**：集成 git-cliff 自动生成 CHANGELOG
 
 #### 🐞 缺陷修复
 
-- **CI/CD**：修复 homebrew workflow 中 git-cliff 下载 URL。
+- **CI/CD**：修复 homebrew workflow 中 git-cliff 下载 URL
 
 #### 📖 文档
 
-- **全局**：重构 README，补充双语、环境变量与命令组说明。
-- **内部参考**：新增 CLI 命令到 OpenAPI Action 的映射文档。
+- **全局**：重构 README，补充双语、环境变量与命令组说明
+- **内部参考**：新增 CLI 命令到 OpenAPI Action 的映射文档
 
 ---
 
@@ -222,13 +210,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🚀 Features
 
-- **docker**: Support sudo docker
+- **docker**: Support sudo docker scenarios
 
 ### 中文
 
 #### 🚀 功能
 
-- **docker**：支持 sudo docker 场景。
+- **docker**：支持 sudo docker 场景
 
 ---
 
@@ -239,20 +227,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### 🚀 Features
 
 - **image**
-  - Add image set-max-session command for configuring max concurrent sessions
-  - Support specifying region for image activate
+  - Add `image set-max-session` for configuring max concurrent sessions
+  - `image activate` supports specifying region
 
 #### 🐞 Bug Fixes
 
-- **client**: Tolerate stringified HttpStatusCode in BatchCreateHideResourceGroupsWithMaxSession response
+- **client**: BatchCreateHideResourceGroupsWithMaxSession response parser tolerates stringified HttpStatusCode
 
 #### 📖 Documentation
 
-- **qoder**: Codify response-parsing fault tolerance rules across rules/skill/references
+- **qoder**: Codify response parsing fault tolerance rules across rules, skill, and reference docs
 - **image**
-  - Clarify image type support for set-max-session command
-  - Add whitelist requirement for set-max-session command
-  - Add image activate region spec
+  - Clarify supported image types and whitelist requirements for `set-max-session`
+  - Add `image activate` region spec
 - **build**: Add build verification rule
 
 ### 中文
@@ -265,15 +252,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🐞 缺陷修复
 
-- **client**：BatchCreateHideResourceGroupsWithMaxSession 响应解析兼容字符串形式的 HttpStatusCode。
+- **client**：BatchCreateHideResourceGroupsWithMaxSession 响应解析兼容字符串形式的 HttpStatusCode
 
 #### 📖 文档
 
-- **qoder**：在规则、skill 与参考文档中固化响应解析容错规范。
+- **qoder**：在规则、skill 与参考文档中固化响应解析容错规范
 - **image**
   - 说明 `set-max-session` 支持的镜像类型和白名单要求
   - 补充 `image activate` 地域规范
-- **构建**：补充构建验证规则。
+- **构建**：补充构建验证规则
 
 ---
 
@@ -283,17 +270,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🚀 Features
 
-- **docker**: Add docker login command
+- **docker**: Add `docker login` command
 - **image**
-  - Add image create-from-template command
-  - Add source-image validation and path truncation for create-from-template
-  - Add UsePublicNetwork param to GetDockerfileTemplate and print RequestId in image init
+  - Add `image create-from-template` command with source-image validation and path truncation
+  - `image init` adds UsePublicNetwork parameter and prints RequestId
 
 ### 中文
 
 #### 🚀 功能
 
-- **docker**：新增 `docker login` 命令。
+- **docker**：新增 `docker login` 命令
 - **image**
   - 新增 `image create-from-template` 命令，支持 source-image 校验与路径截断
   - `image init` 新增 UsePublicNetwork 参数，并打印 RequestId
@@ -306,15 +292,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🚀 Features
 
-- **image**: Add 'agentbay image delete' command
-- **release**: Add release-to-oss script and Makefile targets
+- **image**: Add `agentbay image delete` command
+- **release**: Add release-to-oss script and Makefile release targets
 
 ### 中文
 
 #### 🚀 功能
 
-- **image**：新增 `agentbay image delete` 命令。
-- **发版**：新增 release-to-oss 脚本和 Makefile 发布目标。
+- **image**：新增 `agentbay image delete` 命令
+- **发版**：新增 release-to-oss 脚本和 Makefile 发布目标
 
 ---
 
@@ -324,13 +310,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🚀 Features
 
-- **image**: Enhance image deactivate with RequestId logging and precise ListMcpImages query
+- **image**: Enhance `image deactivate` with RequestId logging and precise ListMcpImages query
 
 ### 中文
 
 #### 🚀 功能
 
-- **image**：增强 `image deactivate`，增加 RequestId 日志并精准查询 ListMcpImages。
+- **image**：增强 `image deactivate`，增加 RequestId 日志并精准查询 ListMcpImages
 
 ---
 
@@ -340,13 +326,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🚀 Features
 
-- **image**: Enhance image create file upload with per-file status, auto-retry and summary
+- **image**: Enhance `image create` file upload with per-file status display, auto-retry, and summary result
 
 ### 中文
 
 #### 🚀 功能
 
-- **image**：增强 `image create` 文件上传，支持逐文件状态展示、自动重试和汇总结果。
+- **image**：增强 `image create` 文件上传，支持逐文件状态展示、自动重试和汇总结果
 
 ---
 
@@ -356,13 +342,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🚀 Features
 
-- **image**: Add sandbox lifecycle parameters to image activate command
+- **image**: `image activate` supports sandbox lifecycle parameters
 
 ### 中文
 
 #### 🚀 功能
 
-- **image**：`image activate` 支持沙箱生命周期参数。
+- **image**：`image activate` 支持沙箱生命周期参数
 
 ---
 
@@ -374,11 +360,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **network**
   - Add network package list command (DescribeNetworkPackages)
-  - Remove UserAliUid param, add default BizRegionId and OfficeSiteId display
+  - Remove UserAliUid parameter, add default BizRegionId, and display OfficeSiteId
 
 #### 📖 Documentation
 
-- **network**: Add network management to README and update development rules
+- **network**: Add network management guidance to README and update development rules
 
 ### 中文
 
@@ -390,7 +376,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 📖 文档
 
-- **network**：在 README 中补充网络管理说明，并更新开发规则。
+- **network**：在 README 中补充网络管理说明，并更新开发规则
 
 ---
 
@@ -401,12 +387,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### 🚀 Features
 
 - **network**
-  - Add DescribeOfficeSites to ADVANCED network activation flow with DNS default value support
+  - ADVANCED network activation flow adds DescribeOfficeSites and supports DNS default value
   - Adjust DEFAULT network activation flow, add DescribeMcpPolicyData and SaveMcpPolicyData calls
 
 #### 📖 Documentation
 
-- **global**: Improve README with API key management and image activate examples
+- **global**: Improve README with API Key management and `image activate` examples
 
 ### 中文
 
@@ -418,7 +404,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 📖 文档
 
-- **全局**：改进 README，补充 API Key 管理和 `image activate` 示例。
+- **全局**：改进 README，补充 API Key 管理和 `image activate` 示例
 
 ---
 
@@ -429,22 +415,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### 🚀 Features
 
 - **apikey**
-  - Add CreateApiKey CLI command
-  - Add API key concurrency management CLI command
-- **docker/image/skills**: Validate add and copy file size
+  - Add `apikey create` command
+  - Add API Key concurrency management command
+- **docker/image/skills**: Add COPY/ADD file size validation for OSS uploads and skill push
 
 #### 🐞 Bug Fixes
 
 - **apikey**: Correct CreateApiKey response Data field type from object to string
-- **test**: Sync mock implementations after adding Client interface methods
+- **test**: Sync mock implementations after adding Client interface methods to fix compilation
 
 #### 📖 Documentation
 
-- **qoder**: Add Qoder rules and skills for CLI development
+- **qoder**: Add CLI development rules and skills
 
 #### 📦 Other Changes
 
-- **docker/image/skills**: Add 1 MiB COPY/ADD source limit and retries for OSS uploads and skill push APIs
+- **docker/image/skills**: Add 1 MiB COPY/ADD source file limit and retry mechanism for OSS uploads and skill push APIs
 
 ### 中文
 
@@ -453,20 +439,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **apikey**
   - 新增 `apikey create` 命令
   - 新增 API Key 并发管理命令
-- **docker/image/skills**：为 OSS 上传和 skill push 增加 COPY/ADD 文件大小校验。
+- **docker/image/skills**：为 OSS 上传和 skill push 增加 COPY/ADD 文件大小校验
 
 #### 🐞 缺陷修复
 
-- **apikey**：修正 CreateApiKey 响应 Data 字段类型，从对象改为字符串。
-- **测试**：新增 Client 接口方法后同步 mock 实现，修复编译问题。
+- **apikey**：修正 CreateApiKey 响应 Data 字段类型，从对象改为字符串
+- **测试**：新增 Client 接口方法后同步 mock 实现，修复编译问题
 
 #### 📖 文档
 
-- **qoder**：新增 CLI 开发规则与 skills。
+- **qoder**：新增 CLI 开发规则与 skills
 
 #### 📦 其他变更
 
-- **docker/image/skills**：为 OSS 上传和 skill push API 增加 1 MiB COPY/ADD 源文件限制和重试机制。
+- **docker/image/skills**：为 OSS 上传和 skill push API 增加 1 MiB COPY/ADD 源文件限制和重试机制
 
 ---
 
@@ -482,7 +468,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 📦 其他变更
 
-- **构建**：更新 Makefile。
+- **构建**：更新 Makefile
 
 ---
 
@@ -498,7 +484,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🚀 功能
 
-- **全局**：同步内部仓库最新变更。
+- **全局**：同步内部仓库最新变更
 
 ---
 
@@ -508,13 +494,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 🐞 Bug Fixes
 
-- **core**: Endpoint to xiaoying.cn-shanghai
+- **core**: Change default Endpoint to xiaoying.cn-shanghai
 
 ### 中文
 
 #### 🐞 缺陷修复
 
-- **core**：将默认 Endpoint 调整为 xiaoying.cn-shanghai。
+- **core**：将默认 Endpoint 调整为 xiaoying.cn-shanghai
 
 ---
 
@@ -525,39 +511,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### 🚀 Features
 
 - **image**
-  - Add include system image listing with separated display sections
-  - Enhance image list with system image support
-  - Add dockerfile demo and init Dockerfile template
-  - Add image init guide in user guide
-  - Add unit test for image validation error
+  - Enhance image list with system image display and `--include-system` / `--system-only` flags
+  - Add Dockerfile demo and init Dockerfile template
+  - Add image init user guide
 - **core/auth**
-  - Add port availability check with retry for login command
-  - Add port occupation advisory
-- **installation**
-  - Add Windows installation scripts and docs
-  - Update workflow configuration
+  - Add port availability check and retry for login command
+  - Show advisory when port is occupied
+- **installation**: Add Windows installation scripts and Linux/Mac installation guide
+- **CI/CD**: Update workflow configuration
+
+#### 🐞 Bug Fixes
+
+- **image**: Fix image validation unit test error
+- **OSS**: Adjust fixossendpoint to return suitable OSS endpoint error message
 
 #### 📖 Documentation
 
-- **installation/usage**
-  - Update installation and usage guides
-  - Add Linux & Mac installation guide and update docs structure
-
-#### 🛠 Refactoring
-
-- **OSS**: Add fixossendpoint to suitable return error ossendpoint
+- **installation/usage**: Update installation and usage guides and adjust docs structure
 
 #### 📦 Other Changes
 
-- **image**
-  - Add --include-system and --system-only flags to image list
-  - Update getdockerfile API
-  - Set sourceimageid according to environment and region
-  - Update image init info and modify info display
+- **image**: Update internal implementation for image list, getdockerfile, image init, and image modify info display
 - **core/auth**: Add port backoff policy
-- **test/CI**
-  - Fix test error message case sensitivity
-  - Update homebrew workflow
+- **test/CI**: Fix test error message case sensitivity and update homebrew workflow
 
 ### 中文
 
@@ -570,23 +546,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **core/auth**
   - 登录命令增加端口可用性检测与重试
   - 端口被占用时给出使用建议
-- **安装**：新增 Windows 安装脚本和 Linux/Mac 安装指南。
-- **CI/CD**：更新 workflow 配置。
+- **安装**：新增 Windows 安装脚本和 Linux/Mac 安装指南
+- **CI/CD**：更新 workflow 配置
 
 #### 🐞 缺陷修复
 
-- **image**：修复 image validation 单元测试错误。
-- **OSS**：调整 fixossendpoint 以返回合适的 oss endpoint 错误信息。
+- **image**：修复 image validation 单元测试错误
+- **OSS**：调整 fixossendpoint 以返回合适的 oss endpoint 错误信息
 
 #### 📖 文档
 
-- **安装/使用**：更新安装与使用指南，并调整文档结构。
+- **安装/使用**：更新安装与使用指南，并调整文档结构
 
 #### 📦 其他变更
 
-- **image**：补充 image list、getdockerfile、image init、镜像修改信息展示等内部实现更新。
-- **core/auth**：增加端口退避策略。
-- **测试/CI**：修复测试错误信息大小写问题并更新 homebrew workflow。
+- **image**：补充 image list、getdockerfile、image init、镜像修改信息展示等内部实现更新
+- **core/auth**：增加端口退避策略
+- **测试/CI**：修复测试错误信息大小写问题并更新 homebrew workflow
 
 ---
 
@@ -597,83 +573,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### 🚀 Features
 
 - **core/auth**
-  - Add refresh token
-  - Add env switch feature
-  - Add cpu and memory params
-  - Add retry
+  - Add refresh token and environment switching capability
+  - Support international environment (prod/pre) default Endpoint and OAuth
   - Improve authentication error detection and handling
-  - Add port availability check with retry for login command
-  - Add port occupation advisory
-  - International env (prod/pre) with default endpoint and OAuth
 - **image**
-  - Add include system image listing with separated display sections
-  - Enhance image list with system image support
-  - Add dockerfile demo and init Dockerfile template
-  - Add image init guide in user guide
-  - Add image status command
-  - Add Dockerfile COPY/ADD file upload support
-  - Print RequestId when creating image in verbose mode
-  - Add unit test for image validation error
+  - Add system image list display and `--include-system` / `--system-only` flags
+  - Add Dockerfile demo, init Dockerfile template, and image init guide
+  - Add image status command and print RequestId in create image verbose mode
+  - Add Dockerfile COPY/ADD file upload capability
+  - Support required sourceImageId, default environment/region mapping, image init info, and image modify info display
 - **skills**
-  - Implement Skills CLI (push/list/show, group create/list/show/add-skill/remove-skill)
+  - Implement skills push/list/show commands
+  - Implement skills group create/list/show/add-skill/remove-skill commands
+  - Register skills command and complete test mock
+- **client/agentbay**
   - Add CreateMarketSkill and DescribeMarketSkillDetail APIs
-  - Add Market SkillGroup APIs (create, list, add-skill, remove-skill)
-  - Extend agentbay client with Market Skill and Group APIs
-  - Register skills command and extend client mock in tests
-- **installation/CI/CD**
-  - Add Windows installation scripts and docs
-  - Add CI/CD configuration and success page
+  - Add Market SkillGroup APIs (create/list/add-skill/remove-skill)
+  - Extend agentbay client to support the above APIs
+- **installation**: Add Windows installation scripts
+- **CI/CD**: Add CI/CD configuration, release flow, and success page
 
 #### 🐞 Bug Fixes
 
 - **skills**
-  - Fix ListMarketGroupSkill XML response parsing and RequestId in verbose mode
-  - Fix 403 UnsupportedHTTPMethod for ListMarketGroupSkill on pre-release API
+  - Fix ListMarketGroupSkill pre-release 403 UnsupportedHTTPMethod issue
   - Fix CreateMarketSkillGroup Data field parsing
   - Fix DescribeMarketSkillDetail / AddMarketGroupSkill / RemoveMarketGroupSkill XML/JSON parsing
-  - Fix AK/SK skill push parsing
 - **skills/image**: Fix OSS upload and API response handling
 - **image**
-  - Adapt DeleteResourceGroup interface, fix deactivate failure
-  - Fix image init parsing and unit tests
+  - Adapt DeleteResourceGroup interface and fix deactivate failure
+  - Fix image init parsing and unit test issues
 - **core/auth**
-  - Fix logout warning and OAuth login parsing
-  - Fix refresh token client reuse
+  - Fix logout warning, OAuth login parsing, and refresh token client reuse
+  - Fix AK/SK skill push parsing issue
 - **client**
-  - Align Skills API HTTP method with backend (GET/POST)
-  - Fix compile errors and related parsing issues
-- **CI/CD**: Update Aone Makefile for latest glibc compatibility
+  - Align Skills API HTTP methods (GET/POST)
+  - Fix compilation and response parsing issues
+- **CI/CD**: Update Aone Makefile to support latest glibc
 
 #### 📖 Documentation
 
 - **skills**
-  - Add Skills CLI usage to USER_GUIDE
-  - Add skills output examples and manual test results to USER_GUIDE
-  - Align README and USER_GUIDE with skills CLI implementation
-- **internal**: Add Skills API BodyType analysis and backend format reference
-- **installation**: Update environment variable names in Windows script
+  - Add Skills CLI usage instructions and output examples
+  - Add manual test results and align README/USER_GUIDE with skills CLI implementation
+- **internal reference**: Add Skills API BodyType analysis and backend format reference
+- **environment config**: Update environment variable names in Windows script
 
 #### 🛠 Refactoring
 
-- **OSS**: Add fixossendpoint to suitable return error ossendpoint
+- **OSS**: Adjust fixossendpoint to return a more suitable OSS endpoint error message
 
 #### 📦 Other Changes
 
 - **image**
-  - Add --include-system and --system-only flags to image list
-  - Update getdockerfile API
-  - Set sourceimageid according to environment and region
-  - Update image init info and modify info display
-  - Require sourceImageId for image init with improved error handling
-  - Show raw error info instead of custom error messages
-- **core**
-  - Update default endpoint to xiaoying.cn-shanghai
-  - Parse RPC responses as XML or JSON in SDK client
-- **core/auth**: Add port backoff policy
-- **test/CI**
-  - Fix test error message case sensitivity
-  - Refactor GitHub Homebrew workflow
-- **release**: V0.1.0 (#1)
+  - Organize historical implementation updates for image list, getdockerfile, and image init
+  - Add sourceImageId requirement and default Endpoint updates
+  - Show raw error information instead of custom error messages
+- **CI/CD**: Refactor GitHub Homebrew workflow
+- **release**: Release v0.1.0
 
 ### 中文
 
@@ -697,8 +654,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 新增 CreateMarketSkill、DescribeMarketSkillDetail API
   - 新增 Market SkillGroup 系列 API（create/list/add-skill/remove-skill）
   - 扩展 agentbay client 支持以上 API
-- **安装**：新增 Windows 安装脚本。
-- **CI/CD**：新增 CI/CD 配置、发布流程与成功页。
+- **安装**：新增 Windows 安装脚本
+- **CI/CD**：新增 CI/CD 配置、发布流程与成功页
 
 #### 🐞 缺陷修复
 
@@ -706,7 +663,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 修复 ListMarketGroupSkill 预发环境 403 UnsupportedHTTPMethod 问题
   - 修复 CreateMarketSkillGroup Data 字段解析
   - 修复 DescribeMarketSkillDetail / AddMarketGroupSkill / RemoveMarketGroupSkill XML/JSON 解析
-- **skills/image**：修复 OSS 上传和 API 响应处理问题。
+- **skills/image**：修复 OSS 上传和 API 响应处理问题
 - **image**
   - 适配 DeleteResourceGroup 接口，修复 deactivate 停止镜像失败问题
   - 修复 image init 解析与单元测试问题
@@ -716,19 +673,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **client**
   - 对齐 Skills API HTTP 方法（GET/POST）
   - 修复编译与响应解析相关问题
-- **CI/CD**：更新 Aone Makefile 以兼容最新 glibc。
+- **CI/CD**：更新 Aone Makefile 以兼容最新 glibc
 
 #### 📖 文档
 
 - **skills**
   - 新增 Skills CLI 使用说明与输出示例
   - 补充手动测试结果，将 README/USER_GUIDE 与 skills CLI 实现对齐
-- **内部参考**：新增 Skills API BodyType 分析和后端格式参考。
-- **环境配置**：更新 Windows 脚本中的环境变量名称。
+- **内部参考**：新增 Skills API BodyType 分析和后端格式参考
+- **环境配置**：更新 Windows 脚本中的环境变量名称
 
 #### 🛠 重构
 
-- **OSS**：调整 fixossendpoint，以返回更合适的 oss endpoint 错误信息。
+- **OSS**：调整 fixossendpoint，以返回更合适的 oss endpoint 错误信息
 
 #### 📦 其他变更
 
@@ -736,8 +693,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 整理 image list、getdockerfile、image init 历史实现更新
   - 补充 sourceImageId 必填与默认 Endpoint 更新
   - 展示原始错误信息以替代自定义错误文案
-- **CI/CD**：重构 GitHub Homebrew workflow。
-- **发版**：发布 v0.1.0。
+- **CI/CD**：重构 GitHub Homebrew workflow
+- **发版**：发布 v0.1.0
 
 ---
 

@@ -182,12 +182,13 @@ feat(apikey): add concurrency management command
 5. 用户明确授权后再提交、打 tag、push。
 6. 如需修订已发布 Release 或统一整理历史 CHANGELOG：先改 `CHANGELOG.md`，历史版本也必须保留 `### English` 与 `### 中文` 双语结构；注意这不会自动更新 GitHub 上已存在的 Release body。若同时准备新版本和历史回灌，先完成新版本 Release，再用 `scripts/backfill-release-notes.sh --dry-run` 预览历史回灌内容，确认后再执行正式回灌。
 
-### 中文段组织规则
+### 双语段组织规则
 
-- 中文分类标题必须翻译：`Features` → `功能`，`Bug Fixes` → `缺陷修复`，`Documentation` → `文档`，`Refactoring` → `重构`，`Performance` → `性能优化`，`Security` → `安全`，`Breaking Changes` → `不兼容变更`。
-- 对 CLI 命令相关条目，优先按命令组归类（如 `apikey`、`image`、`docker`、`skills`、`network`、`core/auth`），父条目使用加粗命令组名；格式视改动数量而定（见下方格式规范）。
-- 无法归入具体命令组或属于全局能力 / 基础设施 / 发版流程的改动，可归为“全局”“安全合规”“RAM 权限”等用户可理解的主题。
-- 允许在中文段做粗粒度聚合，但不得丢失用户可感知的功能、缺陷修复或重要文档变更。
+- `### English` 与 `### 中文` 必须保持**结构对齐**：分类标题、命令组、子条目数量和顺序必须一一对应；中文段是英文段的等价翻译与用户视角表达，不得新增、遗漏或合并英文段中的独立条目。
+- 中文分类标题必须翻译：`Features` → `功能`，`Bug Fixes` → `缺陷修复`，`Documentation` → `文档`，`Refactoring` → `重构`，`Performance` → `性能优化`，`Security` → `安全`，`Breaking Changes` → `不兼容变更`，`Other Changes` → `其他变更`。
+- 对 CLI 命令相关条目，英文和中文都必须优先按命令组归类（如 `apikey`、`image`、`docker`、`skills`、`network`、`core/auth`），父条目使用加粗命令组名；格式视改动数量而定（见下方格式规范）。
+- 无法归入具体命令组或属于全局能力 / 基础设施 / 发版流程的改动，英文可归为 `global`、`security/compliance`、`RAM permissions`、`release` 等；中文对应归为“全局”“安全合规”“RAM 权限”“发版”等用户可理解的主题。
+- 允许在双语段做粗粒度聚合，但必须**双语同步聚合**：如果英文将多个 commit 聚合为一个用户可感知条目，中文必须使用同一个条目结构；如果中文拆成多个子条目，英文必须同步拆成对应子条目。
 
 #### 📐 命令组条目格式规范（英文 & 中文段统一适用，多改动必须拆行）
 
@@ -198,24 +199,51 @@ feat(apikey): add concurrency management command
 | 命令组下有 **2 个及以上**独立改动 | 父条目只写加粗命令组名（不加冒号和说明），子条目两空格缩进，每行一项 |
 | 命令组下仅有 **1 个**改动         | 单行：父条目直接加冒号说明                                           |
 
-多改动示例（正确）：
+多改动示例（正确，英文/中文必须同构）：
 
 ```markdown
+### English
+
 - **skills**
-  - `skills show`：新增 FileUrl 与 TenantTags 字段展示
+  - `skills show`: Display FileUrl and TenantTags fields
+  - `skills push`: Support `--tag` and `--icon` flags
+  - `skills list`: Support `--output json` and improve terminal-adaptive display
+
+### 中文
+
+- **skills**
+  - `skills show`：展示 FileUrl 与 TenantTags 字段
   - `skills push`：支持 `--tag` 与 `--icon` 参数
   - `skills list`：支持 `--output json`，优化终端自适应展示
-  - `skills update`：新增命令，支持 `--clear-tags` 参数
-  - `skills delete`：新增命令，支持位置参数
 ```
 
-单改动示例（正确）：
+单改动示例（正确，英文/中文必须同构）：
 
 ```markdown
+### English
+
+- **apikey**: `apikey list` supports `--output json` for structured script and AI consumption
+
+### 中文
+
 - **apikey**：`apikey list` 支持 `--output json`，便于脚本和 AI 场景读取结构化结果
 ```
 
-子条目格式：`  - \`<子命令>\`：<简洁描述>`（两个空格缩进 + 破折号）
+子条目格式：
+
+- 英文：`  - \`<subcommand>\`: <concise description>`
+- 中文：`  - \`<子命令>\`：<简洁描述>`
+
+两者均使用两个空格缩进 + 破折号。
+
+#### ✅ 双语结构对齐检查清单
+
+- [ ] 每个版本段同时包含 `### English` 与 `### 中文`
+- [ ] 英文分类与中文分类数量一致、顺序一致（如 Features ↔ 功能）
+- [ ] 每个分类下的命令组数量一致、顺序一致（如 `skills` ↔ `skills`、`global` ↔ `全局`）
+- [ ] 每个命令组下的子条目数量一致、顺序一致
+- [ ] 英文聚合了多个 commit 时，中文使用相同聚合粒度；中文拆行时，英文同步拆行
+- [ ] commit / PR 链接可以只保留在 English 段；但链接对应的用户可感知改动必须在中文段有等价描述
 
 ### 翻译术语
 
