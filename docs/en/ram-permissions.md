@@ -11,15 +11,15 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
 
 ## `apikey` Command Group
 
-| OpenAPI Action              | Required Permission                 | Used By                                                                                                                                                       |
-| --------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CreateApiKey`              | `agentbay:CreateApiKey`             | `apikey create`                                                                                                                                               |
-| `DescribeApiKeys`           | `agentbay:DescribeApiKeys`          | `apikey list`, `apikey delete` (when `--api-key-id` is used)                                                                                                   |
-| `DescribeMcpApiKey`         | `agentbay:DescribeMcpApiKey`        | `apikey list`, `apikey delete`, `apikey enable`, `apikey disable`, `apikey concurrency set` (when `--api-key` is used)                                        |
-| `ModifyMcpApiKeyConfig`     | `agentbay:ModifyMcpApiKeyConfig`    | `apikey concurrency set`                                                                                                                                      |
-| `ModifyApiKeyStatus`        | `agentbay:ModifyApiKeyStatus`       | `apikey enable`, `apikey disable`, `apikey delete` (when deleting an ENABLED API key, the command disables it first)                                           |
-| `DeleteApiKey`              | `agentbay:DeleteApiKey`             | `apikey delete`                                                                                                                                               |
-| `DescribeKeyContent`        | `agentbay:DescribeKeyContent`       | `apikey describe-key-content`                                                                                                                                 |
+| OpenAPI Action          | Required Permission              | Used By                                                                                                                |
+| ----------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `CreateApiKey`          | `agentbay:CreateApiKey`          | `apikey create`                                                                                                        |
+| `DescribeApiKeys`       | `agentbay:DescribeApiKeys`       | `apikey list`, `apikey delete` (when `--api-key-id` is used)                                                           |
+| `DescribeMcpApiKey`     | `agentbay:DescribeMcpApiKey`     | `apikey list`, `apikey delete`, `apikey enable`, `apikey disable`, `apikey concurrency set` (when `--api-key` is used) |
+| `ModifyMcpApiKeyConfig` | `agentbay:ModifyMcpApiKeyConfig` | `apikey concurrency set`                                                                                               |
+| `ModifyApiKeyStatus`    | `agentbay:ModifyApiKeyStatus`    | `apikey enable`, `apikey disable`, `apikey delete` (when deleting an ENABLED API key, the command disables it first)   |
+| `DeleteApiKey`          | `agentbay:DeleteApiKey`          | `apikey delete`                                                                                                        |
+| `DescribeKeyContent`    | `agentbay:DescribeKeyContent`    | `apikey describe-key-content`                                                                                          |
 
 **RAM Policy example:**
 
@@ -94,6 +94,7 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
 | `GetDockerFileStoreCredential`                | `agentbay:GetDockerFileStoreCredential`                | `image create`                                                                                                |
 | `CreateDockerImageTask`                       | `agentbay:CreateDockerImageTask`                       | `image create`                                                                                                |
 | `GetDockerImageTask`                          | `agentbay:GetDockerImageTask`                          | `image create`                                                                                                |
+| `ListSharedDockerRepos`                       | `agentbay:ListSharedDockerRepos`                       | `image create-from-template` (shared repository authorization check)                                          |
 | `CreateImageFromTemplate`                     | `agentbay:CreateImageFromTemplate`                     | `image create-from-template`                                                                                  |
 | `DescribeInstanceTypes`                       | `agentbay:DescribeInstanceTypes`                       | `image activate`                                                                                              |
 | `DescribeMcpPolicyData`                       | `agentbay:DescribeMcpPolicyData`                       | `image activate`                                                                                              |
@@ -122,6 +123,7 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
         "agentbay:GetDockerFileStoreCredential",
         "agentbay:CreateDockerImageTask",
         "agentbay:GetDockerImageTask",
+        "agentbay:ListSharedDockerRepos",
         "agentbay:CreateImageFromTemplate",
         "agentbay:DescribeInstanceTypes",
         "agentbay:DescribeMcpPolicyData",
@@ -148,9 +150,9 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
 
 ## `network` Command Group
 
-| OpenAPI Action              | Required Permission                 | Used By                |
-| --------------------------- | ----------------------------------- | ---------------------- |
-| `DescribeNetworkPackages`   | `agentbay:DescribeNetworkPackages`  | `network package list` |
+| OpenAPI Action            | Required Permission                | Used By                |
+| ------------------------- | ---------------------------------- | ---------------------- |
+| `DescribeNetworkPackages` | `agentbay:DescribeNetworkPackages` | `network package list` |
 
 **RAM Policy example:**
 
@@ -160,9 +162,7 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
   "Statement": [
     {
       "Effect": "Allow",
-      "Action": [
-        "agentbay:DescribeNetworkPackages"
-      ],
+      "Action": ["agentbay:DescribeNetworkPackages"],
       "Resource": "*"
     }
   ]
@@ -173,16 +173,16 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
 
 ## `skills` Command Group
 
-| OpenAPI Action                 | Required Permission                    | Used By                                           |
-| ------------------------------ | -------------------------------------- | ------------------------------------------------- |
-| `ListTag`                      | `agentbay:ListTag`                     | `skills push`, `skills update` (when `--tag` is provided) |
-| `CreateTag`                    | `agentbay:CreateTag`                   | `skills push`, `skills update` (when new tags are provided) |
-| `GetMarketSkillCredential`     | `agentbay:GetMarketSkillCredential`    | `skills push`, `skills update` (`skills update` requires `--file`) |
-| `CreateMarketSkill`            | `agentbay:CreateMarketSkill`           | `skills push`                                     |
-| `UpdateMarketSkill`            | `agentbay:UpdateMarketSkill`           | `skills update`                                   |
-| `ListMarketSkillByPage`        | `agentbay:ListMarketSkillByPage`       | `skills list`                                     |
-| `DescribeMarketSkillDetail`    | `agentbay:DescribeMarketSkillDetail`   | `skills show`, `skills delete` (when `--yes` is not provided) |
-| `DeleteMarketSkill`            | `agentbay:DeleteMarketSkill`           | `skills delete`                                   |
+| OpenAPI Action              | Required Permission                  | Used By                                                            |
+| --------------------------- | ------------------------------------ | ------------------------------------------------------------------ |
+| `ListTag`                   | `agentbay:ListTag`                   | `skills push`, `skills update` (when `--tag` is provided)          |
+| `CreateTag`                 | `agentbay:CreateTag`                 | `skills push`, `skills update` (when new tags are provided)        |
+| `GetMarketSkillCredential`  | `agentbay:GetMarketSkillCredential`  | `skills push`, `skills update` (`skills update` requires `--file`) |
+| `CreateMarketSkill`         | `agentbay:CreateMarketSkill`         | `skills push`                                                      |
+| `UpdateMarketSkill`         | `agentbay:UpdateMarketSkill`         | `skills update`                                                    |
+| `ListMarketSkillByPage`     | `agentbay:ListMarketSkillByPage`     | `skills list`                                                      |
+| `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` | `skills show`, `skills delete` (when `--yes` is not provided)      |
+| `DeleteMarketSkill`         | `agentbay:DeleteMarketSkill`         | `skills delete`                                                    |
 
 **RAM Policy example:**
 

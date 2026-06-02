@@ -161,7 +161,7 @@ agentbay image create myapp -f ./Dockerfile -i code-space-debian-12
 
 ### `image create-from-template`
 
-Create a custom image from a system image template + your own Docker image (calls the `CreateImageFromTemplate` API).
+Create a custom image from a system image template + a Docker image already pushed to AgentBay ACR (calls the `CreateImageFromTemplate` API). The source image can come from your own repository or from another account's Docker repository shared with you.
 
 > **Prerequisites**: Before running this command, you need a Docker image already pushed to the AgentBay ACR registry. The full workflow is:
 >
@@ -179,12 +179,12 @@ Create a custom image from a system image template + your own Docker image (call
 
 ```bash
 agentbay image create-from-template \
-  --source-image /customer_cli/1160165251879674:<your-tag> \
+  --source-image /customer_cli/****9674:<your-tag> \
   --name imageName \
   --imageId code-space-debian-12
 
 # Short form
-agentbay image create-from-template -s /customer_cli/1160165251879674:<your-tag> -n imageName -i code-space-debian-12
+agentbay image create-from-template -s /customer_cli/****9674:<your-tag> -n imageName -i code-space-debian-12
 ```
 
 **Flags:**
@@ -197,10 +197,15 @@ agentbay image create-from-template -s /customer_cli/1160165251879674:<your-tag>
 
 `--source-image` supports two formats:
 
-1. **Recommended**: short path `/namespace/repo:tag` (matches the `physicalImage` field returned by `image list`, can be copied directly)
-2. **Also supported**: full registry path `registry.cn-hangzhou.cr.aliyuncs.com/namespace/repo:tag`
+1. **Recommended**: short path `/customer_cli/<aliuid>:tag` (matches the `physicalImage` field returned by `image list`, can be copied directly)
+2. **Also supported**: full registry path `<registry>/customer_cli/<aliuid>:tag`
 
-The CLI automatically recognizes short paths and fills in the registry URL for the current account.
+The CLI first extracts the AliUID from `source-image`:
+
+- If the AliUID matches the local ACR cache created by `agentbay docker login`, the image is treated as your own repository image.
+- If it does not match, the CLI calls `ListSharedDockerRepos` to check whether the current account has received Docker repository sharing authorization from that AliUID. The command continues only when data is returned.
+- Short paths for your own repository are expanded in terminal output with the current account registry URL; short paths for shared repositories remain short to avoid implying they belong to the current account's ACR path.
+- The command prints OpenAPI Request IDs. Shared repository flows print the `ListSharedDockerRepos` Request ID first, then the `CreateImageFromTemplate` Request ID.
 
 **Creation flow (server-side):**
 
@@ -228,11 +233,15 @@ The CLI automatically recognizes short paths and fills in the registry URL for t
 
 | Action                    | Required Permission                |
 | ------------------------- | ---------------------------------- |
+| `ListSharedDockerRepos`   | `agentbay:ListSharedDockerRepos`   |
 | `CreateImageFromTemplate` | `agentbay:CreateImageFromTemplate` |
 
 ```json
 {
-  "Action": ["agentbay:CreateImageFromTemplate"]
+  "Action": [
+    "agentbay:ListSharedDockerRepos",
+    "agentbay:CreateImageFromTemplate"
+  ]
 }
 ```
 

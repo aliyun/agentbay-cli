@@ -179,7 +179,7 @@ Total: 1
 
 #### Step 2：基于 A 账号的镜像创建自定义镜像
 
-通过 A 账号 `image create-from-template` 成功之后返回的 `PhysicalImageId`，或通过 `image list` 查看到的物理镜像 ID，参考 [一、镜像创建 → Step 5](#step-5创建自定义镜像) 完成创建：
+通过 A 账号 `image create-from-template` 成功之后返回的 `PhysicalImageId`，或通过 `image list` 查看到的物理镜像 ID，参考 [一、镜像创建 → Step 5](#step-5创建自定义镜像) 完成创建。CLI 会自动根据 `source-image` 中的 AliUID 调用 `ListSharedDockerRepos` 校验 Incoming 共享授权，并输出 `ListSharedDockerRepos` 与 `CreateImageFromTemplate` 的 Request ID：
 
 ```bash
 agentbay image create-from-template \

@@ -11,15 +11,15 @@
 
 ## `apikey` 命令分组
 
-| OpenAPI Action              | 所需权限                             | 调用命令                                                                                                                                           |
-| --------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CreateApiKey`              | `agentbay:CreateApiKey`              | `apikey create`                                                                                                                                    |
-| `DescribeApiKeys`           | `agentbay:DescribeApiKeys`           | `apikey list`、`apikey delete`（使用 `--api-key-id` 时）                                                                                            |
-| `DescribeMcpApiKey`         | `agentbay:DescribeMcpApiKey`         | `apikey list`、`apikey delete`、`apikey enable`、`apikey disable`、`apikey concurrency set`（使用 `--api-key` 时）                                  |
-| `ModifyMcpApiKeyConfig`     | `agentbay:ModifyMcpApiKeyConfig`     | `apikey concurrency set`                                                                                                                           |
-| `ModifyApiKeyStatus`        | `agentbay:ModifyApiKeyStatus`        | `apikey enable`、`apikey disable`、`apikey delete`（删除 ENABLED 状态 API Key 时会先禁用）                                                          |
-| `DeleteApiKey`              | `agentbay:DeleteApiKey`              | `apikey delete`                                                                                                                                    |
-| `DescribeKeyContent`        | `agentbay:DescribeKeyContent`        | `apikey describe-key-content`                                                                                                                      |
+| OpenAPI Action          | 所需权限                         | 调用命令                                                                                                           |
+| ----------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `CreateApiKey`          | `agentbay:CreateApiKey`          | `apikey create`                                                                                                    |
+| `DescribeApiKeys`       | `agentbay:DescribeApiKeys`       | `apikey list`、`apikey delete`（使用 `--api-key-id` 时）                                                           |
+| `DescribeMcpApiKey`     | `agentbay:DescribeMcpApiKey`     | `apikey list`、`apikey delete`、`apikey enable`、`apikey disable`、`apikey concurrency set`（使用 `--api-key` 时） |
+| `ModifyMcpApiKeyConfig` | `agentbay:ModifyMcpApiKeyConfig` | `apikey concurrency set`                                                                                           |
+| `ModifyApiKeyStatus`    | `agentbay:ModifyApiKeyStatus`    | `apikey enable`、`apikey disable`、`apikey delete`（删除 ENABLED 状态 API Key 时会先禁用）                         |
+| `DeleteApiKey`          | `agentbay:DeleteApiKey`          | `apikey delete`                                                                                                    |
+| `DescribeKeyContent`    | `agentbay:DescribeKeyContent`    | `apikey describe-key-content`                                                                                      |
 
 **RAM Policy 示例：**
 
@@ -94,6 +94,7 @@
 | `GetDockerFileStoreCredential`                | `agentbay:GetDockerFileStoreCredential`                | `image create`                                                                                                |
 | `CreateDockerImageTask`                       | `agentbay:CreateDockerImageTask`                       | `image create`                                                                                                |
 | `GetDockerImageTask`                          | `agentbay:GetDockerImageTask`                          | `image create`                                                                                                |
+| `ListSharedDockerRepos`                       | `agentbay:ListSharedDockerRepos`                       | `image create-from-template`（共享仓库授权校验）                                                              |
 | `CreateImageFromTemplate`                     | `agentbay:CreateImageFromTemplate`                     | `image create-from-template`                                                                                  |
 | `DescribeInstanceTypes`                       | `agentbay:DescribeInstanceTypes`                       | `image activate`                                                                                              |
 | `DescribeMcpPolicyData`                       | `agentbay:DescribeMcpPolicyData`                       | `image activate`                                                                                              |
@@ -122,6 +123,7 @@
         "agentbay:GetDockerFileStoreCredential",
         "agentbay:CreateDockerImageTask",
         "agentbay:GetDockerImageTask",
+        "agentbay:ListSharedDockerRepos",
         "agentbay:CreateImageFromTemplate",
         "agentbay:DescribeInstanceTypes",
         "agentbay:DescribeMcpPolicyData",
@@ -148,9 +150,9 @@
 
 ## `network` 命令分组
 
-| OpenAPI Action              | 所需权限                             | 调用命令               |
-| --------------------------- | ------------------------------------ | ---------------------- |
-| `DescribeNetworkPackages`   | `agentbay:DescribeNetworkPackages`   | `network package list` |
+| OpenAPI Action            | 所需权限                           | 调用命令               |
+| ------------------------- | ---------------------------------- | ---------------------- |
+| `DescribeNetworkPackages` | `agentbay:DescribeNetworkPackages` | `network package list` |
 
 **RAM Policy 示例：**
 
@@ -160,9 +162,7 @@
   "Statement": [
     {
       "Effect": "Allow",
-      "Action": [
-        "agentbay:DescribeNetworkPackages"
-      ],
+      "Action": ["agentbay:DescribeNetworkPackages"],
       "Resource": "*"
     }
   ]
@@ -173,16 +173,16 @@
 
 ## `skills` 命令分组
 
-| OpenAPI Action                 | 所需权限                                | 调用命令                                      |
-| ------------------------------ | --------------------------------------- | --------------------------------------------- |
-| `ListTag`                      | `agentbay:ListTag`                      | `skills push`、`skills update`（提供 `--tag` 时） |
-| `CreateTag`                    | `agentbay:CreateTag`                    | `skills push`、`skills update`（提供新标签时）     |
-| `GetMarketSkillCredential`     | `agentbay:GetMarketSkillCredential`     | `skills push`、`skills update`（`skills update` 需提供 `--file`） |
-| `CreateMarketSkill`            | `agentbay:CreateMarketSkill`            | `skills push`                                  |
-| `UpdateMarketSkill`            | `agentbay:UpdateMarketSkill`            | `skills update`                                |
-| `ListMarketSkillByPage`        | `agentbay:ListMarketSkillByPage`        | `skills list`                                  |
-| `DescribeMarketSkillDetail`    | `agentbay:DescribeMarketSkillDetail`    | `skills show`、`skills delete`（未提供 `--yes` 时） |
-| `DeleteMarketSkill`            | `agentbay:DeleteMarketSkill`            | `skills delete`                                |
+| OpenAPI Action              | 所需权限                             | 调用命令                                                          |
+| --------------------------- | ------------------------------------ | ----------------------------------------------------------------- |
+| `ListTag`                   | `agentbay:ListTag`                   | `skills push`、`skills update`（提供 `--tag` 时）                 |
+| `CreateTag`                 | `agentbay:CreateTag`                 | `skills push`、`skills update`（提供新标签时）                    |
+| `GetMarketSkillCredential`  | `agentbay:GetMarketSkillCredential`  | `skills push`、`skills update`（`skills update` 需提供 `--file`） |
+| `CreateMarketSkill`         | `agentbay:CreateMarketSkill`         | `skills push`                                                     |
+| `UpdateMarketSkill`         | `agentbay:UpdateMarketSkill`         | `skills update`                                                   |
+| `ListMarketSkillByPage`     | `agentbay:ListMarketSkillByPage`     | `skills list`                                                     |
+| `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` | `skills show`、`skills delete`（未提供 `--yes` 时）               |
+| `DeleteMarketSkill`         | `agentbay:DeleteMarketSkill`         | `skills delete`                                                   |
 
 **RAM Policy 示例：**
 

@@ -179,7 +179,7 @@ Total: 1
 
 #### Step 2: Create a Custom Image from A's Image
 
-Use the `PhysicalImageId` returned by Account A's `image create-from-template` success, or find it via `image list`, then follow [Part 1 → Step 5](#step-5-create-the-custom-image) to create the image:
+Use the `PhysicalImageId` returned by Account A's `image create-from-template` success, or find it via `image list`, then follow [Part 1 → Step 5](#step-5-create-the-custom-image) to create the image. The CLI automatically extracts the AliUID from `source-image`, calls `ListSharedDockerRepos` to verify Incoming sharing authorization, and prints Request IDs for both `ListSharedDockerRepos` and `CreateImageFromTemplate`:
 
 ```bash
 agentbay image create-from-template \

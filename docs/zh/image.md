@@ -149,7 +149,7 @@ agentbay image create myapp -f ./Dockerfile -i code-space-debian-12
 
 ### `image create-from-template`
 
-基于系统镜像模板 + 用户自有的 Docker 物理镜像创建自定义镜像（调用 `CreateImageFromTemplate` 接口）。
+基于系统镜像模板 + 已推送到 AgentBay ACR 的 Docker 物理镜像创建自定义镜像（调用 `CreateImageFromTemplate` 接口）。源镜像可以来自当前账号自己的仓库，也可以来自其他账号共享给当前账号的 Docker 仓库。
 
 > **前置依赖**：执行该命令前，需要先准备好可用的 Docker 物理镜像，并已推送到 AgentBay ACR 仓库。完整流程：
 >
@@ -167,12 +167,12 @@ agentbay image create myapp -f ./Dockerfile -i code-space-debian-12
 
 ```bash
 agentbay image create-from-template \
-  --source-image /customer_cli/1160165251879674:<your-tag> \
+  --source-image /customer_cli/****9674:<your-tag> \
   --name imageName \
   --imageId code-space-debian-12
 
 # 短参数形式
-agentbay image create-from-template -s /customer_cli/1160165251879674:<your-tag> -n imageName -i code-space-debian-12
+agentbay image create-from-template -s /customer_cli/****9674:<your-tag> -n imageName -i code-space-debian-12
 ```
 
 **参数：**
@@ -185,10 +185,15 @@ agentbay image create-from-template -s /customer_cli/1160165251879674:<your-tag>
 
 `--source-image` 支持两种格式：
 
-1. **推荐**：短路径 `/namespace/repo:tag`（与 `image list` 返回的 `physicalImage` 字段格式一致，可直接复制使用）
-2. **也支持**：完整 registry 路径 `registry.cn-hangzhou.cr.aliyuncs.com/namespace/repo:tag`
+1. **推荐**：短路径 `/customer_cli/<aliuid>:tag`（与 `image list` 返回的 `physicalImage` 字段格式一致，可直接复制使用）
+2. **也支持**：完整 registry 路径 `<registry>/customer_cli/<aliuid>:tag`
 
-CLI 会自动识别短路径并补全当前账号对应的 registry URL。
+CLI 会先解析 `source-image` 中的 AliUID：
+
+- 如果该 AliUID 与当前本地 `agentbay docker login` 缓存的 ACR 仓库匹配，则按自有仓库处理。
+- 如果不匹配，则自动调用 `ListSharedDockerRepos` 查询当前账号是否收到该 AliUID 的 Docker 仓库共享授权；返回数据非空才会继续创建。
+- 自有短路径会在终端输出中补全为当前账号 registry URL；共享短路径会保持短路径展示，避免误导为当前账号 ACR 地址。
+- 命令会输出涉及的 OpenAPI Request ID；共享仓库场景会先输出 `ListSharedDockerRepos` 的 Request ID，再输出 `CreateImageFromTemplate` 的 Request ID。
 
 **创建流程（服务端）：**
 
@@ -216,11 +221,15 @@ CLI 会自动识别短路径并补全当前账号对应的 registry URL。
 
 | Action                    | 所需权限                           |
 | ------------------------- | ---------------------------------- |
+| `ListSharedDockerRepos`   | `agentbay:ListSharedDockerRepos`   |
 | `CreateImageFromTemplate` | `agentbay:CreateImageFromTemplate` |
 
 ```json
 {
-  "Action": ["agentbay:CreateImageFromTemplate"]
+  "Action": [
+    "agentbay:ListSharedDockerRepos",
+    "agentbay:CreateImageFromTemplate"
+  ]
 }
 ```
 
