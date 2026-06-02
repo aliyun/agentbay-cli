@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
 ## [0.4.0] - 2026-06-01
 
 ### English
@@ -11,33 +13,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### 🚀 Features
 
 - **skills**
-  - `skills show`: Display FileUrl and TenantTags fields ([09c2914](https://github.com/aliyun/agentbay-cli/commit/09c2914505ff51de839441f1eb323859da1f0049), [8efaf9b](https://github.com/aliyun/agentbay-cli/commit/8efaf9ba0160a3a550099221ee031086abb0cb04))
-  - `skills push`: Support `--tag` and `--icon` flags ([47c2ce4](https://github.com/aliyun/agentbay-cli/commit/47c2ce4cfe25bf992668be467386bc017a04b408), [cb30097](https://github.com/aliyun/agentbay-cli/commit/cb3009725d2441c2d46b773014e3baa28b4451ec))
-  - `skills list`: Support `--output json` and improve terminal-adaptive display ([d15ae5f](https://github.com/aliyun/agentbay-cli/commit/d15ae5f991477a7b6f6d4150fd23660894984f08), [5e1075a](https://github.com/aliyun/agentbay-cli/commit/5e1075a05f104e1ca7fbc491dc33ca6c8a4c775d))
-  - `skills update`: Add command and support `--clear-tags` flag ([cb30097](https://github.com/aliyun/agentbay-cli/commit/cb3009725d2441c2d46b773014e3baa28b4451ec), [9f3bdf9](https://github.com/aliyun/agentbay-cli/commit/9f3bdf9aeaf238395c4582d9539f678fd8f83a63))
-  - `skills delete`: Add command and support positional argument ([94c558f](https://github.com/aliyun/agentbay-cli/commit/94c558f0fb73de0082824b9834b646949f56b5e5), [d147f9c](https://github.com/aliyun/agentbay-cli/commit/d147f9c896f3e0211856f3d019ef4eae93c58857))
+  - `skills show`: Display FileUrl and TenantTags fields
+  - `skills push`: Support `--tag` and `--icon` flags
+  - `skills list`: Support `--output json` and improve terminal-adaptive display
+  - `skills update`: Add command and support `--clear-tags` flag
+  - `skills delete`: Add command and support positional argument
 - **image**
-  - `image create-from-template`: Support short source-image path ([5e1075a](https://github.com/aliyun/agentbay-cli/commit/5e1075a05f104e1ca7fbc491dc33ca6c8a4c775d))
-  - `image list`: Support `--output json` and improve terminal-adaptive table display ([f751e5c](https://github.com/aliyun/agentbay-cli/commit/f751e5c7151cb41ad766d5cca93b389b8431b0b4))
-- **apikey**: `apikey list` supports `--output json` for structured script and AI consumption ([d15ae5f](https://github.com/aliyun/agentbay-cli/commit/d15ae5f991477a7b6f6d4150fd23660894984f08))
+  - `image create-from-template`: Support short source-image path
+  - `image list`: Support `--output json` and improve terminal-adaptive table display
+- **apikey**: `apikey list` supports `--output json` for structured script and AI consumption
 - **docker**
-  - `docker repo share/unshare/list`: Add repository sharing, unsharing, and listing commands with RAM permission guidance ([bf8cdf5](https://github.com/aliyun/agentbay-cli/commit/bf8cdf5e2c9ce16ac6ff72cfe2a3162124d7153b))
-  - `docker shared repos list`: Support `--output json` ([639234d](https://github.com/aliyun/agentbay-cli/commit/639234d4c9d236642143608e84bf697589cded0b))
+  - `docker share`: Add repository sharing command with RAM permission guidance
+  - `docker unshare`: Add repository unsharing command with RAM permission guidance
+  - `docker list-shares`: Add repository sharing list command with pagination and RAM permission guidance
+  - `docker list-shares`: Support `--output json`
 - **global**
-  - Add skills-tester agent and pagination test rules ([4d53866](https://github.com/aliyun/agentbay-cli/commit/4d538664c183b5bb1c91b93d62335b385756b2cb))
-  - Add bilingual CHANGELOG release workflow ([3373cce](https://github.com/aliyun/agentbay-cli/commit/3373cceecd4c39fd2606057531615e6b9643851d))
+  - Add skills-tester agent and pagination test rules
+  - Add bilingual CHANGELOG release workflow
 
 #### 🐞 Bug Fixes
 
-- **core/auth**: Reject RAM identities during OAuth login and improve RAM OAuth login guidance ([e4453de](https://github.com/aliyun/agentbay-cli/commit/e4453de6190d7a505b5b089f137cf96a68aad500), [063ebca](https://github.com/aliyun/agentbay-cli/commit/063ebcadfedf8995b536c2ca2a155986a6805e55))
-- **skills**: Use JSON Accept request header for Market skill detail API to improve response parsing stability ([ab9aac9](https://github.com/aliyun/agentbay-cli/commit/ab9aac9f96283a5fa339cddd55344185f076d7c5))
+- **core/auth**: Reject RAM identities during OAuth login and improve RAM OAuth login guidance
+- **skills**: Use JSON Accept request header for Market skill detail API to improve response parsing stability
 
 #### 📖 Documentation
 
-- **global**: Restructure README.md and README.zh-CN.md for clarity and completeness ([59789cb](https://github.com/aliyun/agentbay-cli/commit/59789cb601e58be13b47f9cd247b0dce335db45d))
-- **security/compliance**: Mask AliUID in docs and add sensitive info redaction rule ([9604e55](https://github.com/aliyun/agentbay-cli/commit/9604e550c2c8c4bf91591c01a4a46b8048eb21ed))
-- **image**: Update image workflow bilingual docs and usage guide ([76989e1](https://github.com/aliyun/agentbay-cli/commit/76989e106810dc39f4fd146c346a41104d032051), [f8ec1e3](https://github.com/aliyun/agentbay-cli/commit/f8ec1e3d80d66bbe95a8259ccdc27dd811786995))
-- **RAM permissions**: Update RAM permissions guidance and organize RAM permissions sections ([96ce1bb](https://github.com/aliyun/agentbay-cli/commit/96ce1bb061c978ebcaa4ad519ee4420366d2c312), [c400cf0](https://github.com/aliyun/agentbay-cli/commit/c400cf00dda2f4860f63641f69c1b7569b60f83f))
+- **global**: Restructure README.md and README.zh-CN.md for clarity and completeness
+- **security/compliance**: Mask AliUID in docs and add sensitive info redaction rule
+- **image**: Update image workflow bilingual docs and usage guide
+- **RAM permissions**: Update RAM permissions guidance and organize RAM permissions sections
 
 ### 中文
 
@@ -54,8 +58,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `image list`：支持 `--output json`，优化终端自适应表格展示
 - **apikey**：`apikey list` 支持 `--output json`，便于脚本和 AI 场景读取结构化结果
 - **docker**
-  - `docker repo share/unshare/list`：新增仓库分享、取消分享、列表命令，并补充 RAM 权限说明
-  - `docker shared repos list`：支持 `--output json`
+  - `docker share`：新增仓库分享命令，并补充 RAM 权限说明
+  - `docker unshare`：新增取消仓库分享命令，并补充 RAM 权限说明
+  - `docker list-shares`：新增仓库分享列表命令，支持分页并补充 RAM 权限说明
+  - `docker list-shares`：支持 `--output json`
 - **全局**
   - 新增 skills-tester agent 与分页测试规则
   - 新增双语 CHANGELOG 发版流程
@@ -73,8 +79,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **RAM 权限**：更新 RAM 权限说明，并整理 RAM permissions 章节
 
 ---
-
-## [Unreleased]
 
 ## [0.3.0] - 2026-05-22
 
