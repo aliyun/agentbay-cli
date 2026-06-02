@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `skills delete`: Add command and support positional argument
 - **image**
   - `image create-from-template`: Support short source-image path
+  - `image create-from-template`: Support shared Docker repository as source image for cross-account image creation
   - `image list`: Support `--output json` and improve terminal-adaptive table display
 - **apikey**: `apikey list` supports `--output json` for structured script and AI consumption
 - **docker**
@@ -38,7 +39,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 📖 Documentation
 
-- **global**: Restructure README.md and README.zh-CN.md for clarity and completeness
+- **global**
+  - Restructure README.md and README.zh-CN.md for clarity and completeness
+  - Add `llms.txt` and `llms-full.txt` for LLM-friendly project documentation
 - **security/compliance**: Mask AliUID in docs and add sensitive info redaction rule
 - **image**: Update image workflow bilingual docs and usage guide
 - **RAM permissions**: Update RAM permissions guidance and organize RAM permissions sections
@@ -55,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `skills delete`：新增命令，支持位置参数
 - **image**
   - `image create-from-template`：支持短 source-image 路径
+  - `image create-from-template`：支持跨账号共享 Docker 仓库作为源镜像，实现跨账号镜像创建
   - `image list`：支持 `--output json`，优化终端自适应表格展示
 - **apikey**：`apikey list` 支持 `--output json`，便于脚本和 AI 场景读取结构化结果
 - **docker**
@@ -73,7 +77,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### 📖 文档
 
-- **全局**：重构 README.md 与 README.zh-CN.md，提升结构清晰度和完整性
+- **全局**
+  - 重构 README.md 与 README.zh-CN.md，提升结构清晰度和完整性
+  - 新增 `llms.txt` 与 `llms-full.txt`，提供 AI 助手友好的项目文档入口
 - **安全合规**：对文档中的 AliUID 做脱敏处理，并补充敏感信息脱敏规则
 - **image**：更新 image workflow 中英文文档和使用指南
 - **RAM 权限**：更新 RAM 权限说明，并整理 RAM permissions 章节
