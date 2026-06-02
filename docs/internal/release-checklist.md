@@ -5,46 +5,49 @@ it through the Homebrew tap so that users get a pre-built bottle (秒装).
 
 The pipeline has two GitHub Actions workflows:
 
-| Workflow file | Trigger | What it does |
-|---|---|---|
-| `.github/workflows/homebrew.yml` | `git push` of a `v*` tag, or manual `workflow_dispatch` with a version input | Builds cross-platform binaries, packages bottles, creates the GitHub Release, regenerates `homebrew/agentbay.rb` with real SHA256s, commits it back to `master`, and deploys the Windows install script to GitHub Pages. |
-| `.github/workflows/push-to-homebrew-tap.yml` | Manual `workflow_dispatch` with `push_to_tap=true` | Copies `homebrew/agentbay.rb` into the `aliyun/homebrew-agentbay` tap repo so `brew install agentbay` picks up the new version. |
+| Workflow file                                | Trigger                                                                      | What it does                                                                                                                                                                                                             |
+| -------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `.github/workflows/homebrew.yml`             | `git push` of a `v*` tag, or manual `workflow_dispatch` with a version input | Builds cross-platform binaries, packages bottles, creates the GitHub Release, regenerates `homebrew/agentbay.rb` with real SHA256s, commits it back to `master`, and deploys the Windows install script to GitHub Pages. |
+| `.github/workflows/push-to-homebrew-tap.yml` | Manual `workflow_dispatch` with `push_to_tap=true`                           | Copies `homebrew/agentbay.rb` into the `aliyun/homebrew-agentbay` tap repo so `brew install agentbay` picks up the new version.                                                                                          |
 
 The two workflows are intentionally separated so you can verify the formula on
 `master` before pushing it to the public tap.
 
 ---
 
-## Pre-flight (before tagging)
+## Pre-flight (before release)
 
-- [ ] **Run `make release-prep VERSION=X.Y.Z` locally** to generate the bilingual `CHANGELOG.md` section for the new version (English from git-cliff + Chinese `TRANSLATE_ME` placeholder). Then translate the Chinese sub-section in Claude Code (say: `翻译 CHANGELOG.md 顶部 [X.Y.Z] 那段`), `git commit` the updated `CHANGELOG.md`, and only then proceed to tag + push. The workflow extracts this committed section verbatim for the GitHub Release body — see [docs/internal/bilingual-changelog-proposal.md](internal/bilingual-changelog-proposal.md) §4.7.
+- [ ] **Run `make release-prep VERSION=X.Y.Z` locally on the feature branch** to generate the bilingual `CHANGELOG.md` section for the new version (English from git-cliff + Chinese `TRANSLATE_ME` placeholder). Then translate the Chinese sub-section in Claude Code (say: `翻译 CHANGELOG.md 顶部 [X.Y.Z] 那段`), remove `TRANSLATE_ME`, and commit the updated `CHANGELOG.md`. The workflow extracts this committed section verbatim for the GitHub Release body — see [docs/internal/bilingual-changelog-proposal.md](internal/bilingual-changelog-proposal.md) §4.7.
+- [ ] Push the feature branch, open a PR, and merge it into upstream `master` before running the release workflow. The `CHANGELOG.md` section for `X.Y.Z` must already be present on `master`.
 - [ ] `homebrew/agentbay.rb` is committed (its contents will be overwritten by the workflow — the file just needs to exist for validation).
 - [ ] All required secrets exist on the repo:
   - `GITHUB_TOKEN` — provided automatically; needs `contents: write` (already declared in `homebrew.yml`).
   - `HOMEBREW_TAP_TOKEN` — PAT with `repo` scope on `aliyun/homebrew-agentbay`. Required by `push-to-homebrew-tap.yml`.
-- [ ] Tag does not already exist locally or on the remote (`git tag -l vX.Y.Z`, `gh release view vX.Y.Z` should both be empty).
+- [ ] Tag/Release does not already exist (`gh release view vX.Y.Z` should be empty; if a local tag exists, it is irrelevant unless you intentionally use tag-driven release).
 - [ ] You have write access to `aliyun/agentbay-cli` (for the commit-back step) and `aliyun/homebrew-agentbay` (for the tap push).
 
 ---
 
 ## Step 1 — Cut the release
 
-Pick one of:
+The standard project release path is **PR-merge + manual dispatch**:
 
-**Option A: tag-driven (recommended for production releases)**
+1. Merge the feature PR into upstream `master`.
+2. Open GitHub → Actions → **Agentbay CLI Official Homebrew Release** → **Run workflow**.
+3. Select the `master` branch.
+4. Enter version without the `v` prefix, for example `0.4.0`.
+5. Start the workflow.
 
-```bash
-git checkout master
-git pull
-git tag v0.4.0
-git push origin v0.4.0
-```
+The workflow will:
 
-**Option B: manual dispatch (for re-runs or test releases)**
+- use the input `version` as `VERSION`;
+- extract `## [X.Y.Z]` from `CHANGELOG.md` as the GitHub Release body;
+- build and upload release assets;
+- run `gh release create "v$VERSION" --target "$GITHUB_SHA" ...`.
 
-GitHub → Actions → **Agentbay CLI Official Homebrew Release** → **Run workflow** → enter version (no `v` prefix, e.g. `0.4.0`).
+If tag `vX.Y.Z` does not exist, `gh release create` creates it automatically and pins it to the exact commit checked out by this workflow (`$GITHUB_SHA`). Because release is run after PR merge on `master`, the tag points to the released `master` commit.
 
-Either path triggers `homebrew.yml`.
+Alternative path: if you intentionally push a `v*` tag yourself, `homebrew.yml` is also triggered by tag push. In that mode, ensure the tag already points to the intended `master` commit before pushing it.
 
 ---
 
@@ -57,12 +60,12 @@ In the Actions tab, open the run and verify each step:
   - `agentbay-darwin-amd64`
   - `agentbay-linux-amd64`
   - `agentbay-linux-arm64`
-  Plus any Windows variants (`-windows-amd64.exe`, `-windows-arm64.exe`). If any darwin/linux binary is missing, the next step's fail-fast check will abort the workflow.
+    Plus any Windows variants (`-windows-amd64.exe`, `-windows-arm64.exe`). If any darwin/linux binary is missing, the next step's fail-fast check will abort the workflow.
 - [ ] **Create Homebrew Bottles** — log shows one `✅ Created:` line per bottle tag. With the hardened pipeline you should see seven tagged tarballs total:
   - `arm64_sonoma`, `arm64_ventura`, `arm64_sequoia` (darwin-arm64)
   - `sonoma`, `ventura` (darwin-amd64)
   - `x86_64_linux`, `aarch64_linux`
-  Ends with `✅ All primary bottles present`. If you see `❌ Missing primary bottle for ...`, see Troubleshooting → "Missing primary bottle".
+    Ends with `✅ All primary bottles present`. If you see `❌ Missing primary bottle for ...`, see Troubleshooting → "Missing primary bottle".
 - [ ] **Create GitHub Release** — release `vX.Y.Z` exists with all bottle `.bottle.tar.gz` files, source archive assets, and Windows installers attached.
 - [ ] **Prepare Homebrew Core Submission** — commits `feat: add official Homebrew formula for vX.Y.Z` to `master`. Open the commit and confirm the new `homebrew/agentbay.rb` contains real SHA256s (no `PLACEHOLDER_*`).
 - [ ] **Deploy to GitHub Pages** — `https://aliyun.github.io/agentbay-cli/windows` returns the latest PowerShell installer (curl/visit to confirm).
@@ -144,6 +147,7 @@ fail-fast was added precisely so this never silently ships a half-broken
 formula.
 
 Likely causes:
+
 1. **`make dist` didn't build a target** — check the `Makefile`'s `dist` target. It must produce `bin/agentbay-darwin-arm64`, `bin/agentbay-darwin-amd64`, `bin/agentbay-linux-amd64`, `bin/agentbay-linux-arm64`. Add the missing target and re-run.
 2. **A cross-compile step failed silently** — search the `Build Multi-platform Binaries` log for the affected GOOS/GOARCH, fix the error, push, re-trigger.
 

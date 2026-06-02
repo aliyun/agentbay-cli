@@ -162,15 +162,14 @@ feat(apikey): add concurrency management command
 
 ### 发版前标准流程
 
-1. 确保待发布功能已合入发布主线且工作区干净。
-2. 执行：
+1. 在功能分支（默认如 `feat/dev-apikey`）准备发版内容，执行：
 
    ```bash
    make release-prep VERSION=X.Y.Z
    ```
 
-3. 翻译 `CHANGELOG.md` 顶部 `## [X.Y.Z]` 版本段中的 `### English` 内容到 `### 中文`，删除 `TRANSLATE_ME` 占位；中文段分类标题必须使用中文，不得保留 `Bug Fixes` / `Documentation` 等英文标题。
-4. 验证：
+2. 翻译 `CHANGELOG.md` 顶部 `## [X.Y.Z]` 版本段中的 `### English` 内容到 `### 中文`，删除 `TRANSLATE_ME` 占位；中文段分类标题必须使用中文，不得保留 `Bug Fixes` / `Documentation` 等英文标题。
+3. 验证：
 
    ```bash
    grep -nE 'TRANSLATE_ME|中文翻译待补充' CHANGELOG.md
@@ -179,7 +178,27 @@ feat(apikey): add concurrency management command
 
    第一条应无输出，第二条应成功且输出非空。
 
-5. 用户明确授权后再提交、打 tag、push。
+4. 提交并推送功能分支，经 PR 合入 `aliyun/master`。本项目默认发布路径是：
+
+   ```text
+   本地 feat/dev-apikey
+     ↓
+   push aliyun/feat-dev-apikey
+     ↓
+   PR 合入 aliyun/master
+     ↓
+   GitHub Actions 手动 Run workflow，输入 X.Y.Z（如 0.4.0）
+     ↓
+   workflow 从 master 的 CHANGELOG.md 抽取 X.Y.Z 段
+     ↓
+   gh release create vX.Y.Z --target "$GITHUB_SHA"
+     ↓
+   如果 vX.Y.Z tag 不存在，则自动创建 tag
+     ↓
+   创建 GitHub Release
+   ```
+
+5. **默认不在本地手动打 tag**：tag 由 `.github/workflows/homebrew.yml` 中的 `gh release create "v$VERSION" --target "$GITHUB_SHA"` 在 Release 创建时自动创建，并绑定到本次 workflow checkout/build 的 `master` commit。仅当用户明确选择 tag-driven release 时，才走本地/CI 预先推送 `vX.Y.Z` tag 的可选路径。
 6. 如需修订已发布 Release 或统一整理历史 CHANGELOG：先改 `CHANGELOG.md`，历史版本也必须保留 `### English` 与 `### 中文` 双语结构；注意这不会自动更新 GitHub 上已存在的 Release body。若同时准备新版本和历史回灌，先完成新版本 Release，再用 `scripts/backfill-release-notes.sh --dry-run` 预览历史回灌内容，确认后再执行正式回灌。
 
 ### 双语段组织规则

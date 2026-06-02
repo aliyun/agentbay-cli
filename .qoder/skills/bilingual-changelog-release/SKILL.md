@@ -129,28 +129,66 @@ bash scripts/extract-changelog-section.sh X.Y.Z CHANGELOG.md >/tmp/release-notes
 
 第一条应无输出；第二条应成功且 `/tmp/release-notes.md` 非空。
 
-### Phase 4：提交、打 tag、推送（仅用户授权后）
+### Phase 4：提交、PR 合入与手动发布（仅用户授权后）
 
-用户明确要求后，按 Conventional Commits 提交：
+#### 本项目实际默认发布路径（必须优先遵循）
+
+```text
+本地 feat/dev-apikey
+  ↓
+push aliyun/feat-dev-apikey
+  ↓
+PR 合入 aliyun/master
+  ↓
+GitHub Actions 手动 Run workflow，输入 X.Y.Z（例如 0.4.0）
+  ↓
+workflow 从 master 的 CHANGELOG.md 抽取 X.Y.Z 段
+  ↓
+gh release create vX.Y.Z --target "$GITHUB_SHA"
+  ↓
+如果 vX.Y.Z tag 不存在，则自动创建 tag
+  ↓
+创建 GitHub Release
+```
+
+**关键约束**：本项目默认不要求在本地手动 `git tag`。tag 由 `.github/workflows/homebrew.yml` 中的 `gh release create "v$VERSION" --target "$GITHUB_SHA"` 在 Release 创建时自动创建，并绑定到本次 workflow checkout/build 的 `master` commit。
+
+1. 在功能分支提交发版准备内容：
 
 ```bash
 git add CHANGELOG.md
 git commit -m "docs: changelog for vX.Y.Z"
-git tag vX.Y.Z
-git push origin master vX.Y.Z
+git push <remote> <feature-branch>
 ```
 
-如果项目实际发布远程不是 `origin`，必须先向用户确认远程名；禁止猜测或直接 force push。
+2. 创建 PR 并合入上游 `aliyun/master`。合入前必须确认：
+   - `CHANGELOG.md` 已包含 `## [X.Y.Z]` 版本段；
+   - `### English` 与 `### 中文` 均已完成且结构对齐；
+   - `TRANSLATE_ME` / `中文翻译待补充` 已清理。
+
+3. PR 合入后，在 GitHub Actions 页面执行：
+   - Actions → **Agentbay CLI Official Homebrew Release** → **Run workflow**
+   - 选择 `master` 分支
+   - 输入版本号 `X.Y.Z`（不带 `v` 前缀，如 `0.4.0`）
+
+4. workflow 会执行 `gh release create "v$VERSION" --target "$GITHUB_SHA" ...`：
+   - 如果 `vX.Y.Z` tag 不存在，`gh release create` 会自动创建；
+   - `--target "$GITHUB_SHA"` 保证 tag 指向本次 workflow checkout/build 的 master commit；
+   - GitHub Release body 从 `CHANGELOG.md` 中抽取 `## [X.Y.Z]` 段。
+
+如果项目实际使用 tag-driven release（本地/CI 预先推送 `vX.Y.Z` tag），必须先向用户确认；禁止猜测远程名或直接 force push。
 
 ### Phase 5：workflow 发布验证
 
-tag push 后，检查 `.github/workflows/homebrew.yml`：
+手动 Run workflow 后，检查 `.github/workflows/homebrew.yml`：
 
-- workflow 从 `CHANGELOG.md` 调用 `scripts/extract-changelog-section.sh` 抽取版本段
+- workflow 从 `CHANGELOG.md` 调用 `scripts/extract-changelog-section.sh` 抽取目标版本段
 - 抽取失败应 fail-fast，并提示先跑 `make release-prep VERSION=X.Y.Z`
 - workflow 不再调用 git-cliff 生成 release notes
 - workflow 不再检查中文占位符
 - workflow 不再 commit-back `CHANGELOG.md`
+- `gh release create` 必须带 `--target "$GITHUB_SHA"`，确保自动创建的 tag 指向本次构建 commit
+- Release 创建成功后，确认 `vX.Y.Z` tag、Release body、构建资产均正确
 
 ### Phase 6：已发布 Release 说明修订 / 历史回灌
 
@@ -194,53 +232,66 @@ test -s /tmp/release-notes.md
 
 期望结果：第一条无输出；后两条成功退出。
 
-### 3. 提交 CHANGELOG（不打 tag）
+### 3. 提交 CHANGELOG（功能分支）
 
-适用于“先在功能分支准备 CHANGELOG，后续合入发布主线再发版”的场景。
+适用于“先在功能分支准备 CHANGELOG，PR 合入发布主线后再手动执行 release workflow”的默认场景。
 
 ```bash
 git add CHANGELOG.md
 git commit -m "docs: changelog for vX.Y.Z"
+git push <remote> <feature-branch>
 ```
 
-### 4. 标准发布提交 + tag + push
+### 4. 默认发布：PR 合入 master 后手动 Run workflow
 
-适用于已在发布主线、准备触发 GitHub Release workflow 的场景。
+```text
+1. 将包含 CHANGELOG.md 的功能分支 PR 合入 upstream/master
+2. GitHub → Actions → Agentbay CLI Official Homebrew Release → Run workflow
+3. 选择 master 分支
+4. 输入版本号 X.Y.Z（不带 v 前缀）
+5. workflow 执行 gh release create "v$VERSION" --target "$GITHUB_SHA" ...
+```
+
+`gh release create` 会在 tag 不存在时自动创建 `vX.Y.Z`，并通过 `--target "$GITHUB_SHA"` 将 tag 绑定到本次 workflow 构建的 master commit。
+
+### 5. 可选发布：预先创建 tag 并推送
+
+仅在用户明确选择 tag-driven release 时使用：
 
 ```bash
-git add CHANGELOG.md
-git commit -m "docs: changelog for vX.Y.Z"
+git checkout master
+git pull
 git tag vX.Y.Z
-git push origin master vX.Y.Z
+git push <remote> vX.Y.Z
 ```
 
-如发布远程不是 `origin` 或发布分支不是 `master`，必须先确认远程名和分支名，不得猜测。
+如发布远程不是当前明确目标，必须先确认远程名和分支名，不得猜测。
 
-### 5. 已发布版本：预览单版本回灌
+### 6. 已发布版本：预览单版本回灌
 
 ```bash
 bash scripts/backfill-release-notes.sh --dry-run --tag vX.Y.Z
 ```
 
-### 6. 已发布版本：正式单版本回灌
+### 7. 已发布版本：正式单版本回灌
 
 ```bash
 bash scripts/backfill-release-notes.sh --tag vX.Y.Z
 ```
 
-### 7. 历史 Release：预览全量回灌
+### 8. 历史 Release：预览全量回灌
 
 ```bash
 bash scripts/backfill-release-notes.sh --dry-run
 ```
 
-### 8. 历史 Release：正式全量回灌
+### 9. 历史 Release：正式全量回灌
 
 ```bash
 bash scripts/backfill-release-notes.sh
 ```
 
-### 9. 推荐顺序：新版本 + 历史回灌同批处理
+### 10. 推荐顺序：新版本 + 历史回灌同批处理
 
 ```bash
 # 1. 推送包含 CHANGELOG.md 的代码到 GitHub 发布分支
@@ -252,7 +303,7 @@ bash scripts/backfill-release-notes.sh --dry-run
 bash scripts/backfill-release-notes.sh
 ```
 
-### 10. 检查 gh 登录状态
+### 11. 检查 gh 登录状态
 
 ```bash
 gh auth status

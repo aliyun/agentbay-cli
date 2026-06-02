@@ -5,14 +5,14 @@ name: Agentbay CLI Official Homebrew Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g., 0.1.0, 2.1.3) - Must be semantic version'
+        description: "Release version (e.g., 0.1.0, 2.1.3) - Must be semantic version"
         required: true
         type: string
-        default: '0.1.0'
+        default: "0.1.0"
 
 # Required permissions for GitHub Actions
 permissions:
@@ -546,7 +546,11 @@ jobs:
           total_size_mb=$((total_size / 1024 / 1024))
           echo "Total size: ${total_size_mb}MB"
 
+          # When the workflow is manually dispatched and the tag does not yet exist,
+          # gh release create will create v$VERSION. Pin that tag to the exact
+          # commit checked out by this workflow so the release matches the build.
           if gh release create "v$VERSION" \
+            --target "$GITHUB_SHA" \
             --title "Agentbay CLI v$VERSION" \
             --notes-file /tmp/release-notes-full.md \
             "${all_files[@]}"; then
@@ -685,7 +689,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🍺 Preparing submission to Homebrew Core Repository..."
-          
+
           # Commit updated formula to main repository
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
@@ -731,23 +735,23 @@ jobs:
       - name: Prepare deployment files
         run: |
           echo "📁 Preparing GitHub Pages deployment from scripts directory..."
-          
+
           # Ensure scripts directory exists
           if [ ! -d "scripts" ]; then
             echo "❌ scripts directory not found!"
             exit 1
           fi
-          
+
           # Display files to be deployed
           echo "Files to be deployed:"
           ls -la scripts/
-          
+
           # Verify critical files exist
           if [ ! -f "scripts/windows" ]; then
             echo "❌ scripts/windows file not found!"
             exit 1
           fi
-          
+
           echo "✅ All required files found"
 
       - name: Upload artifact
@@ -771,7 +775,7 @@ jobs:
 
           # Validate formula file syntax and content
           echo "📋 Checking formula compliance for source build mode..."
-          
+
           if [[ -f "homebrew/agentbay.rb" ]]; then
             echo "✅ Formula file exists: homebrew/agentbay.rb"
             
@@ -924,7 +928,7 @@ jobs:
       - name: Generate Submission Documentation
         run: |
           echo "📖 Generating submission documentation for source build mode..."
-          
+
           cat > HOMEBREW_SUBMISSION.md << 'DOC_EOF'
           # Agentbay CLI - Homebrew Core Submission (Source Build Mode)
 
@@ -966,12 +970,12 @@ jobs:
           brew install --build-from-source ./Formula/agentbay.rb
           brew audit --strict --new --online agentbay
           brew test agentbay
-          
+
           # Verify build from source
           brew reinstall --build-from-source agentbay
           agentbay --version
           agentbay --help
-          
+
           # Cleanup
           brew uninstall agentbay
           ```
