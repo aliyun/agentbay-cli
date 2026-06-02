@@ -43,6 +43,7 @@ description: AgentBay CLI 双语 CHANGELOG 与 GitHub Release 发版 SOP。Use w
 2. 确认当前目标分支是发布主线（通常为 `master`）。
 3. 确认工作区干净；如不干净，先提示用户提交或 stash，不能继续 release-prep。
 4. 确认 tag 不存在：`vX.Y.Z` 本地和远程都不应存在。
+5. 确认 `llms-full.txt` 已随英文对外文档同步：如果本次 release 包含 `README.md` 或 `docs/en/**` 变更，必须先执行 `bash scripts/build-llms-full.sh` 并提交生成结果；如新增 / 删除 / 重命名对外文档，还要确认 `llms.txt` 已同步。
 
 ### Phase 1：生成 CHANGELOG 版本段
 
@@ -118,6 +119,8 @@ make changelog-install
 - [ ] 无残留 `TRANSLATE_ME` 或 `中文翻译待补充`
 - [ ] 顶部仍保留空的 `## [Unreleased]`
 - [ ] 无真实 UID、账号 ID 等敏感信息未脱敏
+- [ ] 如本次 release 包含 `README.md` 或 `docs/en/**` 变更，`llms-full.txt` 已由 `bash scripts/build-llms-full.sh` 重新生成并提交
+- [ ] 如本次 release 新增 / 删除 / 重命名对外文档，`llms.txt` 已同步
 - [ ] PR 链接、commit 链接、author 不被翻译或破坏
 
 可用检查命令：
@@ -322,12 +325,13 @@ gh auth login
 - [ ] `CHANGELOG.md` 目标版本段已生成并翻译
 - [ ] `TRANSLATE_ME` / 旧中文占位符已清理
 - [ ] `extract-changelog-section.sh` 可成功抽取该版本段
+- [ ] 如涉及 `README.md` 或 `docs/en/**` 变更，`llms-full.txt` 已同步；如涉及对外文档结构变化，`llms.txt` 已检查
 - [ ] 已说明下一步是否需要用户授权 commit/tag/push
 - [ ] 未自动执行未经授权的 git 或 gh 写操作
 
 ## 📚 参考
 
 - [bilingual-changelog-proposal.md](../../docs/internal/bilingual-changelog-proposal.md)
-- [release-checklist.md](../../docs/release-checklist.md)
+- [release-checklist.md](../../docs/internal/release-checklist.md)
 - [development.md](../../rules/development.md)
 - [update-cli-command-docs](../update-cli-command-docs/SKILL.md)

@@ -2,6 +2,8 @@
 
 [English](README.md) | **中文**
 
+> 🤖 **LLM 友好**:本项目提供 [llms.txt](llms.txt) 与 [llms-full.txt](llms-full.txt),便于 AI 助手理解。
+
 阿里云 AgentBay 服务的命令行工具 —— 镜像生命周期、API Key、Docker 与技能管理。
 
 > 当前 CLI 版本仅支持创建和激活 **CodeSpace** 类型的镜像。

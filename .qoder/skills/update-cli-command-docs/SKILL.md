@@ -11,7 +11,8 @@ description: AgentBay CLI 命令文档同步流程（docs/、README、CHANGELOG 
 
 1. **docs/ 命令文档** — `docs/en/<group>.md` 和 `docs/zh/<group>.md`
 2. **README Command Overview 表格** — `README.md` 和 `README.zh-CN.md`
-3. **CHANGELOG readiness** — 校验 commit / scope / 文档摘要满足 `make release-prep` 采集要求；真正的版本段生成与翻译委托 `bilingual-changelog-release` skill
+3. **LLM-facing docs readiness** — 根据 `README.md` / `docs/en/**` 变更同步 `llms-full.txt`，并在文档结构变化时检查 `llms.txt`
+4. **CHANGELOG readiness** — 校验 commit / scope / 文档摘要满足 `make release-prep` 采集要求；真正的版本段生成与翻译委托 `bilingual-changelog-release` skill
 
 **本 skill 不涉及代码实现，仅负责文档层面的同步。**
 
@@ -23,6 +24,7 @@ description: AgentBay CLI 命令文档同步流程（docs/、README、CHANGELOG 
 
 - 新增 CLI 命令后需同步文档
 - 修改已有命令的参数、默认值、输出格式后需同步文档
+- 日常开发完成后需确认 LLM-facing docs readiness（`llms-full.txt` / `llms.txt` 是否需要同步）
 - 日常开发完成后需确认 CHANGELOG readiness（commit type/scope/subject 是否能被 release-prep 正确采集）
 - 用户明确提出"更新文档"、"同步文档"等需求
 - 用户明确提出"更新 CHANGELOG"且上下文是日常命令文档同步；若目标是发版版本段或 GitHub Release notes，必须改用 `bilingual-changelog-release` skill
@@ -79,7 +81,19 @@ description: AgentBay CLI 命令文档同步流程（docs/、README、CHANGELOG 
    | 仅内部重构     | ❌ 通常不需要         | ❌                    | 视情况                                                 |
    | 仅补发版翻译   | ❌                    | ❌                    | ❌ 改用 `bilingual-changelog-release`                  |
 
-4. **向用户确认更新范围**
+4. **判定 llms 更新类型**
+
+   | 变更类型                                        | llms 动作                                                            |
+   | ----------------------------------------------- | -------------------------------------------------------------------- |
+   | 修改 `README.md`                                | 执行 `bash scripts/build-llms-full.sh`，同步 `llms-full.txt`         |
+   | 修改 `docs/en/**`                               | 执行 `bash scripts/build-llms-full.sh`，同步 `llms-full.txt`         |
+   | 新增 / 删除 / 重命名对外文档                    | 更新 `llms.txt` 导航链接；如涉及英文源文档，同步重建 `llms-full.txt` |
+   | 仅修改 `docs/zh/**`                             | 通常不重建 `llms-full.txt`；若文档结构变化，检查 `llms.txt` 中文链接 |
+   | 仅修改 `docs/internal/**` / 测试文档 / 脚本文档 | 不进入 llms 文档，通常无需同步                                       |
+
+   CLI 命令变更通常会同步 `docs/en/<group>.md` 或 `README.md`，因此必须把 `llms-full.txt` 纳入本次文档同步范围。
+
+5. **向用户确认更新范围**
 
    展示分析结果，例如：
 
@@ -340,6 +354,55 @@ agentbay <group> <subcommand> [flags]
 
 ---
 
+### Phase 2.5: LLM-facing docs readiness
+
+**原则**：`llms.txt` 和 `llms-full.txt` 是 AI 助手优先读取的对外文档入口。只要本 skill 修改了 `README.md` 或 `docs/en/**`，就必须同步生成 `llms-full.txt`。
+
+#### 2.5.1 同步 `llms-full.txt`
+
+触发条件：
+
+- `README.md` 有变更
+- 任意 `docs/en/**` 对外文档有变更
+- 新增英文对外文档并已加入 `scripts/build-llms-full.sh` 的 `FILES` 数组
+
+执行：
+
+```bash
+bash scripts/build-llms-full.sh
+```
+
+要求：
+
+- 生成结果必须随同本次文档变更提交。
+- 不要手写 `llms-full.txt`，它应由脚本生成。
+- `llms-full.txt` 不应包含 `docs/internal/**` 的 Source 标记。
+
+#### 2.5.2 检查 `llms.txt`
+
+触发条件：
+
+- 新增、删除、重命名对外文档
+- 新增、删除、重命名命令组文档
+- README 或文档入口结构发生变化，导致导航索引需要调整
+
+要求：
+
+- `llms.txt` 使用 GitHub `master` 分支绝对 URL。
+- 英文和中文对外文档链接都要检查。
+- 不收录 `docs/internal/**`、`test/**`、`.aoneci/**`、`scripts/README.md` 等内部/开发文档。
+
+#### 2.5.3 readiness 输出模板
+
+```text
+LLM-facing docs readiness:
+- llms-full.txt: Updated / Not needed（说明原因）
+- llms.txt: Updated / Checked, no change needed（说明原因）
+- 触发依据: README.md / docs/en/** / 文档结构变化 / 无
+```
+
+---
+
 ### Phase 3: CHANGELOG readiness（不生成版本段）
 
 **原则**：日常命令文档同步阶段只确认本次变更能被发版阶段正确采集；不得再运行旧的 `git-cliff -o CHANGELOG.md` / `make changelog` 全量覆盖流程。真正的双语版本段生成、翻译、tag 发布和 GitHub Release notes 回灌，统一交给 `bilingual-changelog-release` skill。
@@ -425,6 +488,13 @@ CHANGELOG readiness:
 - [ ] `README.zh-CN.md` 命令概览表格已更新
 - [ ] 两个表格的命令列表一致
 
+### LLM-facing docs readiness
+
+- [ ] 如修改 `README.md` 或 `docs/en/**`，已执行 `bash scripts/build-llms-full.sh`
+- [ ] `llms-full.txt` 已随源文档同步更新，或已明确说明无需更新
+- [ ] 如新增 / 删除 / 重命名对外文档，`llms.txt` 导航链接已同步
+- [ ] `llms.txt` / `llms-full.txt` 未收录 `docs/internal/**` 内容
+
 ### CHANGELOG readiness
 
 - [ ] 已给出推荐 commit/PR title（Conventional Commits + 合理 scope）
@@ -438,6 +508,7 @@ CHANGELOG readiness:
 - [create-cli-command](../create-cli-command/SKILL.md) — CLI 命令封装流程（Phase 5 委托本 skill）
 - [feature-development-workflow](../feature-development-workflow/SKILL.md) — 开发流程规范
 - [bilingual-changelog-release](../bilingual-changelog-release/SKILL.md) — 双语 CHANGELOG、GitHub Release notes、release-prep/backfill SOP
+- [llms-txt spec](../../specs/llms-txt.md) — AgentBay CLI llms.txt / llms-full.txt 方案
 
 ## ⚠️ 注意事项
 
@@ -449,4 +520,5 @@ CHANGELOG readiness:
 6. **命令名一律英文**：文档中所有命令名、参数名均使用英文，不翻译
 7. **参考已有风格**：更新 docs/ 时参考同文件中已有命令的文档风格，保持一致
 8. **接口变更必须同步权限文档**：只要新增或删除了 OpenAPI 调用，涉及接口章节和 README RAM 权限汇总表必须同步更新，不得遗漏
-9. **必须输出权限变更摘要**：无论有无接口变更，都必须在终端输出 Phase 1.5.4 要求的摘要，方便用户人工核查
+9. **llms 文档必须随英文对外文档同步**：只要修改 `README.md` 或 `docs/en/**`，必须执行 `bash scripts/build-llms-full.sh` 并同步 `llms-full.txt`；文档结构变化时检查 `llms.txt`
+10. **必须输出权限变更摘要**：无论有无接口变更，都必须在终端输出 Phase 1.5.4 要求的摘要，方便用户人工核查

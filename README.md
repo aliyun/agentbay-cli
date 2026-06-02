@@ -2,6 +2,8 @@
 
 [中文版](README.zh-CN.md) | **English**
 
+> 🤖 **LLM-friendly**: This project ships [llms.txt](llms.txt) and [llms-full.txt](llms-full.txt) for AI assistants.
+
 A command-line interface for AgentBay services on Alibaba Cloud — image lifecycle, API keys, Docker, and skills management.
 
 > The current CLI version supports creating and activating **CodeSpace** type images only.

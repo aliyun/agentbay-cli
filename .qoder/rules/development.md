@@ -35,6 +35,46 @@ trigger: always_on
 
 ---
 
+## 🤖 LLM-facing 文档维护 SOP
+
+### 重要：CLI / 文档变更必须同步 llms 文档
+
+**规则**：`llms.txt` 和 `llms-full.txt` 是面向 AI 助手的对外文档入口。后续任何 CLI 功能、命令文档或 README 调整，只要影响用户可见说明，就必须检查并同步 llms 相关文件。
+
+**触发条件**：
+
+| 变更类型                                                                | 必须动作                                                                         |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 修改 `README.md`                                                        | 执行 `bash scripts/build-llms-full.sh`，提交更新后的 `llms-full.txt`             |
+| 修改 `docs/en/**`                                                       | 执行 `bash scripts/build-llms-full.sh`，提交更新后的 `llms-full.txt`             |
+| 新增 / 删除 / 重命名对外文档                                            | 更新 `llms.txt` 中的中英文导航链接；如涉及英文源文档，同步重建 `llms-full.txt`   |
+| 新增 / 修改 / 删除 CLI 命令、参数、输出或用户可见行为                   | 若同步修改了 `README.md` 或 `docs/en/<group>.md`，必须同步重建 `llms-full.txt`   |
+| 仅修改 `docs/zh/**`                                                     | 通常不需要重建 `llms-full.txt`；若文档结构发生变化，仍需检查 `llms.txt` 中文链接 |
+| 修改 `docs/internal/**`、`test/**`、`scripts/README.md` 等内部/开发文档 | 不进入 `llms.txt` / `llms-full.txt`，通常无需同步                                |
+
+**执行命令**：
+
+```bash
+bash scripts/build-llms-full.sh
+```
+
+**维护原则**：
+
+- `llms.txt` 是静态导航索引，采用双语链接；仅在文档文件新增、删除、重命名、命令组索引变化时手动更新。
+- `llms-full.txt` 是英文全文聚合文件，只由 `README.md` 和 `docs/en/**` 生成，不纳入 `docs/zh/**` 或 `docs/internal/**`。
+- `scripts/build-llms-full.sh` 中的 `FILES` 顺序代表 LLM 学习路径；新增英文对外文档时必须评估是否加入该数组。
+- 发版前若本次 release 包含 `README.md` 或 `docs/en/**` 变更，必须确认 `llms-full.txt` 已重新生成并提交。
+
+**检查清单**：
+
+- [ ] 本次是否修改了 `README.md` 或 `docs/en/**`
+- [ ] 如是，已执行 `bash scripts/build-llms-full.sh`
+- [ ] 新增 / 删除 / 重命名对外文档时，`llms.txt` 链接已同步
+- [ ] `llms-full.txt` 未包含 `docs/internal/**` 内容
+- [ ] `git diff --stat` 中包含应同步的 `llms-full.txt` / `llms.txt` 变更，或已明确说明无需更新
+
+---
+
 ## 🔗 Skill 自动装配规则（Quest / 对话 / 任意入口通用）
 
 **凡符合下列任一特征的任务，AI 必须主动加载并遵循对应的 `.qoder/skills/` 指南**（包括但不限于 Quest Design/Execute 阶段、直接对话、Execute Directly 模式）：
@@ -724,6 +764,7 @@ assert.Equal(t, "y", yesFlag.Shorthand)
 > ```
 > - [ ] 更新 docs/en/<command-group>.md 和 docs/zh/<command-group>.md
 > - [ ] 视需要更新 README.md 和 README.zh-CN.md Command Overview 表格
+> - [ ] 如修改 README.md 或 docs/en/**，执行 bash scripts/build-llms-full.sh 并同步 llms-full.txt
 > ```
 >
 > **禁止在文档任务完成前宣告需求开发完成。**
@@ -773,6 +814,8 @@ assert.Equal(t, "y", yesFlag.Shorthand)
 - [ ] `docs/zh/<command-group>.md` 已更新（与英文版保持结构一致）
 - [ ] `README.md` Command Overview 表格已更新（仅命令结构变化时）
 - [ ] `README.zh-CN.md` Command Overview 表格已更新（仅命令结构变化时）
+- [ ] 如修改 `README.md` 或 `docs/en/**`，已执行 `bash scripts/build-llms-full.sh` 并同步 `llms-full.txt`
+- [ ] 如新增 / 删除 / 重命名对外文档，已同步 `llms.txt` 导航链接
 - [ ] 对外文档已同步（钉钉文档 / cli 使用手册）
 - [ ] 单元测试已编写或更新并通过
 - [ ] mock 类已同步更新（如有接口变更）

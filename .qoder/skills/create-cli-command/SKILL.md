@@ -335,6 +335,7 @@ Test<子命令>Cmd           // 测试子命令
 
 - 更新 `docs/en/<group>.md` 和 `docs/zh/<group>.md`
 - 更新 `README.md` 和 `README.zh-CN.md` Command Overview 表格
+- 完成 LLM-facing docs readiness：如修改 `README.md` 或 `docs/en/**`，执行 `bash scripts/build-llms-full.sh` 并同步 `llms-full.txt`；文档结构变化时检查 `llms.txt`
 - 更新 `CHANGELOG.md` readiness（校验 commit/PR title 可被 release-prep 采集；不在日常命令开发中全量生成 CHANGELOG）
 
 > ⚠️ 不得在本 Phase 中内联执行文档操作，必须遵循 `update-cli-command-docs` 的 Phase 0-3 完整流程。
@@ -393,6 +394,8 @@ git commit -m "feat: add <功能描述> CLI command
 - [ ] `docs/zh/<command-group>.md` 已更新（与英文版结构一致）
 - [ ] `README.md` Command Overview 表格已更新
 - [ ] `README.zh-CN.md` Command Overview 表格已更新
+- [ ] 如修改 `README.md` 或 `docs/en/**`，已执行 `bash scripts/build-llms-full.sh` 并同步 `llms-full.txt`
+- [ ] 如新增 / 删除 / 重命名对外文档，已检查并同步 `llms.txt` 导航链接
 
 ✅ **对客文档**（cli-analysis/）:
 
@@ -412,6 +415,7 @@ git commit -m "feat: add <功能描述> CLI command
 - [ ] 使用 Conventional Commits 格式，优先带命令组 scope（如 `feat(apikey): ...`）
 - [ ] 若为不兼容变更，使用 `!` 或 `BREAKING CHANGE:`
 - [ ] 已确认本次变更可在发版时由 `make release-prep VERSION=X.Y.Z` 生成到 CHANGELOG
+- [ ] 已确认 `update-cli-command-docs` 完成 llms readiness（`llms-full.txt` / `llms.txt` 已同步或明确无需更新）
 - [ ] 展示提交结果
 
 ## 📚 参考资料
@@ -444,8 +448,9 @@ git commit -m "feat: add <功能描述> CLI command
 4. **命令层级**: 相关功能组织为子命令，不要创建顶级命令
 5. **测试覆盖**: 必须有单元测试，且所有测试通过
 6. **文档面向客户**: 对客文档不包含代码实现细节
-7. **不要自动提交**: 必须用户明确要求才执行 git commit
-8. **⚠️ 接口变更必须同步 Mock**: 给 `agentbay.Client` 接口添加新方法后，**必须立即更新所有 mock 类**！
+7. **llms 文档同步**: 新增 / 修改 CLI 命令导致 `README.md` 或 `docs/en/**` 变化时，必须通过 `update-cli-command-docs` 执行 `bash scripts/build-llms-full.sh` 并同步 `llms-full.txt`；文档结构变化时检查 `llms.txt`
+8. **不要自动提交**: 必须用户明确要求才执行 git commit
+9. **⚠️ 接口变更必须同步 Mock**: 给 `agentbay.Client` 接口添加新方法后，**必须立即更新所有 mock 类**！
    - 查找所有 mock 类：`grep -r "type mock.*Client struct" cmd/ test/`
    - 为每个 mock 类添加新方法（返回 `fmt.Errorf("not implemented")`）
    - 常见 mock 类：`mockGetMcpImageInfoClient`, `mockImageListClient`

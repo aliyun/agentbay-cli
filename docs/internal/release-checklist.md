@@ -25,6 +25,7 @@ The two workflows are intentionally separated so you can verify the formula on
   - `HOMEBREW_TAP_TOKEN` — PAT with `repo` scope on `aliyun/homebrew-agentbay`. Required by `push-to-homebrew-tap.yml`.
 - [ ] Tag/Release does not already exist (`gh release view vX.Y.Z` should be empty; if a local tag exists, it is irrelevant unless you intentionally use tag-driven release).
 - [ ] You have write access to `aliyun/agentbay-cli` (for the commit-back step) and `aliyun/homebrew-agentbay` (for the tap push).
+- [ ] **`llms-full.txt` is up to date.** If any PR included in this release changed `README.md` or `docs/en/**`, regenerate the LLM bundle and commit it before cutting the release: `bash scripts/build-llms-full.sh`. This keeps the AI-facing single-file documentation aligned with the canonical sources. (`llms.txt` is a static index and only needs editing when doc files are added/removed/renamed.)
 
 ---
 
