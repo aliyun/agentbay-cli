@@ -184,25 +184,29 @@ Docker repo unshared successfully.
 
 ### `docker list-shares`
 
-List Docker image repository sharing information. Use `--direction` to specify:
+List Docker image repository sharing information. Use `--direction` to specify the sharing direction. If omitted, it defaults to `Incoming`:
 
 - `Outgoing`: repos you have shared with other accounts
 - `Incoming`: repos that other accounts have shared with you
 
+Use `--aliuid` to filter by Alibaba Cloud account UID.
+
 ```bash
+agentbay docker list-shares
 agentbay docker list-shares --direction Outgoing
-agentbay docker list-shares --direction Incoming
+agentbay docker list-shares --direction Incoming --aliuid 1234
 agentbay docker list-shares --direction Outgoing --page 2 --size 5
 ```
 
 **Flags:**
 
-| Flag              | Type   | Required | Default | Description                                           |
-| ----------------- | ------ | -------- | ------- | ----------------------------------------------------- |
-| `--direction`     | string | Yes      | —       | Sharing direction: `Outgoing` or `Incoming`           |
-| `--page`          | int    | No       | 1       | Page number                                           |
-| `--size`          | int    | No       | 10      | Page size                                             |
-| `--output` / `-o` | string | No       | —       | Output format. Use `json` for machine-readable output |
+| Flag              | Type   | Required | Default    | Description                                           |
+| ----------------- | ------ | -------- | ---------- | ----------------------------------------------------- |
+| `--direction`     | string | No       | `Incoming` | Sharing direction: `Outgoing` or `Incoming`           |
+| `--aliuid`        | int64  | No       | 0          | Filter by Alibaba Cloud account UID                   |
+| `--page`          | int    | No       | 1          | Page number                                           |
+| `--size`          | int    | No       | 10         | Page size                                             |
+| `--output` / `-o` | string | No       | —          | Output format. Use `json` for machine-readable output |
 
 **Example output (default table):**
 
@@ -232,17 +236,13 @@ Total: 1
 
 ```json
 {
-  "totalCount": 2,
+  "totalCount": 1,
   "pageNumber": 1,
   "pageSize": 10,
   "items": [
     {
-      "peerAliUid": 1234567890,
-      "status": "active"
-    },
-    {
-      "peerAliUid": 2345678901,
-      "status": "pending"
+      "peerAliUid": 1234,
+      "status": "ACTIVE"
     }
   ]
 }

@@ -2597,6 +2597,9 @@ func (client *Client) ListSharedDockerReposWithOptions(request *ListSharedDocker
 	if request.PageStart != nil {
 		body["PageStart"] = request.PageStart
 	}
+	if request.QueryAliUid != nil {
+		body["QueryAliUid"] = request.QueryAliUid
+	}
 	req := &openapiutil.OpenApiRequest{
 		Body: openapiutil.ParseToMap(body),
 		Headers: map[string]*string{

@@ -164,8 +164,8 @@ func init() {
 
 	dockerUnshareCmd.Flags().Int64("target-uid", 0, "Target Alibaba Cloud account UID to cancel sharing with")
 
-	dockerListSharesCmd.Flags().String("direction", "", `Sharing direction: "Outgoing" (repos you shared) or "Incoming" (repos shared with you)`)
-	_ = dockerListSharesCmd.MarkFlagRequired("direction")
+	dockerListSharesCmd.Flags().String("direction", "Incoming", `Sharing direction: "Outgoing" (repos you shared) or "Incoming" (repos shared with you)`)
+	dockerListSharesCmd.Flags().Int64("aliuid", 0, "Filter by Alibaba Cloud account UID")
 	dockerListSharesCmd.Flags().StringP("output", "o", "", `Output format. Use "json" for machine-readable output (e.g. for AI/scripts)`)
 	dockerListSharesCmd.Flags().Int("page", 1, "Page number (default: 1)")
 	dockerListSharesCmd.Flags().Int("size", 10, "Page size (default: 10)")
@@ -565,15 +565,17 @@ var dockerListSharesCmd = &cobra.Command{
 	Short: "List Docker repo sharing information",
 	Long: `List Docker image repository sharing information.
 
-Use --direction to specify:
+Use --direction to specify the sharing direction. If omitted, it defaults to Incoming:
   Outgoing  Repos you have shared with other accounts
   Incoming  Repos that other accounts have shared with you
 
+Use --aliuid to filter by Alibaba Cloud account UID.
 Use --page and --size to paginate results (both optional, default page=1, size=10).
 
 Examples:
+  agentbay docker list-shares
   agentbay docker list-shares --direction Outgoing
-  agentbay docker list-shares --direction Incoming
+  agentbay docker list-shares --direction Incoming --aliuid 1234
   agentbay docker list-shares --direction Outgoing --page 2 --size 5
   agentbay docker list-shares --direction Outgoing --output json`,
 	Args: cobra.NoArgs,
@@ -582,6 +584,7 @@ Examples:
 
 func runDockerListShares(cobraCmd *cobra.Command, args []string) error {
 	direction, _ := cobraCmd.Flags().GetString("direction")
+	aliuid, _ := cobraCmd.Flags().GetInt64("aliuid")
 	outputFmt, _ := cobraCmd.Flags().GetString("output")
 	page, _ := cobraCmd.Flags().GetInt("page")
 	size, _ := cobraCmd.Flags().GetInt("size")
@@ -595,6 +598,9 @@ func runDockerListShares(cobraCmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
 	req := &client.ListSharedDockerReposRequest{Direction: &direction}
+	if aliuid > 0 {
+		req.QueryAliUid = &aliuid
+	}
 	if size > 0 {
 		sizeInt32 := int32(size)
 		req.PageSize = &sizeInt32

@@ -184,25 +184,29 @@ Docker repo unshared successfully.
 
 ### `docker list-shares`
 
-列出 Docker 镜像仓库的共享信息。使用 `--direction` 指定方向：
+列出 Docker 镜像仓库的共享信息。使用 `--direction` 指定方向；未传时默认使用 `Incoming`：
 
 - `Outgoing`：你共享给其他账号的仓库
 - `Incoming`：其他账号共享给你的仓库
 
+使用 `--aliuid` 可按阿里云账号 UID 搜索。
+
 ```bash
+agentbay docker list-shares
 agentbay docker list-shares --direction Outgoing
-agentbay docker list-shares --direction Incoming
+agentbay docker list-shares --direction Incoming --aliuid 1234
 agentbay docker list-shares --direction Outgoing --page 2 --size 5
 ```
 
 **参数：**
 
-| 参数              | 类型   | 必填 | 默认值 | 说明                                   |
-| ----------------- | ------ | ---- | ------ | -------------------------------------- |
-| `--direction`     | string | 是   | —      | 共享方向：`Outgoing` 或 `Incoming`     |
-| `--page`          | int    | 否   | 1      | 页码                                   |
-| `--size`          | int    | 否   | 10     | 每页条数                               |
-| `--output` / `-o` | string | 否   | —      | 输出格式，填 `json` 可获得机器可读输出 |
+| 参数              | 类型   | 必填 | 默认值     | 说明                                   |
+| ----------------- | ------ | ---- | ---------- | -------------------------------------- |
+| `--direction`     | string | 否   | `Incoming` | 共享方向：`Outgoing` 或 `Incoming`     |
+| `--aliuid`        | int64  | 否   | 0          | 按阿里云账号 UID 搜索                  |
+| `--page`          | int    | 否   | 1          | 页码                                   |
+| `--size`          | int    | 否   | 10         | 每页条数                               |
+| `--output` / `-o` | string | 否   | —          | 输出格式，填 `json` 可获得机器可读输出 |
 
 **输出示例（默认表格）：**
 
@@ -232,17 +236,13 @@ Total: 1
 
 ```json
 {
-  "totalCount": 2,
+  "totalCount": 1,
   "pageNumber": 1,
   "pageSize": 10,
   "items": [
     {
-      "peerAliUid": 1234567890,
-      "status": "active"
-    },
-    {
-      "peerAliUid": 2345678901,
-      "status": "pending"
+      "peerAliUid": 1234,
+      "status": "ACTIVE"
     }
   ]
 }

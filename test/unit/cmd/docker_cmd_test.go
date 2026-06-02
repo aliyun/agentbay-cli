@@ -109,16 +109,23 @@ func TestDockerListSharesCmd(t *testing.T) {
 		assert.NotNil(t, listSharesCmd)
 		flag := listSharesCmd.Flags().Lookup("direction")
 		assert.NotNil(t, flag)
-		assert.Equal(t, "", flag.DefValue)
+		assert.Equal(t, "Incoming", flag.DefValue)
 	})
 
-	t.Run("list-shares command --direction is required", func(t *testing.T) {
+	t.Run("list-shares command --direction is optional", func(t *testing.T) {
 		assert.NotNil(t, listSharesCmd)
 		flag := listSharesCmd.Flags().Lookup("direction")
 		assert.NotNil(t, flag)
 		annotations := flag.Annotations
 		_, isRequired := annotations["cobra_annotation_bash_completion_one_required_flag"]
-		assert.True(t, isRequired, "--direction should be marked as required")
+		assert.False(t, isRequired, "--direction should not be marked as required")
+	})
+
+	t.Run("list-shares command has --aliuid flag", func(t *testing.T) {
+		assert.NotNil(t, listSharesCmd)
+		flag := listSharesCmd.Flags().Lookup("aliuid")
+		assert.NotNil(t, flag)
+		assert.Equal(t, "0", flag.DefValue)
 	})
 
 	t.Run("list-shares command has --output / -o flag", func(t *testing.T) {
