@@ -8,7 +8,7 @@ Push local skills and inspect details by ID.
 
 ### `skills push`
 
-Push a local skill (directory or `.zip`) to the cloud. A directory must contain `SKILL.md` with `name` / `description` frontmatter; a directory is packed into a zip and uploaded.
+Push a local skill (directory or `.zip`) to the cloud. A directory must contain a `SKILL.md` whose YAML frontmatter has `name` (required) and an optional `description`; the directory is packed into a zip and uploaded.
 
 ```bash
 agentbay skills push ./my-skill
@@ -33,7 +33,7 @@ agentbay skills push ./my-skill --tag "tag1" --icon 'https://example.com/icon.pn
 
 **Notes:**
 
-- Directory must contain `SKILL.md` with `name` and `description` in YAML frontmatter.
+- Directory must contain `SKILL.md`. In the YAML frontmatter, `name` is required and `description` is optional.
 - Directory is automatically packed into a `.zip` before upload.
 - When `--tag` is specified, the CLI first checks whether each tag already exists; missing tags are created automatically before the skill is uploaded.
 - Tags are processed before obtaining the upload credential to avoid credential expiry during tag creation.
@@ -114,7 +114,7 @@ agentbay skills update --skill-id <id> --file ./my-skill --clear-tags
 
 **Notes:**
 
-- When `--file` is a directory, it must contain `SKILL.md` with `name` and `description` in YAML frontmatter.
+- When `--file` is a directory, it must contain `SKILL.md`. In the YAML frontmatter, `name` is required and `description` is optional.
 - When `--file` is a directory, it is automatically packed into a `.zip` before upload.
 - When `--tag` is specified, the CLI first checks whether each tag already exists; missing tags are created automatically.
 - Tags are processed before obtaining the upload credential to avoid credential expiry.

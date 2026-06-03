@@ -283,8 +283,8 @@ agentbay image activate imgc-xxxxxxxxxxxxxx --region-id cn-shanghai
 | `--cpu`                    | `-c`  | int    | No       | CPU cores (2, 4, or 8); must pair with `--memory`       |
 | `--memory`                 | `-m`  | int    | No       | Memory in GB (4, 8, or 16); must pair with `--cpu`      |
 | `--network-type`           |       | string | No       | Network type: `DEFAULT` or `ADVANCED`                   |
-| `--session-bandwidth`      |       | int    | No       | Session bandwidth (required for ADVANCED network)       |
-| `--dns-address`            |       | string | No       | DNS address (repeatable; required for ADVANCED network) |
+| `--session-bandwidth`      |       | int    | No       | Max public-network bandwidth per session in Mbps (recommended range: 2-200); ADVANCED network only — when omitted, no upper limit is applied to per-session public-network bandwidth |
+| `--dns-address`            |       | string | No       | DNS address; ADVANCED network only, repeatable — when omitted the CLI auto-fills the office network's default DNS |
 | `--lifecycle-mode`         |       | string | No       | Release mode: `auto` (auto-release) or `manual` (manual release)               |
 | `--lifecycle-max-runtime`  |       | int    | No       | Max runtime per session (minutes); requires `--lifecycle-mode auto`            |
 | `--lifecycle-hibernate`    |       | int    | No       | Max hibernate duration (hours); requires `--lifecycle-mode auto`               |
@@ -296,7 +296,7 @@ agentbay image activate imgc-xxxxxxxxxxxxxx --region-id cn-shanghai
 **Notes:**
 
 - `--cpu` and `--memory` must be specified together.
-- `--network-type ADVANCED` requires `--session-bandwidth` and `--dns-address`.
+- `--session-bandwidth` and `--dns-address` are valid **only** with `--network-type ADVANCED`, and both are optional — passing them with the DEFAULT network is rejected. When `--dns-address` is omitted, the CLI auto-fills the current office network's default DNS.
 - Activation typically takes 1-2 minutes. If already activated, you'll see "No action needed."
 
 **Output:**

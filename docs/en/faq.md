@@ -44,7 +44,11 @@ agentbay -v skills push ./my-skill
 
 **Q: Where is config stored?**
 
-- `~/.config/agentbay/config.json` (macOS/Linux) or `%APPDATA%\agentbay\config.json` (Windows)
+- Default path varies by OS:
+  - macOS: `~/Library/Application Support/agentbay/config.json`
+  - Linux: `~/.config/agentbay/config.json` (or `$XDG_CONFIG_HOME/agentbay/config.json`)
+  - Windows: `%AppData%\agentbay\config.json`
+- Set the `AGENTBAY_CLI_CONFIG_DIR` environment variable to override the default directory.
 - OAuth tokens are stored there; AccessKey credentials are **not** saved by the CLI — only read from environment variables
 
 **Q: Supported OS types?**

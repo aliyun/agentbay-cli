@@ -116,7 +116,7 @@ export AGENTBAY_ENV=international
 | -------------------------- | ----------------------------------------------------------- |
 | `AGENTBAY_CLI_ENDPOINT`    | 覆盖当前环境的默认 API Endpoint                             |
 | `AGENTBAY_CLI_TIMEOUT_MS`  | API 请求超时时间（毫秒）                                    |
-| `AGENTBAY_CLI_CONFIG_DIR`  | 覆盖默认配置目录（默认 `~/.agentbay`）                      |
+| `AGENTBAY_CLI_CONFIG_DIR`  | 覆盖默认配置目录。默认值由 `os.UserConfigDir()` 决定：macOS `~/Library/Application Support/agentbay`、Linux `~/.config/agentbay`（或 `$XDG_CONFIG_HOME/agentbay`）、Windows `%AppData%\agentbay` |
 | `AGENTBAY_OAUTH_CLIENT_ID` | 覆盖默认的 OAuth Client ID（仅对 `agentbay login` 生效）    |
 | `AGENTBAY_OAUTH_REGION`    | 覆盖 OAuth 区域（`cn` 或 `intl`）                           |
 | `AGENTBAY_API_URL`         | _(Legacy)_ 等同于 `AGENTBAY_CLI_ENDPOINT`，仅为向后兼容保留 |

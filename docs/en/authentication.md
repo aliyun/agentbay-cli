@@ -116,7 +116,7 @@ Endpoints per environment:
 | -------------------------- | --------------------------------------------------------------------------- |
 | `AGENTBAY_CLI_ENDPOINT`    | Override the default API endpoint for the current environment               |
 | `AGENTBAY_CLI_TIMEOUT_MS`  | API request timeout in milliseconds                                         |
-| `AGENTBAY_CLI_CONFIG_DIR`  | Override the default config directory (default: `~/.agentbay`)              |
+| `AGENTBAY_CLI_CONFIG_DIR`  | Override the default config directory. The default is decided by Go's `os.UserConfigDir()`: macOS `~/Library/Application Support/agentbay`, Linux `~/.config/agentbay` (or `$XDG_CONFIG_HOME/agentbay`), Windows `%AppData%\agentbay` |
 | `AGENTBAY_OAUTH_CLIENT_ID` | Override the default OAuth client ID (only relevant for `agentbay login`)   |
 | `AGENTBAY_OAUTH_REGION`    | Override the OAuth region (`cn` or `intl`)                                  |
 | `AGENTBAY_API_URL`         | _(Legacy)_ Same as `AGENTBAY_CLI_ENDPOINT`, kept for backward compatibility |

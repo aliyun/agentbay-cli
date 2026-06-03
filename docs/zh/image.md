@@ -271,8 +271,8 @@ agentbay image activate imgc-xxxxxxxxxxxxxx --region-id cn-shanghai
 | `--cpu`                    | `-c`   | int    | 否   | CPU 核数（2、4、8），须与 `--memory` 同时指定 |
 | `--memory`                 | `-m`   | int    | 否   | 内存 GB（4、8、16），须与 `--cpu` 同时指定    |
 | `--network-type`           |        | string | 否   | 网络类型：`DEFAULT` 或 `ADVANCED`             |
-| `--session-bandwidth`      |        | int    | 否   | 会话带宽（ADVANCED 网络必填）                 |
-| `--dns-address`            |        | string | 否   | DNS 地址（可重复指定；ADVANCED 网络必填）     |
+| `--session-bandwidth`      |        | int    | 否   | 单 session 最高公网带宽，单位 Mbps，建议设置范围 2-200；仅 ADVANCED 网络可用，不传表示不限制单 session 公网访问带宽上限 |
+| `--dns-address`            |        | string | 否   | DNS 地址；仅 ADVANCED 网络可用，可重复指定；不传则 CLI 自动使用当前 office network 的默认 DNS |
 | `--lifecycle-mode`         |        | string | 否   | 释放模式：`auto`（自动释放）或 `manual`（手动释放） |
 | `--lifecycle-max-runtime`  |        | int    | 否   | 单次运行最长时长（分钟）；需 `--lifecycle-mode` 为 `auto` |
 | `--lifecycle-hibernate`    |        | int    | 否   | 休眠最大时长（小时）；需 `--lifecycle-mode` 为 `auto`   |
@@ -284,7 +284,7 @@ agentbay image activate imgc-xxxxxxxxxxxxxx --region-id cn-shanghai
 **注意事项：**
 
 - `--cpu` 和 `--memory` 必须同时指定。
-- `--network-type ADVANCED` 时必须同时指定 `--session-bandwidth` 与 `--dns-address`。
+- `--session-bandwidth` 与 `--dns-address` 仅在 `--network-type ADVANCED` 时可用，且均为可选；DEFAULT 网络下传这两个参数会被拒绝。不传 `--dns-address` 时，CLI 会自动从当前 office network 拉取默认 DNS 填充。
 - 激活通常需要 1-2 分钟。如果已激活，会提示 "No action needed."
 
 **输出：**

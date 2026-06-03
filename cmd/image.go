@@ -214,7 +214,7 @@ func init() {
 	imageActivateCmd.Flags().IntP("cpu", "c", 0, "CPU cores (must be specified together with --memory)")
 	imageActivateCmd.Flags().IntP("memory", "m", 0, "Memory in GB (must be specified together with --cpu)")
 	imageActivateCmd.Flags().String("network-type", "DEFAULT", "Network type: DEFAULT or ADVANCED (default: DEFAULT)")
-	imageActivateCmd.Flags().Int("session-bandwidth", 0, "Session bandwidth in Mbps (only for ADVANCED network)")
+	imageActivateCmd.Flags().Int("session-bandwidth", 0, "Max public-network bandwidth per session in Mbps (only for ADVANCED network, recommended range: 2-200)")
 	imageActivateCmd.Flags().StringArray("dns-address", []string{}, "DNS addresses (only for ADVANCED network, can be specified multiple times)")
 	imageActivateCmd.Flags().String("lifecycle-mode", "", "Sandbox release mode: auto or manual (optional)")
 	imageActivateCmd.Flags().Float64("lifecycle-max-runtime", 0, "Maximum runtime in hours for the sandbox (optional, maps to DesktopMaxRuntime)")
