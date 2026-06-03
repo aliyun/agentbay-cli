@@ -48,7 +48,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 中文
 
+<<<<<<< HEAD
 #### 🚀 功能
+=======
+- Update CHANGELOG.md for v0.3.1
+- Recommend fast brew upgrade path via tap git pull
+
+
+* * *
+
+<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.3.1] - 2026-05-25
+
+### 📖 Documentation
+
+- Update CHANGELOG.md for v0.3.0
+>>>>>>> 9a1695c9b6eecf3208470485e59abaa1214265f5
 
 - **skills**
   - `skills show`：展示 FileUrl 与 TenantTags 字段
