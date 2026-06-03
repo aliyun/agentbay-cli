@@ -197,6 +197,14 @@ git push <remote> <feature-branch>
 
 若 release 已发布后要修订说明（包括统一整理历史 CHANGELOG）：
 
+> **回灌作用范围**：`scripts/backfill-release-notes.sh` 通过 `gh release edit --notes-file` 写入，**只替换 Release body（描述正文）**；不会修改 assets（二进制附件）、tag、title、draft / prerelease 状态。安全可重入。
+
+> **前置检查（CHANGELOG 缺段）**：先跑 `bash scripts/backfill-release-notes.sh --dry-run` 查看输出。如果某个已发布 release 被报 `SKIP: CHANGELOG.md has no section for vX.Y.Z`，说明 CHANGELOG 里缺该版本段，必须先补齐再回灌：
+>
+> 1. 用 `git log v<prev>..vX.Y.Z --no-merges` 查看该版本实际包含的提交
+> 2. 在 `CHANGELOG.md` 对应位置（按版本号倒序）插入 `## [X.Y.Z] - YYYY-MM-DD` 双语段，结构与同时期版本对齐
+> 3. 所有缺段版本补齐后，再次跑 dry-run，确认 `Skipped: 0`，然后继续下面步骤 1
+
 1. 先编辑 `CHANGELOG.md` 对应版本段；历史版本也必须保持双语结构，即每个版本包含 `### English` 与 `### 中文`，不得为了回灌只保留中文段。
 2. 注意：仅修改并提交 `CHANGELOG.md` **不会自动更新 GitHub 上已存在的 Release body**；必须在变更推送到 GitHub 后执行 backfill，才能让历史 Release 说明同步。
 3. 经用户授权后提交并推送 `CHANGELOG.md`。
@@ -292,6 +300,12 @@ bash scripts/backfill-release-notes.sh --dry-run
 
 ```bash
 bash scripts/backfill-release-notes.sh
+```
+
+脚本启动时会显示 `Target repo` 并要求二次确认（输入 `y` 才继续）。若在 CI 或脚本中调用需要跳过提示，加 `--yes`：
+
+```bash
+bash scripts/backfill-release-notes.sh --yes
 ```
 
 ### 10. 推荐顺序：新版本 + 历史回灌同批处理
