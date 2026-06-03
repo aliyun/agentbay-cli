@@ -81,8 +81,12 @@ cd "$PROJECT_DIR"
 if [[ -n "$SINGLE_TAG" ]]; then
     TAGS=("$SINGLE_TAG")
 else
-    # Get all version tags sorted by version
-    mapfile -t TAGS < <(git tag -l 'v*' --sort=v:refname)
+    # Get all version tags sorted by version.
+    # Use a read loop instead of `mapfile` for bash 3.2 (macOS default) compat.
+    TAGS=()
+    while IFS= read -r line; do
+        TAGS+=("$line")
+    done < <(git tag -l 'v*' --sort=v:refname)
 fi
 
 echo "=========================================="
