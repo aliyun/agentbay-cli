@@ -30,6 +30,7 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 DRY_RUN=false
 SINGLE_TAG=""
+ASSUME_YES=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -42,11 +43,16 @@ while [[ $# -gt 0 ]]; do
             SINGLE_TAG="$2"
             shift 2
             ;;
+        -y|--yes)
+            ASSUME_YES=true
+            shift
+            ;;
         -h|--help)
-            echo "Usage: $(basename "$0") [--dry-run] [--tag TAG]"
+            echo "Usage: $(basename "$0") [--dry-run] [--tag TAG] [--yes]"
             echo ""
             echo "  --dry-run    Preview changes without updating releases"
             echo "  --tag TAG    Update a single release (e.g., --tag v0.2.8)"
+            echo "  -y, --yes    Skip confirmation prompt for full backfill"
             echo "  -h, --help   Show this help"
             exit 0
             ;;
@@ -77,21 +83,49 @@ fi
 
 cd "$PROJECT_DIR"
 
+# Resolve the target GitHub repo via gh CLI so the user can verify before
+# any writes happen. gh picks the repo from `gh repo set-default` or, if
+# unset, from the current directory's git remotes.
+TARGET_REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || true)"
+if [[ -z "$TARGET_REPO" ]]; then
+    echo "ERROR: cannot resolve target GitHub repo via gh CLI."
+    echo "       Run 'gh repo set-default <owner>/<repo>' or 'gh auth login' first."
+    exit 1
+fi
+
 # Get tags to process
 if [[ -n "$SINGLE_TAG" ]]; then
     TAGS=("$SINGLE_TAG")
 else
-    # Get all version tags sorted by version
-    mapfile -t TAGS < <(git tag -l 'v*' --sort=v:refname)
+    # Get all version tags sorted by version.
+    # Use a read loop instead of `mapfile` for bash 3.2 (macOS default) compat.
+    TAGS=()
+    while IFS= read -r line; do
+        TAGS+=("$line")
+    done < <(git tag -l 'v*' --sort=v:refname)
 fi
 
 echo "=========================================="
 echo " Backfill GitHub Release Notes"
 echo "=========================================="
 echo ""
+echo "Target repo:     $TARGET_REPO"
 echo "Tags to process: ${#TAGS[@]}"
-echo "Dry run: $DRY_RUN"
+echo "Dry run:         $DRY_RUN"
 echo ""
+
+# Confirmation prompt for full backfill (not dry-run, no single tag, no --yes).
+# Single-tag mode is considered explicit enough; dry-run is read-only.
+if ! $DRY_RUN && [[ -z "$SINGLE_TAG" ]] && ! $ASSUME_YES; then
+    printf "About to overwrite the body of %d GitHub release(s) on %s. Continue? [y/N] " \
+        "${#TAGS[@]}" "$TARGET_REPO"
+    read -r REPLY
+    case "$REPLY" in
+        y|Y|yes|YES) ;;
+        *) echo "Aborted."; exit 0 ;;
+    esac
+    echo ""
+fi
 
 UPDATED=0
 SKIPPED=0

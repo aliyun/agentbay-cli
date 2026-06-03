@@ -86,6 +86,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.2] - 2026-05-25
+
+### English
+
+#### 📖 Documentation
+
+- **install**: Recommend fast `brew upgrade` path via tap `git pull`
+
+### 中文
+
+#### 📖 文档
+
+- **安装**：推荐通过 tap `git pull` 方式快速 `brew upgrade`
+
+---
+
+## [0.3.1] - 2026-05-25
+
+### English
+
+#### 📦 Other Changes
+
+- **release**: Patch release with release tooling and documentation updates; no user-facing changes
+
+### 中文
+
+#### 📦 其他变更
+
+- **发版**：发布流程工具与文档完善的补丁版本，无用户可感知变更
+
+---
+
 ## [0.3.0] - 2026-05-22
 
 ### English
@@ -479,6 +511,108 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### 📦 其他变更
 
 - **构建**：更新 Makefile
+
+---
+
+## [0.1.7] - 2026-03-26
+
+### English
+
+#### 📦 Other Changes
+
+- **build**: Disable CGO for multi-platform Homebrew release build
+
+### 中文
+
+#### 📦 其他变更
+
+- **构建**：在 Homebrew 多平台发布构建中关闭 CGO
+
+---
+
+## [0.1.6] - 2026-03-23
+
+### English
+
+#### 🐛 Bug Fixes
+
+- **core/auth**: Fix refresh token to reuse the same client
+
+### 中文
+
+#### 🐛 缺陷修复
+
+- **core/auth**：修复 refresh token 复用同一 client
+
+---
+
+## [0.1.5] - 2026-03-23
+
+### English
+
+#### 🚀 Features
+
+- **skills**: Add skills CLI and Market Skill / SkillGroup API implementation
+
+### 中文
+
+#### 🚀 功能
+
+- **skills**：新增 skills CLI 以及 Market Skill / SkillGroup API 实现
+
+---
+
+## [0.1.4] - 2026-03-15
+
+### English
+
+#### 🚀 Features
+
+- **core/auth**
+  - Add international environment (prod/pre) with default endpoint and OAuth
+  - Add refresh token, AK/SK credentials and authentication error detection
+  - Add env switch feature
+- **image**
+  - Support Dockerfile COPY/ADD file upload and `image init` template
+  - Add `--include-system` and `--system-only` filters to `image list`
+- **core**
+  - Add port availability check with retry for `login`
+  - Add CPU and memory parameters
+- **install**: Add Windows installation scripts and docs
+
+#### 🐛 Bug Fixes
+
+- **image**: Adapt to DeleteResourceGroup API and fix deactivate failure
+- **core/auth**: Fix OAuth login parse and AK/SK skill push parse
+
+#### 📦 Other Changes
+
+- **build**: Add GitHub Actions workflows for Homebrew release and tap updates
+
+### 中文
+
+#### 🚀 功能
+
+- **core/auth**
+  - 新增国际化环境（prod/pre），支持默认 endpoint 与 OAuth
+  - 新增 refresh token、AK/SK 凭证以及认证错误检测
+  - 新增 env 切换能力
+- **image**
+  - 支持 Dockerfile COPY/ADD 文件上传以及 `image init` 模板
+  - 在 `image list` 中新增 `--include-system` 与 `--system-only` 过滤
+- **core**
+  - `login` 命令新增端口可用性检测与重试
+  - 新增 CPU 与内存参数
+- **安装**：新增 Windows 安装脚本与文档
+
+#### 🐛 缺陷修复
+
+- **image**：适配 DeleteResourceGroup 接口，修复 deactivate 失败问题
+- **core/auth**：修复 OAuth 登录解析与 AK/SK skill push 解析
+
+#### 📦 其他变更
+
+- **构建**：新增 GitHub Actions Homebrew release 与 tap 更新流水线
 
 ---
 
