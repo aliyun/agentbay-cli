@@ -214,7 +214,7 @@ func init() {
 	imageActivateCmd.Flags().IntP("cpu", "c", 0, "CPU cores (must be specified together with --memory)")
 	imageActivateCmd.Flags().IntP("memory", "m", 0, "Memory in GB (must be specified together with --cpu)")
 	imageActivateCmd.Flags().String("network-type", "DEFAULT", "Network type: DEFAULT or ADVANCED (default: DEFAULT)")
-	imageActivateCmd.Flags().Int("session-bandwidth", 0, "Session bandwidth in Mbps (only for ADVANCED network)")
+	imageActivateCmd.Flags().Int("session-bandwidth", 0, "Max public-network bandwidth per session in Mbps (only for ADVANCED network, recommended range: 2-200)")
 	imageActivateCmd.Flags().StringArray("dns-address", []string{}, "DNS addresses (only for ADVANCED network, can be specified multiple times)")
 	imageActivateCmd.Flags().String("lifecycle-mode", "", "Sandbox release mode: auto or manual (optional)")
 	imageActivateCmd.Flags().Float64("lifecycle-max-runtime", 0, "Maximum runtime in hours for the sandbox (optional, maps to DesktopMaxRuntime)")
@@ -228,6 +228,7 @@ func init() {
 	imageListCmd.Flags().Bool("system-only", false, "Show only system images")
 	imageListCmd.Flags().IntP("page", "p", 1, "Page number (default: 1)")
 	imageListCmd.Flags().IntP("size", "s", 10, "Page size (default: 10)")
+	imageListCmd.Flags().String("output", "", `Output format. Use "json" for machine-readable output (e.g. for AI/scripts)`)
 
 	// Add required flag for image init command - use sourceImageId to match API field name
 	imageInitCmd.Flags().StringP("sourceImageId", "i", "", "Source image ID (required)")
@@ -722,6 +723,7 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	systemOnly, _ := cmd.Flags().GetBool("system-only")
 	page, _ := cmd.Flags().GetInt("page")
 	pageSize, _ := cmd.Flags().GetInt("size")
+	outputFmt, _ := cmd.Flags().GetString("output")
 
 	// Determine what type of images to fetch
 	var fetchMessage string
@@ -755,7 +757,7 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	// Handle different image type queries
 	if includeSystem {
 		// For include-system, we need to make two API calls and merge results
-		return runImageListWithBothTypes(ctx, apiClient, osType, page, pageSize)
+		return runImageListWithBothTypes(ctx, apiClient, osType, page, pageSize, outputFmt)
 	}
 
 	// Single query for system-only or user-only (default)
@@ -813,6 +815,11 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Printf(" Done.\n")
 
+	// Always print RequestId for traceability
+	if resp.Body != nil && resp.Body.GetRequestId() != nil {
+		fmt.Printf("[INFO] Request ID: %s\n", *resp.Body.GetRequestId())
+	}
+
 	// Debug: Print response details
 	if log.GetLevel() >= log.DebugLevel && resp.Body != nil {
 		log.Debugf("[DEBUG] ListMcpImages Response:")
@@ -846,6 +853,15 @@ func runImageList(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	// JSON output mode
+	if strings.EqualFold(outputFmt, "json") {
+		var totalCount int32
+		if resp.Body.GetTotalCount() != nil {
+			totalCount = *resp.Body.GetTotalCount()
+		}
+		return printImagesAsJSON(images, totalCount)
+	}
+
 	// Display results
 	fmt.Printf("\n[OK] Found %d images", len(images))
 	if resp.Body.GetTotalCount() != nil {
@@ -867,20 +883,41 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	}
 
 	// Display image table with consistent formatting
-	fmt.Printf("%s %s %s %s %s %s\n",
-		padString("IMAGE ID", 25),
-		padString("IMAGE NAME", 30),
-		padString("TYPE", 20),
-		padString("STATUS", 15),
-		padString("OS", 18),
-		"APPLY SCENE")
-	fmt.Printf("%s %s %s %s %s %s\n",
-		padString("--------", 25),
-		padString("----------", 30),
-		padString("----", 20),
-		padString("------", 15),
-		padString("--", 18),
-		"-----------")
+	// System images don't have physicalImage, only show the column for user images
+	showPhysicalImage := !systemOnly
+	if showPhysicalImage {
+		fmt.Printf("%s %s %s %s %s %s %s\n",
+			padString("IMAGE ID", 25),
+			padString("IMAGE NAME", 30),
+			padString("TYPE", 20),
+			padString("STATUS", 15),
+			padString("OS", 18),
+			padString("PHYSICAL IMAGE", 30),
+			"APPLY SCENE")
+		fmt.Printf("%s %s %s %s %s %s %s\n",
+			padString("--------", 25),
+			padString("----------", 30),
+			padString("----", 20),
+			padString("------", 15),
+			padString("--", 18),
+			padString("--------------", 30),
+			"-----------")
+	} else {
+		fmt.Printf("%s %s %s %s %s %s\n",
+			padString("IMAGE ID", 25),
+			padString("IMAGE NAME", 30),
+			padString("TYPE", 20),
+			padString("STATUS", 15),
+			padString("OS", 18),
+			"APPLY SCENE")
+		fmt.Printf("%s %s %s %s %s %s\n",
+			padString("--------", 25),
+			padString("----------", 30),
+			padString("----", 20),
+			padString("------", 15),
+			padString("--", 18),
+			"-----------")
+	}
 
 	for _, image := range images {
 		imageId := getStringValue(image.GetImageId())
@@ -891,13 +928,28 @@ func runImageList(cmd *cobra.Command, args []string) error {
 		applyScene := getStringValue(image.GetImageApplyScene())
 
 		// 使用支持中文的填充和截断函数，手动控制列间距
-		fmt.Printf("%s %s %s %s %s %s\n",
-			padString(truncateString(imageId, 25), 25),
-			padString(truncateString(imageName, 30), 30),
-			padString(truncateString(imageType, 20), 20),
-			padString(truncateString(status, 15), 15),
-			padString(truncateString(osInfo, 18), 18),
-			truncateString(applyScene, 15)) // 最后一列不需要填充
+		if showPhysicalImage {
+			physicalImage := ""
+			if imgInfo := image.GetImageInfo(); imgInfo != nil {
+				physicalImage = getStringValue(imgInfo.GetPhysicalImage())
+			}
+			fmt.Printf("%s %s %s %s %s %s %s\n",
+				padString(truncateString(imageId, 25), 25),
+				padString(truncateString(imageName, 30), 30),
+				padString(truncateString(imageType, 20), 20),
+				padString(truncateString(status, 15), 15),
+				padString(truncateString(osInfo, 18), 18),
+				padString(truncateString(physicalImage, 30), 30),
+				truncateString(applyScene, 15))
+		} else {
+			fmt.Printf("%s %s %s %s %s %s\n",
+				padString(truncateString(imageId, 25), 25),
+				padString(truncateString(imageName, 30), 30),
+				padString(truncateString(imageType, 20), 20),
+				padString(truncateString(status, 15), 15),
+				padString(truncateString(osInfo, 18), 18),
+				truncateString(applyScene, 15))
+		}
 	}
 
 	return nil
@@ -2068,7 +2120,7 @@ func getAppInstanceType(ctx context.Context, apiClient agentbay.Client, imageId 
 			}
 		}
 		errMsg := fmt.Sprintf("[ERROR] No matching instance type for %dc%dg.\n[TIP] Available options: %s", cpu, memory, strings.Join(availableOptions, ", "))
-		return "", fmt.Errorf(errMsg)
+		return "", fmt.Errorf("%s", errMsg)
 	}
 
 	var appInstanceType string

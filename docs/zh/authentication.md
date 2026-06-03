@@ -27,9 +27,9 @@ export AGENTBAY_ACCESS_KEY_SECRET="your-sts-secret"
 export AGENTBAY_ACCESS_KEY_SESSION_TOKEN="your-sts-session-token"
 ```
 
-### 3. OAuth 登录（不推荐使用）
+### 3. OAuth 登录
 
-> 提示：`agentbay login` **不推荐使用**。请优先使用 AccessKey 或 STS 方式。
+> **仅支持主账号。** `agentbay login` 适合阿里云主账号的交互式登录使用。**不支持 RAM 子账号和 RAM 角色** —— 登录时会被拒绝。RAM 用户推荐使用上面的 AccessKey 环境变量方式（方式 1）；如果要继续使用 OAuth，请先在浏览器访问 [阿里云官网](https://www.aliyun.com/) 并退出当前阿里云登录态，再重新运行 `agentbay login`，然后在浏览器中选择/登录阿里云主账号。
 
 ```bash
 agentbay login    # 打开浏览器进行 OAuth 登录
@@ -116,7 +116,7 @@ export AGENTBAY_ENV=international
 | -------------------------- | ----------------------------------------------------------- |
 | `AGENTBAY_CLI_ENDPOINT`    | 覆盖当前环境的默认 API Endpoint                             |
 | `AGENTBAY_CLI_TIMEOUT_MS`  | API 请求超时时间（毫秒）                                    |
-| `AGENTBAY_CLI_CONFIG_DIR`  | 覆盖默认配置目录（默认 `~/.agentbay`）                      |
+| `AGENTBAY_CLI_CONFIG_DIR`  | 覆盖默认配置目录。默认值由 `os.UserConfigDir()` 决定：macOS `~/Library/Application Support/agentbay`、Linux `~/.config/agentbay`（或 `$XDG_CONFIG_HOME/agentbay`）、Windows `%AppData%\agentbay` |
 | `AGENTBAY_OAUTH_CLIENT_ID` | 覆盖默认的 OAuth Client ID（仅对 `agentbay login` 生效）    |
 | `AGENTBAY_OAUTH_REGION`    | 覆盖 OAuth 区域（`cn` 或 `intl`）                           |
 | `AGENTBAY_API_URL`         | _(Legacy)_ 等同于 `AGENTBAY_CLI_ENDPOINT`，仅为向后兼容保留 |

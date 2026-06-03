@@ -5,14 +5,14 @@ name: Agentbay CLI Official Homebrew Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g., 0.1.0, 2.1.3) - Must be semantic version'
+        description: "Release version (e.g., 0.1.0, 2.1.3) - Must be semantic version"
         required: true
         type: string
-        default: '0.1.0'
+        default: "0.1.0"
 
 # Required permissions for GitHub Actions
 permissions:
@@ -41,14 +41,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install git-cliff
-        run: |
-          echo "Installing git-cliff for changelog generation..."
-          GIT_CLIFF_VERSION="2.8.0"
-          curl -sL "https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-gnu.tar.gz" | tar xz -C /tmp
-          sudo mv /tmp/git-cliff-${GIT_CLIFF_VERSION}/git-cliff /usr/local/bin/git-cliff
-          git-cliff --version
-          echo "✅ git-cliff installed successfully"
+      # NOTE (v3 changelog pipeline): git-cliff is no longer installed in CI.
+      # CHANGELOG.md is maintained locally by `make release-prep VERSION=...`
+      # before tagging. This workflow only EXTRACTS the section for $VERSION
+      # from CHANGELOG.md (see "Generate Release Notes" step below) and
+      # creates the GitHub Release. The CHANGELOG is the single upstream
+      # source of truth; the Release body is its projection.
+      # See: docs/internal/bilingual-changelog-proposal.md (v3, §4.7).
 
       - name: Setup Go
         uses: actions/setup-go@v4
@@ -472,12 +471,40 @@ jobs:
 
       - name: Generate Release Notes
         run: |
-          echo "📝 Generating release notes from git history..."
+          echo "📝 Extracting release notes for v$VERSION from CHANGELOG.md..."
 
-          # Generate changelog content for this version only (strip the top-level header)
-          git-cliff --tag "v$VERSION" --unreleased --strip header > /tmp/release-changes.md
+          # ---- Fail-fast 1: CHANGELOG must contain a section for this version ----
+          if ! grep -q "^## \[$VERSION\]" CHANGELOG.md; then
+            echo "❌ CHANGELOG.md does not contain a section for [$VERSION]."
+            echo ""
+            echo "👉 Run locally before tagging:"
+            echo "     make release-prep VERSION=$VERSION"
+            echo "   Then translate the Chinese sub-section, commit, push, and re-tag."
+            echo ""
+            echo "   See docs/internal/bilingual-changelog-proposal.md for the full pipeline."
+            exit 1
+          fi
 
-          # Combine changelog content with installation instructions
+          # ---- Extract the section for this version ----
+          if ! bash scripts/extract-changelog-section.sh "$VERSION" CHANGELOG.md > /tmp/release-changes.md; then
+            echo "❌ Failed to extract [$VERSION] section from CHANGELOG.md."
+            exit 1
+          fi
+
+          # ---- Fail-fast 2: TRANSLATE_ME placeholder must not leak into a real release ----
+          if grep -q "TRANSLATE_ME" /tmp/release-changes.md; then
+            echo "❌ The [$VERSION] section in CHANGELOG.md still contains a TRANSLATE_ME placeholder."
+            echo "   This means the Chinese translation was not filled in before tagging."
+            echo ""
+            echo "👉 Locally:"
+            echo "     1. Translate the [$VERSION] section in CHANGELOG.md (in Claude Code,"
+            echo "        say: \"翻译 CHANGELOG.md 顶部 [$VERSION] 那段\")"
+            echo "     2. Remove the TRANSLATE_ME line"
+            echo "     3. git commit + force-push the existing tag, OR delete the tag and re-tag"
+            exit 1
+          fi
+
+          # ---- Append installation instructions ----
           cat /tmp/release-changes.md > /tmp/release-notes-full.md
           cat >> /tmp/release-notes-full.md << 'INSTALL_EOF'
 
@@ -491,27 +518,10 @@ jobs:
           Download the appropriate binary for your platform from the assets below.
           INSTALL_EOF
 
-          echo "✅ Release notes generated"
+          echo "✅ Release notes assembled"
           echo "--- Preview ---"
           cat /tmp/release-notes-full.md
           echo "--- End Preview ---"
-
-      - name: Check Chinese Translation
-        run: |
-          echo "🔍 Checking for missing Chinese translations in release notes..."
-
-          if grep -q "中文翻译待补充" /tmp/release-notes-full.md; then
-            echo "⚠️ WARNING: Release notes contain placeholder for Chinese translation!"
-            echo "⚠️ Please add Chinese translation before publishing the release."
-            echo "⚠️ Placeholder found: <!-- 中文翻译待补充 / Add Chinese translation before release -->"
-            echo ""
-            echo "Lines with placeholder:"
-            grep -n "中文翻译待补充" /tmp/release-notes-full.md || true
-            echo ""
-            echo "⚠️ This is a non-blocking warning. The release will proceed, but please update CHANGELOG.md with Chinese translation ASAP."
-          else
-            echo "✅ No missing Chinese translation placeholders found."
-          fi
 
       - name: Create GitHub Release
         env:
@@ -536,7 +546,11 @@ jobs:
           total_size_mb=$((total_size / 1024 / 1024))
           echo "Total size: ${total_size_mb}MB"
 
+          # When the workflow is manually dispatched and the tag does not yet exist,
+          # gh release create will create v$VERSION. Pin that tag to the exact
+          # commit checked out by this workflow so the release matches the build.
           if gh release create "v$VERSION" \
+            --target "$GITHUB_SHA" \
             --title "Agentbay CLI v$VERSION" \
             --notes-file /tmp/release-notes-full.md \
             "${all_files[@]}"; then
@@ -549,16 +563,11 @@ jobs:
             exit 1
           fi
 
-      - name: Update CHANGELOG.md
-        run: |
-          echo "📝 Updating CHANGELOG.md..."
-          git-cliff -o CHANGELOG.md
-
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git add CHANGELOG.md
-          git commit -m "docs: update CHANGELOG.md for v$VERSION" || echo "No changelog changes"
-          git push
+      # NOTE (v3 changelog pipeline): the "Update CHANGELOG.md + commit-back"
+      # step has been removed. CHANGELOG.md is now updated locally by
+      # `make release-prep VERSION=...` and committed by the developer
+      # BEFORE the tag is pushed. The workflow is read-only with respect
+      # to CHANGELOG.md.
 
       - name: Create Official Homebrew Formula
         run: |
@@ -680,7 +689,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "🍺 Preparing submission to Homebrew Core Repository..."
-          
+
           # Commit updated formula to main repository
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
@@ -726,23 +735,23 @@ jobs:
       - name: Prepare deployment files
         run: |
           echo "📁 Preparing GitHub Pages deployment from scripts directory..."
-          
+
           # Ensure scripts directory exists
           if [ ! -d "scripts" ]; then
             echo "❌ scripts directory not found!"
             exit 1
           fi
-          
+
           # Display files to be deployed
           echo "Files to be deployed:"
           ls -la scripts/
-          
+
           # Verify critical files exist
           if [ ! -f "scripts/windows" ]; then
             echo "❌ scripts/windows file not found!"
             exit 1
           fi
-          
+
           echo "✅ All required files found"
 
       - name: Upload artifact
@@ -766,7 +775,7 @@ jobs:
 
           # Validate formula file syntax and content
           echo "📋 Checking formula compliance for source build mode..."
-          
+
           if [[ -f "homebrew/agentbay.rb" ]]; then
             echo "✅ Formula file exists: homebrew/agentbay.rb"
             
@@ -919,7 +928,7 @@ jobs:
       - name: Generate Submission Documentation
         run: |
           echo "📖 Generating submission documentation for source build mode..."
-          
+
           cat > HOMEBREW_SUBMISSION.md << 'DOC_EOF'
           # Agentbay CLI - Homebrew Core Submission (Source Build Mode)
 
@@ -961,12 +970,12 @@ jobs:
           brew install --build-from-source ./Formula/agentbay.rb
           brew audit --strict --new --online agentbay
           brew test agentbay
-          
+
           # Verify build from source
           brew reinstall --build-from-source agentbay
           agentbay --version
           agentbay --help
-          
+
           # Cleanup
           brew uninstall agentbay
           ```

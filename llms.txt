@@ -1,0 +1,51 @@
+# AgentBay CLI
+
+> Official command-line interface for Alibaba Cloud AgentBay services. Manages the lifecycle of CodeSpace images, API keys, Docker registry (ACR) operations, skills, and network packages. Written in Go, distributed via Homebrew (macOS/Linux) and PowerShell installer (Windows).
+
+The CLI binary is named `agentbay`. Top-level command groups are: `version`, `login`, `logout`, `image`, `apikey`, `network`, `skills`, `docker`. Authentication supports AccessKey (AK/SK) — recommended for scripts and CI — as well as STS and OAuth (`agentbay login`, main account only). RAM sub-accounts must use AK/SK and require a permission policy; see the RAM Permissions doc.
+
+This project currently supports creating and activating **CodeSpace** type images only.
+
+## Getting Started
+
+- [README (English)](https://github.com/aliyun/agentbay-cli/blob/master/README.md): Project overview, install, 60-second API key quickstart, image creation tutorial, command reference table.
+- [Installation](https://github.com/aliyun/agentbay-cli/blob/master/docs/en/installation.md): Install on macOS / Linux (Homebrew tap `aliyun/agentbay`) and Windows (PowerShell). Includes update, uninstall, and pre-built binary instructions.
+- [Authentication & Environment](https://github.com/aliyun/agentbay-cli/blob/master/docs/en/authentication.md): AccessKey, STS, OAuth login flows, and the full list of `AGENTBAY_*` environment variables.
+
+## Tutorials
+
+- [Image Creation & Sharing](https://github.com/aliyun/agentbay-cli/blob/master/docs/en/image-workflow.md): End-to-end walkthrough — download Dockerfile template, ACR login, build and push, create custom image from template, and optional cross-account image sharing.
+
+## Command Reference
+
+- [Core Commands](https://github.com/aliyun/agentbay-cli/blob/master/docs/en/core.md): `version`, `login`, `logout` — version info and authentication.
+- [Image Management](https://github.com/aliyun/agentbay-cli/blob/master/docs/en/image.md): `image list / init / create / create-from-template / activate / deactivate / delete / status / set-max-session / warmup-status` — full image lifecycle.
+- [API Key Management](https://github.com/aliyun/agentbay-cli/blob/master/docs/en/apikey.md): `apikey create / enable / disable / delete / list / concurrency set / describe-key-content` — API key CRUD plus per-key concurrency control. Defines the `--api-key` vs `--api-key-id` terminology used across the CLI.
+- [Network Management](https://github.com/aliyun/agentbay-cli/blob/master/docs/en/network.md): `network package list` — query network packages and EIP bindings.
+- [Skills Management](https://github.com/aliyun/agentbay-cli/blob/master/docs/en/skills.md): `skills push / update / show / list / delete` — manage skill bundles.
+- [Docker Operations](https://github.com/aliyun/agentbay-cli/blob/master/docs/en/docker.md): `docker login / tag / push / share / unshare / list-shares` — ACR registry login (temporary credentials, ~1h) and cross-account repository sharing.
+
+## Permissions
+
+- [RAM Permissions](https://github.com/aliyun/agentbay-cli/blob/master/docs/en/ram-permissions.md): Required action list for RAM sub-accounts. Main Alibaba Cloud accounts do not need additional configuration.
+
+## 中文文档 (Chinese Documentation)
+
+- [README (中文)](https://github.com/aliyun/agentbay-cli/blob/master/README.zh-CN.md): 项目概览、安装、API Key 快速开始、镜像创建教程。
+- [安装](https://github.com/aliyun/agentbay-cli/blob/master/docs/zh/installation.md): macOS / Linux / Windows 安装、升级、卸载。
+- [认证与环境](https://github.com/aliyun/agentbay-cli/blob/master/docs/zh/authentication.md): AccessKey、STS、OAuth 登录与环境变量。
+- [镜像创建与共享](https://github.com/aliyun/agentbay-cli/blob/master/docs/zh/image-workflow.md): 镜像构建、推送 ACR、跨账号共享端到端教程。
+- [核心命令](https://github.com/aliyun/agentbay-cli/blob/master/docs/zh/core.md): version / login / logout。
+- [镜像管理](https://github.com/aliyun/agentbay-cli/blob/master/docs/zh/image.md): image 子命令完整参考。
+- [API Key 管理](https://github.com/aliyun/agentbay-cli/blob/master/docs/zh/apikey.md): apikey 子命令与并发控制。
+- [网络管理](https://github.com/aliyun/agentbay-cli/blob/master/docs/zh/network.md): network 子命令。
+- [技能管理](https://github.com/aliyun/agentbay-cli/blob/master/docs/zh/skills.md): skills 子命令。
+- [Docker 操作](https://github.com/aliyun/agentbay-cli/blob/master/docs/zh/docker.md): docker 子命令、ACR 登录、跨账号共享。
+- [RAM 账号接口权限汇总](https://github.com/aliyun/agentbay-cli/blob/master/docs/zh/ram-permissions.md): RAM 子账号所需的权限策略。
+- [常见问题](https://github.com/aliyun/agentbay-cli/blob/master/docs/zh/faq.md): 常见问题解答。
+
+## Optional
+
+- [FAQ (English)](https://github.com/aliyun/agentbay-cli/blob/master/docs/en/faq.md): Frequently asked questions.
+- [CHANGELOG](https://github.com/aliyun/agentbay-cli/blob/master/CHANGELOG.md): Release history.
+- [LICENSE](https://github.com/aliyun/agentbay-cli/blob/master/LICENSE): Apache License 2.0.

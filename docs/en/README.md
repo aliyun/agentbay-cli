@@ -9,16 +9,24 @@ Welcome to the AgentBay CLI documentation. Use the links below to find detailed 
 - [Installation](installation.md) — Install AgentBay CLI on Windows, macOS, and Linux
 - [Authentication & Environment](authentication.md) — AccessKey, STS, OAuth, and environment configuration
 
+## Tutorials
+
+- [Image Creation & Sharing](image-workflow.md) — Image creation flow, plus optional cross-account sharing tutorial
+
 ## Command Reference
 
-| Group | Command | Description | Details |
-|-------|---------|-------------|---------|
-| Core | `agentbay version`, `login`, `logout` | Version info and authentication | [Core Commands](core.md) |
-| Image | `agentbay image ...` | Create, list, activate, deactivate, delete images, and more | [Image Management](image.md) |
-| API Key | `agentbay apikey ...` | Create, list, enable, disable, delete keys and set concurrency | [API Key Management](apikey.md) |
-| Network | `agentbay network ...` | Query network packages and EIP bindings | [Network Management](network.md) |
-| Skills | `agentbay skills ...` | Push and inspect skills | [Skills Management](skills.md) |
-| Docker | `agentbay docker ...` | Login, tag, and push images to ACR | [Docker Operations](docker.md) |
+| Group   | Command                               | Description                                                    | Details                          |
+| ------- | ------------------------------------- | -------------------------------------------------------------- | -------------------------------- |
+| Core    | `agentbay version`, `login`, `logout` | Version info and authentication                                | [Core Commands](core.md)         |
+| Image   | `agentbay image ...`                  | Create, list, activate, deactivate, delete images, and more    | [Image Management](image.md)     |
+| API Key | `agentbay apikey ...`                 | Create, list, enable, disable, delete keys and set concurrency | [API Key Management](apikey.md)  |
+| Network | `agentbay network ...`                | Query network packages and EIP bindings                        | [Network Management](network.md) |
+| Skills  | `agentbay skills ...`                 | Push and inspect skills                                        | [Skills Management](skills.md)   |
+| Docker  | `agentbay docker ...`                 | Login, tag, and push images to ACR                             | [Docker Operations](docker.md)   |
+
+## Permissions
+
+- [RAM Permissions Summary](ram-permissions.md) — Required only for RAM sub-accounts
 
 ## Other
 

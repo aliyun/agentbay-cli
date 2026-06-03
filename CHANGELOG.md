@@ -3,10 +3,54 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
 ## [Unreleased]
 
-### 📖 Documentation
+## [0.4.0] - 2026-06-01
 
+### English
+
+#### 🚀 Features
+
+- **skills**
+  - `skills show`: Display FileUrl and TenantTags fields
+  - `skills push`: Support `--tag` and `--icon` flags
+  - `skills list`: Support `--output json` and improve terminal-adaptive display
+  - `skills update`: Add command and support `--clear-tags` flag
+  - `skills delete`: Add command and support positional argument
+- **image**
+  - `image create-from-template`: Support short source-image path
+  - `image create-from-template`: Support shared Docker repository as source image for cross-account image creation
+  - `image list`: Support `--output json` and improve terminal-adaptive table display
+- **apikey**: `apikey list` supports `--output json` for structured script and AI consumption
+- **docker**
+  - `docker share`: Add repository sharing command with RAM permission guidance
+  - `docker unshare`: Add repository unsharing command with RAM permission guidance
+  - `docker list-shares`: Add repository sharing list command with pagination and RAM permission guidance
+  - `docker list-shares`: Support `--output json`
+- **global**
+  - Add skills-tester agent and pagination test rules
+  - Add bilingual CHANGELOG release workflow
+
+#### 🐞 Bug Fixes
+
+- **core/auth**: Reject RAM identities during OAuth login and improve RAM OAuth login guidance
+- **skills**: Use JSON Accept request header for Market skill detail API to improve response parsing stability
+
+#### 📖 Documentation
+
+- **global**
+  - Restructure README.md and README.zh-CN.md for clarity and completeness
+  - Add `llms.txt` and `llms-full.txt` for LLM-friendly project documentation
+- **security/compliance**: Mask AliUID in docs and add sensitive info redaction rule
+- **image**: Update image workflow bilingual docs and usage guide
+- **RAM permissions**: Update RAM permissions guidance and organize RAM permissions sections
+
+### 中文
+
+<<<<<<< HEAD
+#### 🚀 功能
+=======
 - Update CHANGELOG.md for v0.3.1
 - Recommend fast brew upgrade path via tap git pull
 
@@ -18,390 +62,664 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 📖 Documentation
 
 - Update CHANGELOG.md for v0.3.0
+>>>>>>> 9a1695c9b6eecf3208470485e59abaa1214265f5
 
+- **skills**
+  - `skills show`：展示 FileUrl 与 TenantTags 字段
+  - `skills push`：支持 `--tag` 与 `--icon` 参数
+  - `skills list`：支持 `--output json`，优化终端自适应展示
+  - `skills update`：新增命令，支持 `--clear-tags` 参数
+  - `skills delete`：新增命令，支持位置参数
+- **image**
+  - `image create-from-template`：支持短 source-image 路径
+  - `image create-from-template`：支持跨账号共享 Docker 仓库作为源镜像，实现跨账号镜像创建
+  - `image list`：支持 `--output json`，优化终端自适应表格展示
+- **apikey**：`apikey list` 支持 `--output json`，便于脚本和 AI 场景读取结构化结果
+- **docker**
+  - `docker share`：新增仓库分享命令，并补充 RAM 权限说明
+  - `docker unshare`：新增取消仓库分享命令，并补充 RAM 权限说明
+  - `docker list-shares`：新增仓库分享列表命令，支持分页并补充 RAM 权限说明
+  - `docker list-shares`：支持 `--output json`
+- **全局**
+  - 新增 skills-tester agent 与分页测试规则
+  - 新增双语 CHANGELOG 发版流程
 
-* * *
+#### 🐞 缺陷修复
 
-<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.3.0] - 2026-05-22
+- **core/auth**：OAuth 登录拒绝 RAM 身份，并优化 RAM OAuth 登录引导
+- **skills**：Market skill detail 接口统一使用 JSON Accept 请求头，提升响应解析稳定性
 
-### 🚀 Features
+#### 📖 文档
 
-- Enhance apikey commands with --api-key-id param and update CHANGELOG
-- Add 'apikey describe-key-content' command
+- **全局**
+  - 重构 README.md 与 README.zh-CN.md，提升结构清晰度和完整性
+  - 新增 `llms.txt` 与 `llms-full.txt`，提供 AI 助手友好的项目文档入口
+- **安全合规**：对文档中的 AliUID 做脱敏处理，并补充敏感信息脱敏规则
+- **image**：更新 image workflow 中英文文档和使用指南
+- **RAM 权限**：更新 RAM 权限说明，并整理 RAM permissions 章节
 
-### 📖 Documentation
+---
 
-- Reorganize documentation into en/zh structure
-- Soften 'agentbay login' wording from deprecated to not recommended
-- Fix bilingual switch links and add docs governance spec
-- Update CHANGELOG.md for v0.2.10
-- Enrich docker login & image create-from-template usage notes
-- Add RAM permission requirements for apikey commands
-- Extend RAM permission docs to all command groups
-- Backfill Chinese translations for all historical CHANGELOG versions
-- Add update and uninstall instructions to install guides
+## [0.3.0] - 2026-05-22
 
+### English
 
-* * *
+#### 🚀 Features
 
-<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.2.10] - 2026-05-21
+- **apikey**
+  - Support `--api-key-id` parameter for related commands
+  - Add `apikey describe-key-content` command
 
-### 🚀 Features
+#### 📖 Documentation
 
-- Support positional arg for apikey create and improve auth error hint
-- Add AvailableInstanceSize field to warmup-status image output
+- **global**
+  - Reorganize documentation into en/zh bilingual structure
+  - Fix bilingual switch links and add documentation governance spec
+- **core/auth**: Change `agentbay login` wording from “deprecated” to “not recommended” to reduce misleading guidance
+- **docker/image**: Enrich docker login and `image create-from-template` usage notes
+- **apikey/RAM permissions**: Add RAM permission requirements for apikey commands and extend RAM permission docs to all command groups
+- **release**
+  - Backfill Chinese translations for historical CHANGELOG versions
+  - Add update and uninstall instructions to installation docs
 
-### 📖 Documentation
+### 中文
 
-- Update CHANGELOG.md for v0.2.9
-- Add image warmup-status command to README (EN & CN)
-- Refine Quick Start to focus on API Key lifecycle with list step
+#### 🚀 功能
 
-### 🛠 Refactoring
+- **apikey**
+  - 相关命令支持 `--api-key-id` 参数
+  - 新增 `apikey describe-key-content` 命令
 
-- Replace OAuth login hints with AK/SK env var guidance
+#### 📖 文档
 
+- **全局**
+  - 将文档重组为 en/zh 双语结构
+  - 修复双语切换链接，补充文档治理规范
+- **core/auth**：将 `agentbay login` 文案从“已废弃”调整为“不推荐”，弱化误导性表达
+- **docker/image**：补充 docker login 与 `image create-from-template` 使用说明
+- **apikey/RAM 权限**：补充 apikey 命令 RAM 权限要求，并扩展到所有命令组
+- **发版**
+  - 回填历史 CHANGELOG 中文翻译
+  - 补充安装文档中的更新与卸载说明
 
-* * *
+---
 
-<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.2.9] - 2026-05-20
+## [0.2.10] - 2026-05-21
 
-### 🚀 Features
+### English
 
-- Add apikey enable/disable commands
-- Add apikey delete command with robust success check
-- Support --api-key for apikey concurrency set command
-- Add apikey list command
-- Add image warmup-status command
-- Integrate git-cliff for automated changelog generation
+#### 🚀 Features
 
-### 🐞 Bug Fixes
+- **apikey**: `apikey create` supports positional argument and improves auth error hint
+- **image**: `image warmup-status` output adds AvailableInstanceSize field
 
-- Correct git-cliff download URL in homebrew workflow
+#### 📖 Documentation
 
-### 📖 Documentation
+- **release**: Update v0.2.9 CHANGELOG
+- **image**: Add `image warmup-status` command to English and Chinese README
+- **core**: Refine Quick Start to focus on API Key lifecycle and add list step
 
-- Restructure README with bilingual support, env vars, and command groups
-- Add CLI command to OpenAPI action mapping reference
+#### 🛠 Refactoring
 
+- **core/auth**: Replace OAuth login hints with AK/SK environment variable guidance
 
-* * *
+### 中文
 
-<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.2.8] - 2026-05-16
+#### 🚀 功能
 
-### 🚀 Features
+- **apikey**：`apikey create` 支持位置参数，并优化认证错误提示
+- **image**：`image warmup-status` 输出新增 AvailableInstanceSize 字段
 
-- Support sudo docker
+#### 📖 文档
 
+- **发版**：更新 v0.2.9 CHANGELOG
+- **image**：在中英文 README 中补充 `image warmup-status` 命令
+- **core**：重构 Quick Start，使其聚焦 API Key 生命周期并加入 list 步骤
 
-* * *
+#### 🛠 重构
 
-<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.2.7] - 2026-05-15
+- **core/auth**：将 OAuth 登录提示替换为 AK/SK 环境变量指引
 
-### 🚀 Features
+---
 
-- Add image set-max-session command for configuring max concurrent sessions
-- Support specifying region for image activate
+## [0.2.9] - 2026-05-20
 
-### 🐞 Bug Fixes
+### English
 
-- **client**: Tolerate stringified HttpStatusCode in BatchCreateHideResourceGroupsWithMaxSession response
+#### 🚀 Features
 
-### 📖 Documentation
+- **apikey**
+  - Add enable/disable commands
+  - Add delete command
+  - Add list command
+  - `apikey concurrency set` supports `--api-key` parameter
+- **image**: Add `image warmup-status` command
+- **release**: Integrate git-cliff to generate CHANGELOG automatically
 
-- **qoder**: Codify response-parsing fault tolerance rules across rules/skill/references
-- Clarify image type support for set-max-session command
-- Add whitelist requirement for set-max-session command
-- Add build verification rule and image activate region spec
+#### 🐞 Bug Fixes
 
+- **CI/CD**: Fix git-cliff download URL in homebrew workflow
 
-* * *
+#### 📖 Documentation
 
-<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.2.6] - 2026-05-14
+- **global**: Restructure README with bilingual support, environment variables, and command group descriptions
+- **internal reference**: Add CLI command to OpenAPI Action mapping document
 
-### 🚀 Features
+### 中文
 
-- Add docker login and image create-from-template commands
-- Add source-image validation and path truncation for create-from-template
-- Add UsePublicNetwork param to GetDockerfileTemplate and print RequestId in image init
+#### 🚀 功能
 
+- **apikey**
+  - 新增 enable/disable 命令
+  - 新增 delete 命令
+  - 新增 list 命令
+  - `apikey concurrency set` 支持 `--api-key` 参数
+- **image**：新增 `image warmup-status` 命令
+- **发版**：集成 git-cliff 自动生成 CHANGELOG
 
-* * *
+#### 🐞 缺陷修复
 
-<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.2.5] - 2026-05-11
+- **CI/CD**：修复 homebrew workflow 中 git-cliff 下载 URL
 
-### 🚀 Features
+#### 📖 文档
 
-- **image**: Add 'agentbay image delete' command
-- Add release-to-oss script and Makefile targets
+- **全局**：重构 README，补充双语、环境变量与命令组说明
+- **内部参考**：新增 CLI 命令到 OpenAPI Action 的映射文档
 
+---
 
-* * *
+## [0.2.8] - 2026-05-16
 
-<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.2.4] - 2026-05-08
+### English
 
-### 🚀 Features
+#### 🚀 Features
 
-- Enhance image deactivate with RequestId logging and precise ListMcpImages query
+- **docker**: Support sudo docker scenarios
 
+### 中文
 
-* * *
+#### 🚀 功能
 
-<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.2.3] - 2026-04-29
+- **docker**：支持 sudo docker 场景
 
-### 🚀 Features
+---
 
-- Enhance image create file upload with per-file status, auto-retry and summary
+## [0.2.7] - 2026-05-15
 
+### English
 
-* * *
+#### 🚀 Features
 
-<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.2.2] - 2026-04-28
+- **image**
+  - Add `image set-max-session` for configuring max concurrent sessions
+  - `image activate` supports specifying region
 
-### 🚀 Features
+#### 🐞 Bug Fixes
 
-- Add sandbox lifecycle parameters to image activate command
+- **client**: BatchCreateHideResourceGroupsWithMaxSession response parser tolerates stringified HttpStatusCode
 
+#### 📖 Documentation
 
-* * *
+- **qoder**: Codify response parsing fault tolerance rules across rules, skill, and reference docs
+- **image**
+  - Clarify supported image types and whitelist requirements for `set-max-session`
+  - Add `image activate` region spec
+- **build**: Add build verification rule
 
-<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.2.1] - 2026-04-23
+### 中文
 
-### 🚀 Features
+#### 🚀 功能
 
-- Add network package list command (DescribeNetworkPackages)
-- **network**: Remove UserAliUid param, add default BizRegionId and OfficeSiteId display
+- **image**
+  - 新增 `image set-max-session`，用于配置最大并发会话数
+  - `image activate` 支持指定地域
 
-### 📖 Documentation
+#### 🐞 缺陷修复
 
-- Add network management to README and update development rules
+- **client**：BatchCreateHideResourceGroupsWithMaxSession 响应解析兼容字符串形式的 HttpStatusCode
 
+#### 📖 文档
 
-* * *
+- **qoder**：在规则、skill 与参考文档中固化响应解析容错规范
+- **image**
+  - 说明 `set-max-session` 支持的镜像类型和白名单要求
+  - 补充 `image activate` 地域规范
+- **构建**：补充构建验证规则
 
-<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.2.0] - 2026-04-17
+---
 
-### 🚀 Features
+## [0.2.6] - 2026-05-14
 
-- Add DescribeOfficeSites to ADVANCED network activation flow with DNS default value support
-- 调整 DEFAULT 网络激活流程，增加 DescribeMcpPolicyData 和 SaveMcpPolicyData 调用
+### English
 
-### 📖 Documentation
+#### 🚀 Features
 
-- Improve README with API key management and image activate examples
+- **docker**: Add `docker login` command
+- **image**
+  - Add `image create-from-template` command with source-image validation and path truncation
+  - `image init` adds UsePublicNetwork parameter and prints RequestId
 
+### 中文
 
-* * *
+#### 🚀 功能
 
-<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.1.9] - 2026-04-10
+- **docker**：新增 `docker login` 命令
+- **image**
+  - 新增 `image create-from-template` 命令，支持 source-image 校验与路径截断
+  - `image init` 新增 UsePublicNetwork 参数，并打印 RequestId
 
-### 🚀 Features
+---
 
-- Add CreateApiKey CLI command
-- Add API key concurrency management CLI command
-- Validate add and copy file size
+## [0.2.5] - 2026-05-11
 
-### 🐞 Bug Fixes
+### English
 
-- Correct CreateApiKey response Data field type from object to string
-- Sync mock implementations after adding Client interface methods
+#### 🚀 Features
 
-### 📖 Documentation
+- **image**: Add `agentbay image delete` command
+- **release**: Add release-to-oss script and Makefile release targets
 
-- Add Qoder rules and skills for CLI development
+### 中文
 
-### 📦 Other Changes
+#### 🚀 功能
 
-- Add 1 MiB COPY/ADD source limit and retries for OSS uploads and skill push APIs
+- **image**：新增 `agentbay image delete` 命令
+- **发版**：新增 release-to-oss 脚本和 Makefile 发布目标
 
+---
 
-* * *
+## [0.2.4] - 2026-05-08
 
-<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.1.8] - 2026-03-31
+### English
 
-### 📦 Other Changes
+#### 🚀 Features
 
-- Update Makefile
-- Update Makefile
+- **image**: Enhance `image deactivate` with RequestId logging and precise ListMcpImages query
 
+### 中文
 
-* * *
+#### 🚀 功能
 
-<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.1.3] - 2026-02-10
+- **image**：增强 `image deactivate`，增加 RequestId 日志并精准查询 ListMcpImages
 
-### 🚀 Features
+---
 
-- Sync latest changes from internal repo
+## [0.2.3] - 2026-04-29
 
+### English
 
-* * *
+#### 🚀 Features
 
-<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.1.2] - 2025-12-26
+- **image**: Enhance `image create` file upload with per-file status display, auto-retry, and summary result
 
-### 🐞 Bug Fixes
+### 中文
 
-- Endpoint to xiaoying.cn-shanghai
+#### 🚀 功能
 
+- **image**：增强 `image create` 文件上传，支持逐文件状态展示、自动重试和汇总结果
 
-* * *
+---
 
-<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.1.1] - 2025-12-25
+## [0.2.2] - 2026-04-28
 
-### 🚀 Features
+### English
 
-- Add api
-- Add windows installation scripts and docs
-- Remove unuse files
-- Update yml
-- Add include system image listing with separeted display sections
-- Add dockerfile demo
-- Enhance image list with system image support
-- Add init dockerfile template
-- Add image init guide in user guide
-- Add port availability check with retry for login command
-- Add advise if port is occupied
-- Add unit test for image validation error
-- Add image management and port handling improvements
+#### 🚀 Features
 
-### 📖 Documentation
+- **image**: `image activate` supports sandbox lifecycle parameters
 
-- Update installation and usage guides
-- Add Linux & Mac installation guide and update docs structure
+### 中文
 
-### 🛠 Refactoring
+#### 🚀 功能
 
-- Add fixossendpoint to suitable return error ossendpoint
+- **image**：`image activate` 支持沙箱生命周期参数
 
-### 📦 Other Changes
+---
 
-- Add --include-system and --system-only flags to image list
-- Debug --include-system for image list
-- Include-system image list fixed
-- Update scripts/readme for image list
-- Update getdockerfile api
-- Set sourceimageid accoding to environment and region
-- Update image init info
-- Update image to show modify info
-- Add port backoff policy
-- Fix test error message case sensitivity
-- Update homebrew.yml
+## [0.2.1] - 2026-04-23
 
+### English
 
-* * *
+#### 🚀 Features
 
-<!-- 中文翻译待补充 / Add Chinese translation before release -->## [0.1.0] - 2025-10-29
+- **network**
+  - Add network package list command (DescribeNetworkPackages)
+  - Remove UserAliUid parameter, add default BizRegionId, and display OfficeSiteId
 
-### 🚀 Features
+#### 📖 Documentation
 
-- Add api
-- Add api
-- Add cicd yml
-- Update cicd yml
-- Update yml
-- Update yml
-- Update success html
-- Add refresh token
-- Add doc
-- Add env switch feature
-- Add cpu and memory params
-- Add windows installation scripts and docs
-- Remove unuse files
-- Update yml
-- Update doc
-- Add retry
-- Improve authentication error detection and handling
-- Add include system image listing with separeted display sections
-- Add dockerfile demo
-- Enhance image list with system image support
-- Add init dockerfile template
-- Add image init guide in user guide
-- Add port availability check with retry for login command
-- Add advise if port is occupied
-- Add unit test for image validation error
-- 新增 Dockerfile COPY/ADD 文件上传功能
-- International env (prod/pre) with default endpoint and OAuth
-- **skills**: Skills CLI and API implementation
-- Remove skills list and group cmd
-- **client**: Add CreateMarketSkill API
-- **client**: Add DescribeMarketSkillDetail API
-- **client**: Add Market SkillGroup APIs (create, list, add-skill, remove-skill)
-- **agentbay**: Extend client with Market Skill and Group APIs
-- **cmd**: Add agentbay skills push, list (placeholder), show
-- **cmd**: Add agentbay skills group create, list, show (placeholder), add-skill, remove-skill
-- **cmd**: Register skills command and extend client mock in tests
-- **skills**: Skills CLI and API implementation
-- Remove skills list and group cmd
-- Add image status cmd
-- Fix init parse
-- Print requestid when create image verbose
+- **network**: Add network management guidance to README and update development rules
 
-### 🐞 Bug Fixes
+### 中文
 
-- Unit test error
-- Unit test error
-- Unit test error
-- Logout warning
-- Cmd issue
-- Add sourceimageid
-- Image init test
-- 适配DeleteResourceGroup接口， 修复deactivate 停止镜像失败问题
-- Compile error
-- Refresh token using same client
-- **skills**: ListMarketGroupSkill XML response and RequestId in -v
-- **client**: Align Skills API HTTP method with backend (GET/POST)
-- **skills**: Use GET for ListMarketGroupSkill to fix 403 UnsupportedHTTPMethod on pre-release API
-- **skills**: Parse CreateMarketSkillGroup Data as string and related client updates
-- **skills**: Parse CreateMarketSkillGroup Data correctly and add -v raw response
-- **skills,image**: OSS upload and API response handling
-- **skills**: Parse XML/JSON for DescribeMarketSkillDetail and AddMarketGroupSkill
-- **skills**: Parse XML/JSON for RemoveMarketGroupSkill response
-- Compile error
-- Parse nug
-- Oauth login parse
-- Dup error and parse
-- Ak-sk skill push parse
-- Aone makefile with latest glibc
+#### 🚀 功能
 
-### 📖 Documentation
+- **network**
+  - 新增 network package list 命令（DescribeNetworkPackages）
+  - 移除 UserAliUid 参数，增加默认 BizRegionId，并展示 OfficeSiteId
 
-- Update environment variable names in windows script
-- Add Skills CLI usage (requirement a) to USER_GUIDE
-- **plans**: Add Skills API BodyType analysis and backend format reference
-- Align README and USER_GUIDE with skills CLI implementation
-- Add skills output examples to USER_GUIDE, add manual test results
+#### 📖 文档
 
-### 🛠 Refactoring
+- **network**：在 README 中补充网络管理说明，并更新开发规则
 
-- Add fixossendpoint to suitable return error ossendpoint
+---
 
-### 📦 Other Changes
+## [0.2.0] - 2026-04-17
 
-- V0.1.0 (#1)
-- Add --include-system and --system-only flags to image list
-- Debug --include-system for image list
-- Include-system image list fixed
-- Update scripts/readme for image list
-- Update getdockerfile api
-- Set sourceimageid accoding to environment and region
-- Update image init info
-- Update image to show modify info
-- Add port backoff policy
-- Fix test error message case sensitivity
-- Refactor github workflows homebrew
-- Require sourceImageId for image init and improve error handling
+### English
 
-- Make sourceImageId a required parameter for image init command
-- Show raw error info instead of custom error messages
-- Update default endpoint to xiaoying.cn-shanghai
-- Require sourceImageId for image init and improve error handling
+#### 🚀 Features
 
-- Make sourceImageId a required parameter for image init command
-- Show raw error info instead of custom error messages
-- Update default endpoint to xiaoying.cn-shanghai
-- 更新user guide
-- Parse RPC responses as XML or JSON in the SDK client and drop wrapper-side XML caching
+- **network**
+  - ADVANCED network activation flow adds DescribeOfficeSites and supports DNS default value
+  - Adjust DEFAULT network activation flow, add DescribeMcpPolicyData and SaveMcpPolicyData calls
 
+#### 📖 Documentation
 
-* * *
+- **global**: Improve README with API Key management and `image activate` examples
 
-<!-- 中文翻译待补充 / Add Chinese translation before release --><!-- generated by git-cliff -->
+### 中文
+
+#### 🚀 功能
+
+- **network**
+  - ADVANCED 网络激活流程新增 DescribeOfficeSites，并支持 DNS 默认值
+  - 调整 DEFAULT 网络激活流程，增加 DescribeMcpPolicyData 和 SaveMcpPolicyData 调用
+
+#### 📖 文档
+
+- **全局**：改进 README，补充 API Key 管理和 `image activate` 示例
+
+---
+
+## [0.1.9] - 2026-04-10
+
+### English
+
+#### 🚀 Features
+
+- **apikey**
+  - Add `apikey create` command
+  - Add API Key concurrency management command
+- **docker/image/skills**: Add COPY/ADD file size validation for OSS uploads and skill push
+
+#### 🐞 Bug Fixes
+
+- **apikey**: Correct CreateApiKey response Data field type from object to string
+- **test**: Sync mock implementations after adding Client interface methods to fix compilation
+
+#### 📖 Documentation
+
+- **qoder**: Add CLI development rules and skills
+
+#### 📦 Other Changes
+
+- **docker/image/skills**: Add 1 MiB COPY/ADD source file limit and retry mechanism for OSS uploads and skill push APIs
+
+### 中文
+
+#### 🚀 功能
+
+- **apikey**
+  - 新增 `apikey create` 命令
+  - 新增 API Key 并发管理命令
+- **docker/image/skills**：为 OSS 上传和 skill push 增加 COPY/ADD 文件大小校验
+
+#### 🐞 缺陷修复
+
+- **apikey**：修正 CreateApiKey 响应 Data 字段类型，从对象改为字符串
+- **测试**：新增 Client 接口方法后同步 mock 实现，修复编译问题
+
+#### 📖 文档
+
+- **qoder**：新增 CLI 开发规则与 skills
+
+#### 📦 其他变更
+
+- **docker/image/skills**：为 OSS 上传和 skill push API 增加 1 MiB COPY/ADD 源文件限制和重试机制
+
+---
+
+## [0.1.8] - 2026-03-31
+
+### English
+
+#### 📦 Other Changes
+
+- **build**: Update Makefile
+
+### 中文
+
+#### 📦 其他变更
+
+- **构建**：更新 Makefile
+
+---
+
+## [0.1.3] - 2026-02-10
+
+### English
+
+#### 🚀 Features
+
+- **global**: Sync latest changes from internal repo
+
+### 中文
+
+#### 🚀 功能
+
+- **全局**：同步内部仓库最新变更
+
+---
+
+## [0.1.2] - 2025-12-26
+
+### English
+
+#### 🐞 Bug Fixes
+
+- **core**: Change default Endpoint to xiaoying.cn-shanghai
+
+### 中文
+
+#### 🐞 缺陷修复
+
+- **core**：将默认 Endpoint 调整为 xiaoying.cn-shanghai
+
+---
+
+## [0.1.1] - 2025-12-25
+
+### English
+
+#### 🚀 Features
+
+- **image**
+  - Enhance image list with system image display and `--include-system` / `--system-only` flags
+  - Add Dockerfile demo and init Dockerfile template
+  - Add image init user guide
+- **core/auth**
+  - Add port availability check and retry for login command
+  - Show advisory when port is occupied
+- **installation**: Add Windows installation scripts and Linux/Mac installation guide
+- **CI/CD**: Update workflow configuration
+
+#### 🐞 Bug Fixes
+
+- **image**: Fix image validation unit test error
+- **OSS**: Adjust fixossendpoint to return suitable OSS endpoint error message
+
+#### 📖 Documentation
+
+- **installation/usage**: Update installation and usage guides and adjust docs structure
+
+#### 📦 Other Changes
+
+- **image**: Update internal implementation for image list, getdockerfile, image init, and image modify info display
+- **core/auth**: Add port backoff policy
+- **test/CI**: Fix test error message case sensitivity and update homebrew workflow
+
+### 中文
+
+#### 🚀 功能
+
+- **image**
+  - 增强 image list，支持系统镜像展示及 `--include-system` / `--system-only` 参数
+  - 新增 Dockerfile demo 与 init Dockerfile template
+  - 新增 image init 用户指南
+- **core/auth**
+  - 登录命令增加端口可用性检测与重试
+  - 端口被占用时给出使用建议
+- **安装**：新增 Windows 安装脚本和 Linux/Mac 安装指南
+- **CI/CD**：更新 workflow 配置
+
+#### 🐞 缺陷修复
+
+- **image**：修复 image validation 单元测试错误
+- **OSS**：调整 fixossendpoint 以返回合适的 oss endpoint 错误信息
+
+#### 📖 文档
+
+- **安装/使用**：更新安装与使用指南，并调整文档结构
+
+#### 📦 其他变更
+
+- **image**：补充 image list、getdockerfile、image init、镜像修改信息展示等内部实现更新
+- **core/auth**：增加端口退避策略
+- **测试/CI**：修复测试错误信息大小写问题并更新 homebrew workflow
+
+---
+
+## [0.1.0] - 2025-10-29
+
+### English
+
+#### 🚀 Features
+
+- **core/auth**
+  - Add refresh token and environment switching capability
+  - Support international environment (prod/pre) default Endpoint and OAuth
+  - Improve authentication error detection and handling
+- **image**
+  - Add system image list display and `--include-system` / `--system-only` flags
+  - Add Dockerfile demo, init Dockerfile template, and image init guide
+  - Add image status command and print RequestId in create image verbose mode
+  - Add Dockerfile COPY/ADD file upload capability
+  - Support required sourceImageId, default environment/region mapping, image init info, and image modify info display
+- **skills**
+  - Implement skills push/list/show commands
+  - Implement skills group create/list/show/add-skill/remove-skill commands
+  - Register skills command and complete test mock
+- **client/agentbay**
+  - Add CreateMarketSkill and DescribeMarketSkillDetail APIs
+  - Add Market SkillGroup APIs (create/list/add-skill/remove-skill)
+  - Extend agentbay client to support the above APIs
+- **installation**: Add Windows installation scripts
+- **CI/CD**: Add CI/CD configuration, release flow, and success page
+
+#### 🐞 Bug Fixes
+
+- **skills**
+  - Fix ListMarketGroupSkill pre-release 403 UnsupportedHTTPMethod issue
+  - Fix CreateMarketSkillGroup Data field parsing
+  - Fix DescribeMarketSkillDetail / AddMarketGroupSkill / RemoveMarketGroupSkill XML/JSON parsing
+- **skills/image**: Fix OSS upload and API response handling
+- **image**
+  - Adapt DeleteResourceGroup interface and fix deactivate failure
+  - Fix image init parsing and unit test issues
+- **core/auth**
+  - Fix logout warning, OAuth login parsing, and refresh token client reuse
+  - Fix AK/SK skill push parsing issue
+- **client**
+  - Align Skills API HTTP methods (GET/POST)
+  - Fix compilation and response parsing issues
+- **CI/CD**: Update Aone Makefile to support latest glibc
+
+#### 📖 Documentation
+
+- **skills**
+  - Add Skills CLI usage instructions and output examples
+  - Add manual test results and align README/USER_GUIDE with skills CLI implementation
+- **internal reference**: Add Skills API BodyType analysis and backend format reference
+- **environment config**: Update environment variable names in Windows script
+
+#### 🛠 Refactoring
+
+- **OSS**: Adjust fixossendpoint to return a more suitable OSS endpoint error message
+
+#### 📦 Other Changes
+
+- **image**
+  - Organize historical implementation updates for image list, getdockerfile, and image init
+  - Add sourceImageId requirement and default Endpoint updates
+  - Show raw error information instead of custom error messages
+- **CI/CD**: Refactor GitHub Homebrew workflow
+- **release**: Release v0.1.0
+
+### 中文
+
+#### 🚀 功能
+
+- **core/auth**
+  - 新增 refresh token 与环境切换能力
+  - 支持国际站（prod/pre）默认 Endpoint 与 OAuth
+  - 改进认证错误识别和处理
+- **image**
+  - 新增系统镜像列表展示及 `--include-system` / `--system-only` 参数
+  - 新增 Dockerfile demo、init Dockerfile template 和 image init 指南
+  - 新增 image status 命令，create image verbose 模式输出 RequestId
+  - 新增 Dockerfile COPY/ADD 文件上传能力
+  - 支持 sourceImageId 必填、默认环境/地域映射、镜像初始化信息和修改信息展示
+- **skills**
+  - 实现 skills push/list/show 命令
+  - 实现 skills group create/list/show/add-skill/remove-skill 命令
+  - 注册 skills 命令并完善测试 mock
+- **client/agentbay**
+  - 新增 CreateMarketSkill、DescribeMarketSkillDetail API
+  - 新增 Market SkillGroup 系列 API（create/list/add-skill/remove-skill）
+  - 扩展 agentbay client 支持以上 API
+- **安装**：新增 Windows 安装脚本
+- **CI/CD**：新增 CI/CD 配置、发布流程与成功页
+
+#### 🐞 缺陷修复
+
+- **skills**
+  - 修复 ListMarketGroupSkill 预发环境 403 UnsupportedHTTPMethod 问题
+  - 修复 CreateMarketSkillGroup Data 字段解析
+  - 修复 DescribeMarketSkillDetail / AddMarketGroupSkill / RemoveMarketGroupSkill XML/JSON 解析
+- **skills/image**：修复 OSS 上传和 API 响应处理问题
+- **image**
+  - 适配 DeleteResourceGroup 接口，修复 deactivate 停止镜像失败问题
+  - 修复 image init 解析与单元测试问题
+- **core/auth**
+  - 修复 logout warning、OAuth 登录解析、refresh token client 复用
+  - 修复 AK/SK skill push 解析问题
+- **client**
+  - 对齐 Skills API HTTP 方法（GET/POST）
+  - 修复编译与响应解析相关问题
+- **CI/CD**：更新 Aone Makefile 以兼容最新 glibc
+
+#### 📖 文档
+
+- **skills**
+  - 新增 Skills CLI 使用说明与输出示例
+  - 补充手动测试结果，将 README/USER_GUIDE 与 skills CLI 实现对齐
+- **内部参考**：新增 Skills API BodyType 分析和后端格式参考
+- **环境配置**：更新 Windows 脚本中的环境变量名称
+
+#### 🛠 重构
+
+- **OSS**：调整 fixossendpoint，以返回更合适的 oss endpoint 错误信息
+
+#### 📦 其他变更
+
+- **image**
+  - 整理 image list、getdockerfile、image init 历史实现更新
+  - 补充 sourceImageId 必填与默认 Endpoint 更新
+  - 展示原始错误信息以替代自定义错误文案
+- **CI/CD**：重构 GitHub Homebrew workflow
+- **发版**：发布 v0.1.0
+
+---
+
+<!-- generated by git-cliff -->

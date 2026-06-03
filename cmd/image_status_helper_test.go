@@ -60,6 +60,10 @@ func (m *mockGetMcpImageInfoClient) CreateMarketSkill(ctx context.Context, reque
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockGetMcpImageInfoClient) UpdateMarketSkill(ctx context.Context, request *client.UpdateMarketSkillRequest) (*client.CreateMarketSkillResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 func (m *mockGetMcpImageInfoClient) DescribeMarketSkillDetail(ctx context.Context, request *client.DescribeMarketSkillDetailRequest) (*client.DescribeMarketSkillDetailResponse, error) {
 	return nil, fmt.Errorf("not implemented")
 }
@@ -129,6 +133,34 @@ func (m *mockGetMcpImageInfoClient) DescribeKeyContent(ctx context.Context, requ
 }
 
 func (m *mockGetMcpImageInfoClient) DescribeWarmUpStatusOpen(ctx context.Context, request *client.DescribeWarmUpStatusOpenRequest) (*client.DescribeWarmUpStatusOpenResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockGetMcpImageInfoClient) ListTag(ctx context.Context) (*client.ListTagResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockGetMcpImageInfoClient) CreateTag(ctx context.Context, request *client.CreateTagRequest) (*client.CreateTagResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockGetMcpImageInfoClient) ListMarketSkillByPage(ctx context.Context, request *client.ListMarketSkillByPageRequest) (*client.ListMarketSkillByPageResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockGetMcpImageInfoClient) DeleteMarketSkill(ctx context.Context, request *client.DeleteMarketSkillRequest) (*client.DeleteMarketSkillResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockGetMcpImageInfoClient) ShareDockerRepo(ctx context.Context, request *client.ShareDockerRepoRequest) (*client.ShareDockerRepoResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockGetMcpImageInfoClient) UnshareDockerRepo(ctx context.Context, request *client.UnshareDockerRepoRequest) (*client.UnshareDockerRepoResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (m *mockGetMcpImageInfoClient) ListSharedDockerRepos(ctx context.Context, request *client.ListSharedDockerReposRequest) (*client.ListSharedDockerReposResponse, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 

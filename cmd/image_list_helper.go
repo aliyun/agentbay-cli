@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -14,8 +15,60 @@ import (
 	"github.com/agentbay/agentbay-cli/internal/client"
 )
 
+// imageItemJSON is the JSON representation of a single image entry.
+type imageItemJSON struct {
+	ImageId       string `json:"imageId"`
+	ImageName     string `json:"imageName"`
+	Type          string `json:"type"`
+	Status        string `json:"status"`
+	StatusDisplay string `json:"statusDisplay"`
+	OsName        string `json:"osName"`
+	OsVersion     string `json:"osVersion"`
+	OsDisplay     string `json:"osDisplay"`
+	PhysicalImage string `json:"physicalImage"`
+	ApplyScene    string `json:"applyScene"`
+}
+
+// printImagesAsJSON outputs image list data as indented JSON.
+func printImagesAsJSON(images []*client.ListMcpImagesResponseBodyData, totalCount int32) error {
+	type output struct {
+		TotalCount int32           `json:"totalCount"`
+		Images     []imageItemJSON `json:"images"`
+	}
+	out := output{TotalCount: totalCount}
+	for _, image := range images {
+		if image == nil {
+			continue
+		}
+		item := imageItemJSON{
+			ImageId:       getStringValue(image.GetImageId()),
+			ImageName:     getStringValue(image.GetImageName()),
+			Type:          getStringValue(image.GetImageBuildType()),
+			Status:        getStringValue(image.GetImageResourceStatus()),
+			StatusDisplay: formatImageStatus(getStringValue(image.GetImageResourceStatus())),
+			ApplyScene:    getStringValue(image.GetImageApplyScene()),
+		}
+		if imgInfo := image.GetImageInfo(); imgInfo != nil {
+			item.OsName = getStringValue(imgInfo.GetOsName())
+			item.OsVersion = getStringValue(imgInfo.GetOsVersion())
+			item.OsDisplay = formatOSInfo(imgInfo)
+			item.PhysicalImage = getStringValue(imgInfo.GetPhysicalImage())
+		}
+		out.Images = append(out.Images, item)
+	}
+	if out.Images == nil {
+		out.Images = []imageItemJSON{}
+	}
+	b, err := json.MarshalIndent(out, "", "  ")
+	if err != nil {
+		return fmt.Errorf("json marshal: %w", err)
+	}
+	fmt.Println(string(b))
+	return nil
+}
+
 // runImageListWithBothTypes handles querying both user and system images
-func runImageListWithBothTypes(ctx context.Context, apiClient agentbay.Client, osType string, page, pageSize int) error {
+func runImageListWithBothTypes(ctx context.Context, apiClient agentbay.Client, osType string, page, pageSize int, outputFmt string) error {
 	var allImages []*client.ListMcpImagesResponseBodyData
 	var totalCount int32
 
@@ -44,6 +97,11 @@ func runImageListWithBothTypes(ctx context.Context, apiClient agentbay.Client, o
 		return fmt.Errorf("failed to get user images: %w", err)
 	}
 	fmt.Printf(" Done.")
+
+	// Always print RequestId for traceability
+	if userResp != nil && userResp.Body != nil && userResp.Body.GetRequestId() != nil {
+		fmt.Printf("\n[INFO] Request ID (user images): %s", *userResp.Body.GetRequestId())
+	}
 
 	// Process user images response
 	if userResp != nil && userResp.Body != nil && userResp.Body.Data != nil {
@@ -79,6 +137,10 @@ func runImageListWithBothTypes(ctx context.Context, apiClient agentbay.Client, o
 		fmt.Printf("[WARN] Failed to fetch system images, showing user images only\n")
 	} else {
 		fmt.Printf(" Done.\n")
+		// Always print RequestId for traceability
+		if systemResp != nil && systemResp.Body != nil && systemResp.Body.GetRequestId() != nil {
+			fmt.Printf("[INFO] Request ID (system images): %s\n", *systemResp.Body.GetRequestId())
+		}
 		// Process system images response
 		if systemResp != nil && systemResp.Body != nil && systemResp.Body.Data != nil {
 			allImages = append(allImages, systemResp.Body.Data...)
@@ -111,40 +173,65 @@ func runImageListWithBothTypes(ctx context.Context, apiClient agentbay.Client, o
 		return nil
 	}
 
+	// JSON output mode
+	if strings.EqualFold(outputFmt, "json") {
+		return printImagesAsJSON(allImages, totalCount)
+	}
+
 	fmt.Printf("\n[OK] Found %d images (Total: %d)\n", len(allImages), totalCount)
 
 	// Display user images first
 	if len(userImages) > 0 {
 		fmt.Printf("\n=== USER IMAGES (%d) ===\n", len(userImages))
-		printImageTable(userImages)
+		printImageTable(userImages, true)
 	}
 
 	// Display system images
 	if len(systemImages) > 0 {
 		fmt.Printf("\n=== SYSTEM IMAGES (%d) ===\n", len(systemImages))
-		printImageTable(systemImages)
+		printImageTable(systemImages, false)
 	}
 
 	return nil
 }
 
-// printImageTable prints a formatted table of images
-func printImageTable(images []*client.ListMcpImagesResponseBodyData) {
+// printImageTable prints a formatted table of images.
+// showPhysicalImage controls whether to show the PHYSICAL IMAGE column (user images only).
+func printImageTable(images []*client.ListMcpImagesResponseBodyData, showPhysicalImage bool) {
 	// Print header
-	fmt.Printf("%s %s %s %s %s %s\n",
-		padString("IMAGE ID", 25),
-		padString("IMAGE NAME", 30),
-		padString("TYPE", 20),
-		padString("STATUS", 15),
-		padString("OS", 18),
-		"APPLY SCENE")
-	fmt.Printf("%s %s %s %s %s %s\n",
-		padString("--------", 25),
-		padString("----------", 30),
-		padString("----", 20),
-		padString("------", 15),
-		padString("--", 18),
-		"-----------")
+	if showPhysicalImage {
+		fmt.Printf("%s %s %s %s %s %s %s\n",
+			padString("IMAGE ID", 25),
+			padString("IMAGE NAME", 30),
+			padString("TYPE", 20),
+			padString("STATUS", 15),
+			padString("OS", 18),
+			padString("PHYSICAL IMAGE", 30),
+			"APPLY SCENE")
+		fmt.Printf("%s %s %s %s %s %s %s\n",
+			padString("--------", 25),
+			padString("----------", 30),
+			padString("----", 20),
+			padString("------", 15),
+			padString("--", 18),
+			padString("--------------", 30),
+			"-----------")
+	} else {
+		fmt.Printf("%s %s %s %s %s %s\n",
+			padString("IMAGE ID", 25),
+			padString("IMAGE NAME", 30),
+			padString("TYPE", 20),
+			padString("STATUS", 15),
+			padString("OS", 18),
+			"APPLY SCENE")
+		fmt.Printf("%s %s %s %s %s %s\n",
+			padString("--------", 25),
+			padString("----------", 30),
+			padString("----", 20),
+			padString("------", 15),
+			padString("--", 18),
+			"-----------")
+	}
 
 	// Print each image
 	for _, image := range images {
@@ -160,12 +247,27 @@ func printImageTable(images []*client.ListMcpImagesResponseBodyData) {
 		applyScene := getStringValue(image.GetImageApplyScene())
 
 		// 使用支持中文的填充和截断函数，手动控制列间距
-		fmt.Printf("%s %s %s %s %s %s\n",
-			padString(truncateString(imageId, 25), 25),
-			padString(truncateString(imageName, 30), 30),
-			padString(imageType, 20),
-			padString(status, 15),
-			padString(osInfo, 18),
-			applyScene)
+		if showPhysicalImage {
+			physicalImage := ""
+			if imgInfo := image.GetImageInfo(); imgInfo != nil {
+				physicalImage = getStringValue(imgInfo.GetPhysicalImage())
+			}
+			fmt.Printf("%s %s %s %s %s %s %s\n",
+				padString(truncateString(imageId, 25), 25),
+				padString(truncateString(imageName, 30), 30),
+				padString(imageType, 20),
+				padString(status, 15),
+				padString(osInfo, 18),
+				padString(truncateString(physicalImage, 30), 30),
+				applyScene)
+		} else {
+			fmt.Printf("%s %s %s %s %s %s\n",
+				padString(truncateString(imageId, 25), 25),
+				padString(truncateString(imageName, 30), 30),
+				padString(imageType, 20),
+				padString(status, 15),
+				padString(osInfo, 18),
+				applyScene)
+		}
 	}
 }

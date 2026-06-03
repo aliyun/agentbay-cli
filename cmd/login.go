@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -172,6 +173,47 @@ func runLogin(cmd *cobra.Command) error {
 			return fmt.Errorf("failed to exchange code for token: %w", err)
 		}
 		fmt.Printf("Debug: Token exchange successful, access token length: %d\n", len(tokenResponse.AccessToken))
+
+		// Block RAM sub-accounts and RAM roles before persisting the token.
+		// Rationale: OAuth BearerToken grants caller-scoped full API access,
+		// which violates least-privilege expectations for RAM identities.
+		// See docs/internal/bearer-to-sts-design.md for the full discussion.
+		if verifyErr := auth.VerifyMainAccount(tokenResponse.AccessToken); verifyErr != nil {
+			if errors.Is(verifyErr, auth.ErrRamUserNotAllowed) {
+				// Best-effort revoke to minimize residual exposure; ignore failures.
+				_ = auth.RevokeToken(GetClientID(), tokenResponse.AccessToken)
+				// Print a loud, multi-line banner so the rejection is impossible to
+				// miss. Returning the error alone shows up as a single "Error: ..."
+				// line which users overlook.
+				fmt.Fprintln(os.Stderr)
+				fmt.Fprintln(os.Stderr, "============================================================")
+				fmt.Fprintln(os.Stderr, "[ERROR] Login REJECTED: RAM sub-account / RAM role")
+				fmt.Fprintln(os.Stderr, "============================================================")
+				fmt.Fprintln(os.Stderr)
+				fmt.Fprintln(os.Stderr, "agentbay-cli does not support OAuth login for RAM identities.")
+				fmt.Fprintln(os.Stderr)
+				fmt.Fprintln(os.Stderr, "Recommended: use AccessKey environment variables (AK/SK):")
+				fmt.Fprintln(os.Stderr)
+				fmt.Fprintln(os.Stderr, "  export AGENTBAY_ACCESS_KEY_ID=<your-ram-ak>")
+				fmt.Fprintln(os.Stderr, "  export AGENTBAY_ACCESS_KEY_SECRET=<your-ram-sk>")
+				fmt.Fprintln(os.Stderr)
+				fmt.Fprintln(os.Stderr, "Alternatively, if you want to use OAuth login:")
+				fmt.Fprintln(os.Stderr, "  1. Open https://www.aliyun.com/ in your browser")
+				fmt.Fprintln(os.Stderr, "  2. Sign out of the current Aliyun account in the browser")
+				fmt.Fprintln(os.Stderr, "  3. Run: agentbay login")
+				fmt.Fprintln(os.Stderr, "  4. Sign in with an Aliyun main account in the browser")
+				fmt.Fprintln(os.Stderr)
+				fmt.Fprintln(os.Stderr, "See docs/zh/authentication.md (or docs/en/authentication.md)")
+				fmt.Fprintln(os.Stderr, "for the full authentication setup guide.")
+				fmt.Fprintln(os.Stderr, "============================================================")
+				fmt.Fprintln(os.Stderr)
+				return verifyErr
+			}
+			// Network / parsing failures: fail-open with a warning. A transient
+			// outage on oauth.aliyun.com must not lock everyone out.
+			fmt.Fprintf(os.Stderr, "Warning: failed to verify account type (%v); continuing. "+
+				"Note: RAM sub-account is not supported via OAuth login.\n", verifyErr)
+		}
 
 		// Convert ExpiresIn from string to int
 		expiresIn, err := strconv.Atoi(tokenResponse.ExpiresIn)

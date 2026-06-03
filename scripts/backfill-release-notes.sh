@@ -1,18 +1,27 @@
 #!/bin/bash
-# Backfill GitHub Release Notes with auto-generated changelog content
+# Backfill GitHub Release Notes from CHANGELOG.md.
 #
-# This is a one-time script to update existing GitHub Releases (v0.1.0 ~ v0.2.8)
-# that have placeholder release notes with actual changelog content.
+# Under the v3 bilingual changelog pipeline, CHANGELOG.md is the single
+# upstream source of truth. This script extracts a per-version section
+# from CHANGELOG.md and pushes it to the corresponding GitHub Release as
+# the release body. Use this when:
+#   - You modified CHANGELOG.md (e.g. refined a translation) and want to
+#     refresh an already-published release body.
+#   - You historically released with the old single-language pipeline and
+#     want to refresh release bodies after backfilling Chinese into
+#     CHANGELOG.md.
 #
 # Prerequisites:
-#   - git-cliff installed (brew install git-cliff)
 #   - gh CLI authenticated with repo write access
 #   - Run from the project root directory
+#   - CHANGELOG.md must contain a section for each tag you want to refresh
+#     (lines starting with `## [<VERSION>]`). Tags without a matching
+#     section are SKIPPED, not failed.
 #
 # Usage:
-#   ./scripts/backfill-release-notes.sh           # Update all releases
-#   ./scripts/backfill-release-notes.sh --dry-run  # Preview without making changes
-#   ./scripts/backfill-release-notes.sh --tag v0.2.8  # Update a single release
+#   ./scripts/backfill-release-notes.sh                 # Refresh all v* releases
+#   ./scripts/backfill-release-notes.sh --dry-run       # Preview without writing
+#   ./scripts/backfill-release-notes.sh --tag v0.2.8    # Refresh a single release
 
 set -euo pipefail
 
@@ -49,13 +58,20 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Check prerequisites
-if ! command -v git-cliff >/dev/null 2>&1; then
-    echo "ERROR: git-cliff is required. Install with: brew install git-cliff"
+if ! command -v gh >/dev/null 2>&1; then
+    echo "ERROR: gh CLI is required. Install with: brew install gh"
     exit 1
 fi
 
-if ! command -v gh >/dev/null 2>&1; then
-    echo "ERROR: gh CLI is required. Install with: brew install gh"
+EXTRACT_SCRIPT="$SCRIPT_DIR/extract-changelog-section.sh"
+if [[ ! -x "$EXTRACT_SCRIPT" ]]; then
+    echo "ERROR: $EXTRACT_SCRIPT is missing or not executable"
+    exit 1
+fi
+
+CHANGELOG="$PROJECT_DIR/CHANGELOG.md"
+if [[ ! -f "$CHANGELOG" ]]; then
+    echo "ERROR: $CHANGELOG not found"
     exit 1
 fi
 
@@ -91,17 +107,18 @@ for tag in "${TAGS[@]}"; do
         continue
     fi
 
-    # Generate changelog content for this version
+    # Extract changelog section for this version from CHANGELOG.md
     NOTES_FILE="/tmp/release-notes-${tag}.md"
-    if ! git-cliff --tag "$tag" --strip header > "$NOTES_FILE" 2>/dev/null; then
-        echo "  ERROR: Failed to generate changelog for $tag"
-        FAILED=$((FAILED + 1))
+    VERSION_NO_V="${tag#v}"
+    if ! bash "$EXTRACT_SCRIPT" "$VERSION_NO_V" "$CHANGELOG" > "$NOTES_FILE" 2>/dev/null; then
+        echo "  SKIP: CHANGELOG.md has no section for $tag"
+        SKIPPED=$((SKIPPED + 1))
+        rm -f "$NOTES_FILE"
         continue
     fi
 
-    # Check if content was generated
     if [[ ! -s "$NOTES_FILE" ]]; then
-        echo "  SKIP: No changelog content for $tag"
+        echo "  SKIP: extracted section is empty for $tag"
         SKIPPED=$((SKIPPED + 1))
         rm -f "$NOTES_FILE"
         continue

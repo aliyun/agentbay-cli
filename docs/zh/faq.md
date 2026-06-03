@@ -44,7 +44,11 @@ agentbay -v skills push ./my-skill
 
 **Q: 配置文件存储在哪里？**
 
-- `~/.config/agentbay/config.json`（macOS/Linux）或 `%APPDATA%\agentbay\config.json`（Windows）
+- 默认路径按操作系统区分：
+  - macOS：`~/Library/Application Support/agentbay/config.json`
+  - Linux：`~/.config/agentbay/config.json`（或 `$XDG_CONFIG_HOME/agentbay/config.json`）
+  - Windows：`%AppData%\agentbay\config.json`
+- 可通过设置 `AGENTBAY_CLI_CONFIG_DIR` 环境变量覆盖默认目录。
 - OAuth Token 存储在配置文件中；AccessKey 凭证**不会**被 CLI 保存，仅从环境变量读取
 
 **Q: 支持哪些 OS 类型？**

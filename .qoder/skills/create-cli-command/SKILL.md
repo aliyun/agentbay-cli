@@ -12,11 +12,11 @@ description: 将前端 API 能力封装成 agentbay-cli 命令的标准化流程
 | Skill                            | 负责                                                                                          | 触发时机       |
 | -------------------------------- | --------------------------------------------------------------------------------------------- | -------------- |
 | **feature-development-workflow** | 分支管理（从 `aliyun/master` 拉 feat 分支）、双远程推送（origin → aliyun）、PR 流程、变更档案 | 开发前、提交后 |
-| **create-cli-command**（本文件） | SDK 模型 → Client 接口 → Cobra 命令 → mock 同步 → 单测 → 对客文档                             | 开发中         |
+| **create-cli-command**（本文件） | SDK 模型 → Client 接口 → Cobra 命令 → mock 同步 → 单测 → 对客文档 readiness                   | 开发中         |
 
 **执行铁律**：
 
-1. **开发前**：必须先执行 `feature-development-workflow` 的 Phase 0（变更档案初始化）和分支创建，确认当前在 `feat-<name>` 分支且基于 `aliyun/master`，否则不得进入本 skill 的 Phase 1。
+1. **开发前**：必须先执行 `feature-development-workflow` 的 Phase 0（变更档案初始化）和分支创建，确认当前在 `feat-<name>` 分支且基于 `aliyun/master`，否则不得进入本 skill 的 Phase 1。⚠️ **切分支前必须先询问用户**：用户可能已在当前分支开发，不要自动切换 feat 分支。
 2. **开发中**：按本 skill 的 Phase 1-5 实现代码和测试。
 3. **提交/推送**：切回 `feature-development-workflow` 的 Phase 4-6 完成 commit、双远程 push（origin 先、aliyun 后）、PR、trace.md 更新。
 4. **禁止跳过**：不得在未拉 feat 分支时直接在 master 上开发，不得单远程推送，不得跳过变更档案。
@@ -204,12 +204,12 @@ if err != nil {
 
 **哪些情况触发**：
 
-| 操作类型 | 示例 | 是否需要 |
-|---------|------|---------|
-| 永久删除资源 | `apikey delete`, `image delete` | ✅ 必须 |
-| 多步骤前置依赖（如先禁用才能删除）| 每步都提示 | ✅ 每步 |
-| 可逆状态变更 | `enable`, `disable` | ❌ 不需要 |
-| 查询/只读操作 | `list`, `status` | ❌ 不需要 |
+| 操作类型                           | 示例                            | 是否需要  |
+| ---------------------------------- | ------------------------------- | --------- |
+| 永久删除资源                       | `apikey delete`, `image delete` | ✅ 必须   |
+| 多步骤前置依赖（如先禁用才能删除） | 每步都提示                      | ✅ 每步   |
+| 可逆状态变更                       | `enable`, `disable`             | ❌ 不需要 |
+| 查询/只读操作                      | `list`, `status`                | ❌ 不需要 |
 
 **标准实现**（复用 `cmd/confirm.go` 中已有的 `ConfirmPrompt`）：
 
@@ -232,6 +232,7 @@ if !confirmed {
 ```
 
 **`ConfirmPrompt` 三种行为**：
+
 - `--yes` 传入 → 直接 true，无任何输出
 - 交互式 TTY → 打印提示，读取输入（仅 y/Y/yes/YES 通过）
 - 非 TTY 且无 `--yes` → 返回错误，提示用户加 `--yes`
@@ -239,6 +240,7 @@ if !confirmed {
 **多步骤命令**：每步单独调用 `ConfirmPrompt(prompt, autoYes)`，一个 `--yes` 跳过全部步骤。
 
 **参考实现**：
+
 - `cmd/apikey_delete.go` —— 多步骤（禁用确认 + 删除确认）
 - `cmd/image.go` `runImageDelete` —— 单步骤确认
 
@@ -330,9 +332,11 @@ Test<子命令>Cmd           // 测试子命令
 **本阶段委托 `update-cli-command-docs` skill 执行**，不在本 skill 内展开。
 
 加载并执行 `.qoder/skills/update-cli-command-docs/SKILL.md`，该 skill 将完成：
+
 - 更新 `docs/en/<group>.md` 和 `docs/zh/<group>.md`
 - 更新 `README.md` 和 `README.zh-CN.md` Command Overview 表格
-- 更新 `CHANGELOG.md`（git-cliff 生成 + 中文翻译）
+- 完成 LLM-facing docs readiness：如修改 `README.md` 或 `docs/en/**`，执行 `bash scripts/build-llms-full.sh` 并同步 `llms-full.txt`；文档结构变化时检查 `llms.txt`
+- 更新 `CHANGELOG.md` readiness（校验 commit/PR title 可被 release-prep 采集；不在日常命令开发中全量生成 CHANGELOG）
 
 > ⚠️ 不得在本 Phase 中内联执行文档操作，必须遵循 `update-cli-command-docs` 的 Phase 0-3 完整流程。
 
@@ -390,6 +394,8 @@ git commit -m "feat: add <功能描述> CLI command
 - [ ] `docs/zh/<command-group>.md` 已更新（与英文版结构一致）
 - [ ] `README.md` Command Overview 表格已更新
 - [ ] `README.zh-CN.md` Command Overview 表格已更新
+- [ ] 如修改 `README.md` 或 `docs/en/**`，已执行 `bash scripts/build-llms-full.sh` 并同步 `llms-full.txt`
+- [ ] 如新增 / 删除 / 重命名对外文档，已检查并同步 `llms.txt` 导航链接
 
 ✅ **对客文档**（cli-analysis/）:
 
@@ -403,11 +409,13 @@ git commit -m "feat: add <功能描述> CLI command
 
 ### Git 提交
 
-✅ **提交规范**:
+✅ **提交与 CHANGELOG readiness**:
 
 - [ ] 询问用户是否提交
-- [ ] 使用 Conventional Commits 格式
-- [ ] 包含详细的 commit body
+- [ ] 使用 Conventional Commits 格式，优先带命令组 scope（如 `feat(apikey): ...`）
+- [ ] 若为不兼容变更，使用 `!` 或 `BREAKING CHANGE:`
+- [ ] 已确认本次变更可在发版时由 `make release-prep VERSION=X.Y.Z` 生成到 CHANGELOG
+- [ ] 已确认 `update-cli-command-docs` 完成 llms readiness（`llms-full.txt` / `llms.txt` 已同步或明确无需更新）
 - [ ] 展示提交结果
 
 ## 📚 参考资料
@@ -440,8 +448,9 @@ git commit -m "feat: add <功能描述> CLI command
 4. **命令层级**: 相关功能组织为子命令，不要创建顶级命令
 5. **测试覆盖**: 必须有单元测试，且所有测试通过
 6. **文档面向客户**: 对客文档不包含代码实现细节
-7. **不要自动提交**: 必须用户明确要求才执行 git commit
-8. **⚠️ 接口变更必须同步 Mock**: 给 `agentbay.Client` 接口添加新方法后，**必须立即更新所有 mock 类**！
+7. **llms 文档同步**: 新增 / 修改 CLI 命令导致 `README.md` 或 `docs/en/**` 变化时，必须通过 `update-cli-command-docs` 执行 `bash scripts/build-llms-full.sh` 并同步 `llms-full.txt`；文档结构变化时检查 `llms.txt`
+8. **不要自动提交**: 必须用户明确要求才执行 git commit
+9. **⚠️ 接口变更必须同步 Mock**: 给 `agentbay.Client` 接口添加新方法后，**必须立即更新所有 mock 类**！
    - 查找所有 mock 类：`grep -r "type mock.*Client struct" cmd/ test/`
    - 为每个 mock 类添加新方法（返回 `fmt.Errorf("not implemented")`）
    - 常见 mock 类：`mockGetMcpImageInfoClient`, `mockImageListClient`

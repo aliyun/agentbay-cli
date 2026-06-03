@@ -30,7 +30,13 @@ type Client interface {
 	// Market Skill
 	GetMarketSkillCredential(ctx context.Context, request *client.GetMarketSkillCredentialRequest) (*client.GetMarketSkillCredentialResponse, error)
 	CreateMarketSkill(ctx context.Context, request *client.CreateMarketSkillRequest) (*client.CreateMarketSkillResponse, error)
+	UpdateMarketSkill(ctx context.Context, request *client.UpdateMarketSkillRequest) (*client.CreateMarketSkillResponse, error)
 	DescribeMarketSkillDetail(ctx context.Context, request *client.DescribeMarketSkillDetailRequest) (*client.DescribeMarketSkillDetailResponse, error)
+	ListMarketSkillByPage(ctx context.Context, request *client.ListMarketSkillByPageRequest) (*client.ListMarketSkillByPageResponse, error)
+	DeleteMarketSkill(ctx context.Context, request *client.DeleteMarketSkillRequest) (*client.DeleteMarketSkillResponse, error)
+	// Tags
+	ListTag(ctx context.Context) (*client.ListTagResponse, error)
+	CreateTag(ctx context.Context, request *client.CreateTagRequest) (*client.CreateTagResponse, error)
 	// API Key
 	CreateApiKey(ctx context.Context, request *client.CreateApiKeyRequest) (*client.CreateApiKeyResponse, error)
 	ModifyMcpApiKeyConfig(ctx context.Context, request *client.ModifyMcpApiKeyConfigRequest) (*client.ModifyMcpApiKeyConfigResponse, error)
@@ -53,6 +59,10 @@ type Client interface {
 	BatchCreateHideResourceGroupsWithMaxSession(ctx context.Context, request *client.BatchCreateHideResourceGroupsWithMaxSessionRequest) (*client.BatchCreateHideResourceGroupsWithMaxSessionResponse, error)
 	// WarmUp Status
 	DescribeWarmUpStatusOpen(ctx context.Context, request *client.DescribeWarmUpStatusOpenRequest) (*client.DescribeWarmUpStatusOpenResponse, error)
+	// Docker Repo Sharing
+	ShareDockerRepo(ctx context.Context, request *client.ShareDockerRepoRequest) (*client.ShareDockerRepoResponse, error)
+	UnshareDockerRepo(ctx context.Context, request *client.UnshareDockerRepoRequest) (*client.UnshareDockerRepoResponse, error)
+	ListSharedDockerRepos(ctx context.Context, request *client.ListSharedDockerReposRequest) (*client.ListSharedDockerReposResponse, error)
 }
 
 // clientWrapper wraps the generated SDK client with additional functionality
@@ -156,6 +166,25 @@ func (cw *clientWrapper) CreateMarketSkill(ctx context.Context, request *client.
 	return sdkClient.CreateMarketSkillWithOptions(request, cw.getRuntimeOptions())
 }
 
+// UpdateMarketSkill wraps the SDK client method
+func (cw *clientWrapper) UpdateMarketSkill(ctx context.Context, request *client.UpdateMarketSkillRequest) (*client.CreateMarketSkillResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	resp, err := sdkClient.UpdateMarketSkillWithOptions(request, cw.getRuntimeOptions())
+	if err != nil {
+		return nil, err
+	}
+	// Convert UpdateMarketSkillResponse to CreateMarketSkillResponse (same Body structure)
+	return &client.CreateMarketSkillResponse{
+		Headers:    resp.Headers,
+		StatusCode: resp.StatusCode,
+		Body:       resp.Body,
+		RawBody:    resp.RawBody,
+	}, nil
+}
+
 // DescribeMarketSkillDetail wraps the SDK client method
 func (cw *clientWrapper) DescribeMarketSkillDetail(ctx context.Context, request *client.DescribeMarketSkillDetailRequest) (*client.DescribeMarketSkillDetailResponse, error) {
 	sdkClient, err := cw.getClient()
@@ -163,6 +192,42 @@ func (cw *clientWrapper) DescribeMarketSkillDetail(ctx context.Context, request 
 		return nil, err
 	}
 	return sdkClient.DescribeMarketSkillDetailWithOptions(request, cw.getRuntimeOptions())
+}
+
+// ListTag wraps the SDK client method
+func (cw *clientWrapper) ListTag(ctx context.Context) (*client.ListTagResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.ListTagWithOptions(cw.getRuntimeOptions())
+}
+
+// ListMarketSkillByPage wraps the SDK client method
+func (cw *clientWrapper) ListMarketSkillByPage(ctx context.Context, request *client.ListMarketSkillByPageRequest) (*client.ListMarketSkillByPageResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.ListMarketSkillByPageWithOptions(request, cw.getRuntimeOptions())
+}
+
+// DeleteMarketSkill wraps the SDK client method
+func (cw *clientWrapper) DeleteMarketSkill(ctx context.Context, request *client.DeleteMarketSkillRequest) (*client.DeleteMarketSkillResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.DeleteMarketSkillWithOptions(request, cw.getRuntimeOptions())
+}
+
+// CreateTag wraps the SDK client method
+func (cw *clientWrapper) CreateTag(ctx context.Context, request *client.CreateTagRequest) (*client.CreateTagResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.CreateTagWithContext(ctx, request, cw.getRuntimeOptions())
 }
 
 // CreateDockerImageTask wraps the SDK client method
@@ -378,5 +443,32 @@ func (cw *clientWrapper) DescribeWarmUpStatusOpen(ctx context.Context, request *
 	if err != nil {
 		return nil, err
 	}
-	return sdkClient.DescribeWarmUpStatusOpenWithContext(ctx, request, cw.getRuntimeOptions())
+	return sdkClient.DescribeWarmUpStatusOpenWithOptions(request, cw.getRuntimeOptions())
+}
+
+// ShareDockerRepo wraps the SDK client method
+func (cw *clientWrapper) ShareDockerRepo(ctx context.Context, request *client.ShareDockerRepoRequest) (*client.ShareDockerRepoResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.ShareDockerRepoWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// UnshareDockerRepo wraps the SDK client method
+func (cw *clientWrapper) UnshareDockerRepo(ctx context.Context, request *client.UnshareDockerRepoRequest) (*client.UnshareDockerRepoResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.UnshareDockerRepoWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// ListSharedDockerRepos wraps the SDK client method
+func (cw *clientWrapper) ListSharedDockerRepos(ctx context.Context, request *client.ListSharedDockerReposRequest) (*client.ListSharedDockerReposResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.ListSharedDockerReposWithContext(ctx, request, cw.getRuntimeOptions())
 }

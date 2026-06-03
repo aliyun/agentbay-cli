@@ -407,18 +407,25 @@ func (client *Client) CreateMarketSkillWithOptions(request *CreateMarketSkillReq
 	if _err != nil {
 		return _result, _err
 	}
-	query := map[string]interface{}{}
+	body := map[string]interface{}{}
 	if !dara.IsNil(request.OssBucket) {
-		query["OssBucket"] = request.OssBucket
+		body["OssBucket"] = request.OssBucket
 	}
 	if !dara.IsNil(request.OssFilePath) {
-		query["OssFilePath"] = request.OssFilePath
+		body["OssFilePath"] = request.OssFilePath
+	}
+	if len(request.TagList) > 0 {
+		b, _ := json.Marshal(request.TagList)
+		body["TagList"] = string(b)
+	}
+	if !dara.IsNil(request.Icon) {
+		body["Icon"] = request.Icon
 	}
 
 	req := &openapiutil.OpenApiRequest{
-		Query: openapiutil.Query(query),
+		Body: openapiutil.ParseToMap(body),
 		Headers: map[string]*string{
-			"Accept": dara.String("application/xml"),
+			"Accept": dara.String("application/json"),
 		},
 	}
 	params := &openapiutil.Params{
@@ -426,7 +433,7 @@ func (client *Client) CreateMarketSkillWithOptions(request *CreateMarketSkillReq
 		Version:     dara.String("2025-05-01"),
 		Protocol:    dara.String("HTTPS"),
 		Pathname:    dara.String("/"),
-		Method:      dara.String("GET"),
+		Method:      dara.String("POST"),
 		AuthType:    dara.String("AK"),
 		Style:       dara.String("RPC"),
 		ReqBodyType: dara.String("formData"),
@@ -456,16 +463,303 @@ func (client *Client) CreateMarketSkill(request *CreateMarketSkillRequest) (_res
 	return _result, _err
 }
 
+// UpdateMarketSkill 更新 Skill
+// Uses BodyType "string" so we parse XML/JSON manually (backend pre-release returns XML).
+func (client *Client) UpdateMarketSkillWithOptions(request *UpdateMarketSkillRequest, runtime *dara.RuntimeOptions) (_result *UpdateMarketSkillResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	body := map[string]interface{}{}
+	if !dara.IsNil(request.SkillId) {
+		body["SkillId"] = request.SkillId
+	}
+	if !dara.IsNil(request.OssBucket) {
+		body["OssBucket"] = request.OssBucket
+	}
+	if !dara.IsNil(request.OssFilePath) {
+		body["OssFilePath"] = request.OssFilePath
+	}
+	if request.TagList != nil {
+		b, _ := json.Marshal(request.TagList)
+		body["TagList"] = string(b)
+	}
+	if !dara.IsNil(request.Icon) {
+		body["Icon"] = request.Icon
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Body: openapiutil.ParseToMap(body),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("UpdateMarketSkill"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &UpdateMarketSkillResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseUpdateMarketSkillResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) UpdateMarketSkill(request *UpdateMarketSkillRequest) (_result *UpdateMarketSkillResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &UpdateMarketSkillResponse{}
+	_body, _err := client.UpdateMarketSkillWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+// ListMarketSkillByPage 分页查询 Market Skill 列表
+// Uses BodyType "string" so we parse XML/JSON manually.
+func (client *Client) ListMarketSkillByPageWithOptions(request *ListMarketSkillByPageRequest, runtime *dara.RuntimeOptions) (_result *ListMarketSkillByPageResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if request.PageNo != nil {
+		query["PageNo"] = request.PageNo
+	}
+	if request.PageSize != nil {
+		query["PageSize"] = request.PageSize
+	}
+	if request.SkillName != nil {
+		query["SkillName"] = request.SkillName
+	}
+	if len(request.TagList) > 0 {
+		b, _ := json.Marshal(request.TagList)
+		query["TagList"] = string(b)
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("ListMarketSkillByPage"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &ListMarketSkillByPageResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseListMarketSkillByPageResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) ListMarketSkillByPage(request *ListMarketSkillByPageRequest) (_result *ListMarketSkillByPageResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &ListMarketSkillByPageResponse{}
+	_body, _err := client.ListMarketSkillByPageWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+func (client *Client) ListMarketSkillByPageWithContext(ctx interface{}, request *ListMarketSkillByPageRequest) (_result *ListMarketSkillByPageResponse, _err error) {
+	return client.ListMarketSkillByPage(request)
+}
+
+// DeleteMarketSkill 删除 Market Skill
+// Uses BodyType "string" so we parse XML/JSON manually.
+func (client *Client) DeleteMarketSkillWithOptions(request *DeleteMarketSkillRequest, runtime *dara.RuntimeOptions) (_result *DeleteMarketSkillResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if request.SkillId != nil {
+		query["SkillId"] = request.SkillId
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("DeleteMarketSkill"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &DeleteMarketSkillResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseDeleteMarketSkillResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) DeleteMarketSkill(request *DeleteMarketSkillRequest) (_result *DeleteMarketSkillResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &DeleteMarketSkillResponse{}
+	_body, _err := client.DeleteMarketSkillWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+func (client *Client) DeleteMarketSkillWithContext(ctx interface{}, request *DeleteMarketSkillRequest) (_result *DeleteMarketSkillResponse, _err error) {
+	return client.DeleteMarketSkill(request)
+}
+
+// ListTag 查询所有标签
+func (client *Client) ListTagWithOptions(runtime *dara.RuntimeOptions) (_result *ListTagResponse, _err error) {
+	query := map[string]interface{}{}
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("ListTag"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("GET"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &ListTagResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseListTagResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) ListTag() (_result *ListTagResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &ListTagResponse{}
+	_body, _err := client.ListTagWithOptions(runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
+// CreateTag 批量创建标签
+// TagList is sent as a JSON array string in the body, not using xxx.1 format.
+func (client *Client) CreateTagWithOptions(request *CreateTagRequest, runtime *dara.RuntimeOptions) (_result *CreateTagResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	body := map[string]interface{}{}
+	if len(request.TagList) > 0 {
+		b, _ := json.Marshal(request.TagList)
+		body["TagList"] = string(b)
+	}
+	req := &openapiutil.OpenApiRequest{
+		Body:    openapiutil.ParseToMap(body),
+		Headers: map[string]*string{"Accept": dara.String("application/json")},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("CreateTag"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &CreateTagResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseCreateTagResponse(_body)
+	return _result, _err
+}
+
+func (client *Client) CreateTag(request *CreateTagRequest) (_result *CreateTagResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	_result = &CreateTagResponse{}
+	_body, _err := client.CreateTagWithOptions(request, runtime)
+	if _err != nil {
+		return _result, _err
+	}
+	_result = _body
+	return _result, _err
+}
+
 // describeMarketSkillDetailResponseXML is used only for XML unmarshaling; backend may return XML.
 // Backend may use SkillId or SkillID in Data.
 type describeMarketSkillDetailResponseXML struct {
 	XMLName        xml.Name `xml:"DescribeMarketSkillDetailResponse"`
 	HttpStatusCode *int32   `xml:"HttpStatusCode"`
 	Data           *struct {
-		SkillId     *string `xml:"SkillId"`
-		SkillID     *string `xml:"SkillID"`
-		Name        *string `xml:"Name"`
-		Description *string `xml:"Description"`
+		SkillId     *string  `xml:"SkillId"`
+		SkillID     *string  `xml:"SkillID"`
+		Name        *string  `xml:"Name"`
+		FileUrl     *string  `xml:"FileUrl"`
+		Description *string  `xml:"Description"`
+		TenantTags  []string `xml:"TenantTags"`
 	} `xml:"Data"`
 	RequestId *string `xml:"RequestId"`
 	Code      *string `xml:"Code"`
@@ -504,7 +798,9 @@ func parseDescribeMarketSkillDetailResponse(res map[string]interface{}) (*Descri
 				parsed.Data = &DescribeMarketSkillDetailResponseBodyData{
 					SkillId:     skillIdVal,
 					Name:        xmlResp.Data.Name,
+					FileUrl:     xmlResp.Data.FileUrl,
 					Description: xmlResp.Data.Description,
+					TenantTags:  xmlResp.Data.TenantTags,
 				}
 			}
 		} else {
@@ -555,7 +851,7 @@ func (client *Client) DescribeMarketSkillDetailWithOptions(request *DescribeMark
 	req := &openapiutil.OpenApiRequest{
 		Query: openapiutil.Query(query),
 		Headers: map[string]*string{
-			"Accept": dara.String("application/xml"),
+			"Accept": dara.String("application/json"),
 		},
 	}
 	params := &openapiutil.Params{
@@ -2183,28 +2479,24 @@ func (client *Client) DescribeWarmUpStatusOpenWithOptions(request *DescribeWarmU
 	return _result, _err
 }
 
-// DescribeWarmUpStatusOpen queries warm-up status for the current account (convenience method)
-func (client *Client) DescribeWarmUpStatusOpen(request *DescribeWarmUpStatusOpenRequest) (_result *DescribeWarmUpStatusOpenResponse, _err error) {
-	runtime := &dara.RuntimeOptions{}
-	return client.DescribeWarmUpStatusOpenWithOptions(request, runtime)
-}
-
-// DescribeWarmUpStatusOpenWithContext queries warm-up status for the current account with context
-func (client *Client) DescribeWarmUpStatusOpenWithContext(ctx context.Context, request *DescribeWarmUpStatusOpenRequest, runtime *dara.RuntimeOptions) (_result *DescribeWarmUpStatusOpenResponse, _err error) {
+// ShareDockerRepoWithOptions shares a Docker repo with the target Alibaba Cloud account (full options)
+func (client *Client) ShareDockerRepoWithOptions(request *ShareDockerRepoRequest, runtime *dara.RuntimeOptions) (_result *ShareDockerRepoResponse, _err error) {
 	_err = request.Validate()
 	if _err != nil {
 		return _result, _err
 	}
-	query := map[string]interface{}{}
-
+	body := map[string]interface{}{}
+	if request.TargetAliUid != nil {
+		body["TargetAliUid"] = request.TargetAliUid
+	}
 	req := &openapiutil.OpenApiRequest{
-		Query: openapiutil.Query(query),
+		Body: openapiutil.ParseToMap(body),
 		Headers: map[string]*string{
 			"Accept": dara.String("application/json"),
 		},
 	}
 	params := &openapiutil.Params{
-		Action:      dara.String("DescribeWarmUpStatusOpen"),
+		Action:      dara.String("ShareDockerRepo"),
 		Version:     dara.String("2025-05-01"),
 		Protocol:    dara.String("HTTPS"),
 		Pathname:    dara.String("/"),
@@ -2214,7 +2506,7 @@ func (client *Client) DescribeWarmUpStatusOpenWithContext(ctx context.Context, r
 		ReqBodyType: dara.String("formData"),
 		BodyType:    dara.String("string"),
 	}
-	_result = &DescribeWarmUpStatusOpenResponse{}
+	_result = &ShareDockerRepoResponse{}
 	_body, _err := client.CallApi(params, req, runtime)
 	if _err != nil {
 		reqID := ""
@@ -2223,6 +2515,128 @@ func (client *Client) DescribeWarmUpStatusOpenWithContext(ctx context.Context, r
 		}
 		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
 	}
-	_result, _err = parseDescribeWarmUpStatusOpenResponse(_body)
+	_result, _err = parseShareDockerRepoResponse(_body)
 	return _result, _err
+}
+
+// ShareDockerRepo shares a Docker repo with the target Alibaba Cloud account (convenience method)
+func (client *Client) ShareDockerRepo(request *ShareDockerRepoRequest) (_result *ShareDockerRepoResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	return client.ShareDockerRepoWithOptions(request, runtime)
+}
+
+// ShareDockerRepoWithContext shares a Docker repo with the target Alibaba Cloud account with context
+func (client *Client) ShareDockerRepoWithContext(ctx context.Context, request *ShareDockerRepoRequest, runtime *dara.RuntimeOptions) (_result *ShareDockerRepoResponse, _err error) {
+	return client.ShareDockerRepoWithOptions(request, runtime)
+}
+
+// UnshareDockerRepoWithOptions cancels sharing a Docker repo with the target Alibaba Cloud account (full options)
+func (client *Client) UnshareDockerRepoWithOptions(request *UnshareDockerRepoRequest, runtime *dara.RuntimeOptions) (_result *UnshareDockerRepoResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	body := map[string]interface{}{}
+	if request.TargetAliUid != nil {
+		body["TargetAliUid"] = request.TargetAliUid
+	}
+	req := &openapiutil.OpenApiRequest{
+		Body: openapiutil.ParseToMap(body),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("UnshareDockerRepo"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &UnshareDockerRepoResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseUnshareDockerRepoResponse(_body)
+	return _result, _err
+}
+
+// UnshareDockerRepo cancels sharing a Docker repo with the target Alibaba Cloud account (convenience method)
+func (client *Client) UnshareDockerRepo(request *UnshareDockerRepoRequest) (_result *UnshareDockerRepoResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	return client.UnshareDockerRepoWithOptions(request, runtime)
+}
+
+// UnshareDockerRepoWithContext cancels sharing a Docker repo with the target Alibaba Cloud account with context
+func (client *Client) UnshareDockerRepoWithContext(ctx context.Context, request *UnshareDockerRepoRequest, runtime *dara.RuntimeOptions) (_result *UnshareDockerRepoResponse, _err error) {
+	return client.UnshareDockerRepoWithOptions(request, runtime)
+}
+
+// ListSharedDockerReposWithOptions lists Docker repo sharing info (full options)
+func (client *Client) ListSharedDockerReposWithOptions(request *ListSharedDockerReposRequest, runtime *dara.RuntimeOptions) (_result *ListSharedDockerReposResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	body := map[string]interface{}{}
+	if request.Direction != nil {
+		body["Direction"] = request.Direction
+	}
+	if request.PageSize != nil {
+		body["PageSize"] = request.PageSize
+	}
+	if request.PageStart != nil {
+		body["PageStart"] = request.PageStart
+	}
+	if request.QueryAliUid != nil {
+		body["QueryAliUid"] = request.QueryAliUid
+	}
+	req := &openapiutil.OpenApiRequest{
+		Body: openapiutil.ParseToMap(body),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("ListSharedDockerRepos"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &ListSharedDockerReposResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseListSharedDockerReposResponse(_body)
+	return _result, _err
+}
+
+// ListSharedDockerRepos lists Docker repo sharing info (convenience method)
+func (client *Client) ListSharedDockerRepos(request *ListSharedDockerReposRequest) (_result *ListSharedDockerReposResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	return client.ListSharedDockerReposWithOptions(request, runtime)
+}
+
+// ListSharedDockerReposWithContext lists Docker repo sharing info with context
+func (client *Client) ListSharedDockerReposWithContext(ctx context.Context, request *ListSharedDockerReposRequest, runtime *dara.RuntimeOptions) (_result *ListSharedDockerReposResponse, _err error) {
+	return client.ListSharedDockerReposWithOptions(request, runtime)
 }

@@ -120,7 +120,11 @@ git remote remove <name>
    **决策分发**:
    - ✅ 全部满足 → **主动询问用户**:
      > "检测到当前在 `feat/xxx` 分支,已与 `aliyun/master` 同步且工作区干净。是 **直接复用当前分支** 继续开发,还是 **从 `aliyun/master` 新切一条 feat 分支**?"
-   - ❌ 任一不满足 → **必须新切**,不再询问,按第 3 步执行。
+   - ❌ 任一不满足 → **仍须先询问用户**（⚠️ 不得自动新切）:
+     > "当前分支为 `<branch-name>`，[简述不满足的条件，如：落后 aliyun/master / 工作区有未提交改动 / 分支名不以 feat- 开头]。请确认：是 **在当前分支继续开发**，还是 **从 `aliyun/master` 新切一条 feat 分支**？"
+
+     用户选择继续当前分支→ 跳过第 3 步，直接进入 Phase 2（由用户自行承担分支状态风险）。
+     用户选择新切分支→ 按第 3 步执行。
 
 3. **新切 feat 分支(默认路径)**
 
@@ -148,6 +152,7 @@ git remote remove <name>
 - 接口变更必须同步所有 mock 类
 - 新增/修改命令必须同步 README 和对外文档
 - 文档同步遵循 update-cli-command-docs skill（由 create-cli-command Phase 5 自动委托，或独立触发）
+- CHANGELOG 日常开发只做 readiness；发版版本段生成/翻译/回灌遵循 bilingual-changelog-release skill
 - 新增命令必须有单元测试
 - 参数使用命名参数(`--name`),不使用位置参数
 
@@ -158,11 +163,11 @@ git remote remove <name>
 每次提交前必须本地全量验证:
 
 ```bash
-go build ./...
+go build -o agentbay .
 go test ./... -count=1
 ```
 
-两条命令全部通过后才能进入提交环节。
+两条命令全部通过后才能进入提交环节。`go build -o agentbay .` 必须生成项目根目录的可执行二进制，不能只用 `go build ./...` 替代。
 
 ### Phase 4: 本地提交(按用户指令)
 
@@ -177,18 +182,20 @@ go test ./... -count=1
    git diff --stat
    ```
 
-2. **使用 Conventional Commits 规范**:
+2. **使用 Conventional Commits 规范**（确保 release-prep 可正确生成 CHANGELOG）:
 
    ```bash
    git add -A
-   git commit -m "<type>: <description>
+   git commit -m "<type>(<scope>): <description>
 
    - 具体改动点 1
    - 具体改动点 2
    - 具体改动点 3"
    ```
 
-   `<type>` 从以下中选: `feat` / `fix` / `test` / `docs` / `refactor` / `style` / `chore`。
+   `<type>` 从以下中选: `feat` / `fix` / `docs` / `refactor` / `perf` / `revert` / `test` / `style` / `chore` / `ci` / `build`。
+   用户可感知变更优先使用会进入 CHANGELOG 的 `feat` / `fix` / `docs` / `refactor` / `perf` / `revert`；`<scope>` 优先使用 `apikey`、`image`、`network`、`skills`、`docker`、`core`、`client`。
+   不兼容变更必须使用 `!` 或 footer `BREAKING CHANGE:`。
 
 3. **确认提交结果**:
 
@@ -239,7 +246,7 @@ go test ./... -count=1
 
 当 feat 分支已推送到 `aliyun` 后,由用户在 GitHub 网页操作或通过 `gh` CLI 提 PR 到 `aliyun/master`,PR 模板要求:
 
-- 标题复用 commit message 标题
+- 标题复用 commit message 标题,并保持 Conventional Commits 格式,供 release-prep 生成 CHANGELOG
 - 描述包含:需求背景 / 改动点 / 测试情况 / 风险说明
 
 PR 合并由用户(或指定 reviewer)审批,合并后的清理动作:
@@ -258,14 +265,25 @@ git push aliyun --delete feat-<feature-name>      # aliyun 删除(可选,或由 
 - 在 CR 的 `trace.md`(路径 B)或 Quest Spec(路径 A)登记 PR 链接、合并 commit、对应的 release tag
 - 档案目录保持在仓库中,**不要删除**,作为历史追溯资产
 
+### Phase 7: 发版交接(仅发版需求触发)
+
+如果用户要求继续发版、准备 tag、生成 GitHub Release notes 或回灌历史 release body，**立即加载 `bilingual-changelog-release` skill**，按其 SOP 执行：
+
+```bash
+make release-prep VERSION=X.Y.Z
+```
+
+注意：日常 feature 分支开发完成后不要在本 workflow 中运行 `git-cliff -o CHANGELOG.md` 或 `make changelog`；CHANGELOG 版本段由发版阶段统一生成和翻译。
+
 ## 🔒 关键原则
 
 1. **显式授权原则**:`commit` 和 `push` 都需要用户明确指示后才执行
-2. **真源原则**:feat 分支从 `aliyun/master` 拉出,确保起点是对客主线
-3. **双远程原则**:推送仅限 `origin` 和 `aliyun`,不引入额外 fork
-4. **可回滚原则**:每次提交必须是本地验证通过的稳定状态
-5. **分支隔离原则**:每个需求独立 feat 分支,禁止混合多个需求
-6. **可追溯原则**:每个需求必须在 `.qoder/specs/`(Quest Mode Download 自动落盘)或 `.qoder/changes/`(手动 CR)下建立档案,档案随代码一并入库
+2. **分支切换先确认原则**:开发新功能或需求时，如需切换到 feat 分支，**必须先询问用户确认**，不得自动切换 —— 用户可能正在当前分支继续迭代
+3. **真源原则**:feat 分支从 `aliyun/master` 拉出,确保起点是对客主线
+4. **双远程原则**:推送仅限 `origin` 和 `aliyun`,不引入额外 fork
+5. **可回滚原则**:每次提交必须是本地验证通过的稳定状态
+6. **分支隔离原则**:每个需求独立 feat 分支,禁止混合多个需求
+7. **可追溯原则**:每个需求必须在 `.qoder/specs/`(Quest Mode Download 自动落盘)或 `.qoder/changes/`(手动 CR)下建立档案,档案随代码一并入库
 
 ## ✅ 流程检查清单
 
@@ -279,9 +297,10 @@ git push aliyun --delete feat-<feature-name>      # aliyun 删除(可选,或由 
 
 提交前:
 
-- [ ] `go build ./...` 通过
+- [ ] `go build -o agentbay .` 通过并生成根目录二进制
 - [ ] `go test ./... -count=1` 通过
 - [ ] README / 对外文档 / 单元测试 / mock 类均已同步
+- [ ] 已完成 CHANGELOG readiness：commit/PR title 符合 Conventional Commits，必要时带命令组 scope
 - [ ] `git status` 无预期外的改动
 - [ ] 变更档案文件已 `git add`,与代码一同提交
 - [ ] 已获得用户提交授权
@@ -297,6 +316,8 @@ git push aliyun --delete feat-<feature-name>      # aliyun 删除(可选,或由 
 
 - [development.md](../../rules/development.md) - 代码规范 / Mock 同步 / Commit 规范
 - [create-cli-command](../create-cli-command/SKILL.md) - CLI 命令封装的具体实现流程
+- [update-cli-command-docs](../update-cli-command-docs/SKILL.md) - docs/README 文档同步与 CHANGELOG readiness
+- [bilingual-changelog-release](../bilingual-changelog-release/SKILL.md) - 发版阶段双语 CHANGELOG 与 GitHub Release notes SOP
 
 ## ⚠️ 常见陷阱
 
@@ -304,7 +325,7 @@ git push aliyun --delete feat-<feature-name>      # aliyun 删除(可选,或由 
 | --------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------- |
 | 在 master 直接改      | `git status` 显示 HEAD 是 master 且有 diff                 | 开发前先 `git checkout -b feat-xxx aliyun/master`                       |
 | 从 origin/master 起点 | feat 分支基点滞后于 aliyun 主线,PR 有冲突                  | 明确从 `aliyun/master` 拉分支                                           |
-| 盲目复用旧 feat 分支  | 复用了落后于 aliyun/master 或工作区有残留的分支,污染新需求 | Phase 1 步骤 2 按充要条件严格校验,任一不满足必须新切                    |
+| 盲目复用旧 feat 分支  | 复用了落后于 aliyun/master 或工作区有残留的分支,污染新需求 | Phase 1 步骤 2 按充要条件校验，任一不满足时先询问用户意愿，由用户决定是继续当前分支还是新切 |
 | 未授权自动 push       | 用户还没审查就已推送                                       | 推送动作必须等用户说"推送"/"push"                                       |
 | mock 漏改 CI 报错     | `*mockClient does not implement agentbay.Client`           | 接口变更后立即 `grep -r "type mock.*Client struct"` 全量补齐            |
 | 残留 upstream         | `git remote -v` 仍有个人 fork                              | 执行 `git remote remove upstream`                                       |

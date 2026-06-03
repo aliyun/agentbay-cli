@@ -270,6 +270,62 @@ func parseCreateMarketSkillResponse(res map[string]interface{}) (*CreateMarketSk
 	return out, nil
 }
 
+// --- UpdateMarketSkill ---
+
+type xmlUpdateMarketSkillResponse struct {
+	XMLName        xml.Name `xml:"UpdateMarketSkillResponse"`
+	HttpStatusCode *int32   `xml:"HttpStatusCode"`
+	Data           string   `xml:"Data"`
+	RequestId      *string  `xml:"RequestId"`
+	Code           *string  `xml:"Code"`
+	Success        *bool    `xml:"Success"`
+}
+
+// parseUpdateMarketSkillResponse builds UpdateMarketSkillResponse from CallApi map (bodyType "string").
+// Backend may return XML or JSON; JSON may use Data as either a string (skill id) or an object {SkillId}.
+func parseUpdateMarketSkillResponse(res map[string]interface{}) (*UpdateMarketSkillResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &UpdateMarketSkillResponse{RawBody: bodyStr}
+	parsed := &CreateMarketSkillResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xmlResp xmlUpdateMarketSkillResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xmlResp); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = xmlResp.Code
+			parsed.HttpStatusCode = xmlResp.HttpStatusCode
+			parsed.RequestId = xmlResp.RequestId
+			parsed.Success = xmlResp.Success
+			if s := strings.TrimSpace(xmlResp.Data); s != "" {
+				parsed.Data = &CreateMarketSkillResponseBodyData{SkillId: &s}
+			}
+		} else {
+			var wire createMarketSkillJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = wire.Code
+			parsed.HttpStatusCode = wire.HttpStatusCode
+			parsed.Message = wire.Message
+			parsed.RequestId = wire.RequestId
+			parsed.Success = wire.Success
+			data, derr := parseCreateMarketSkillDataField(wire.Data)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: derr, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Data = data
+		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
+
 // --- DescribeWarmUpStatusOpen ---
 
 type describeWarmUpStatusOpenJSONWireDataImage struct {
@@ -280,17 +336,17 @@ type describeWarmUpStatusOpenJSONWireDataImage struct {
 }
 
 type describeWarmUpStatusOpenJSONWire struct {
-	Code           *string `json:"Code"`
-	Message        *string `json:"Message"`
-	RequestId      *string `json:"RequestId"`
+	Code           *string         `json:"Code"`
+	Message        *string         `json:"Message"`
+	RequestId      *string         `json:"RequestId"`
 	HttpStatusCode json.RawMessage `json:"HttpStatusCode"`
-	Success        *bool   `json:"Success"`
+	Success        *bool           `json:"Success"`
 	Data           *struct {
-		MaxSessionNumLimit    json.RawMessage `json:"MaxSessionNumLimit"`
-		TotalUsedSessionQuota json.RawMessage `json:"TotalUsedSessionQuota"`
-		AvailableSessionQuota json.RawMessage `json:"AvailableSessionQuota"`
-		MaxImageCount         json.RawMessage `json:"MaxImageCount"`
-		CurrentImageCount     json.RawMessage `json:"CurrentImageCount"`
+		MaxSessionNumLimit    json.RawMessage                             `json:"MaxSessionNumLimit"`
+		TotalUsedSessionQuota json.RawMessage                             `json:"TotalUsedSessionQuota"`
+		AvailableSessionQuota json.RawMessage                             `json:"AvailableSessionQuota"`
+		MaxImageCount         json.RawMessage                             `json:"MaxImageCount"`
+		CurrentImageCount     json.RawMessage                             `json:"CurrentImageCount"`
 		Images                []describeWarmUpStatusOpenJSONWireDataImage `json:"Images"`
 	} `json:"Data"`
 }
@@ -1400,14 +1456,14 @@ func parseDescribeApiKeysResponse(res map[string]interface{}) (*DescribeApiKeysR
 					json.Unmarshal(keyWire.BoundPolicy, &boundPolicy)
 				}
 				apiKeys = append(apiKeys, &DescribeApiKeysResponseBodyDataApiKey{
-					Status:        keyWire.Status,
-					GmtCreate:     keyWire.GmtCreate,
-					LastUseDate:   keyWire.LastUseDate,
-					ApiKey:        keyWire.ApiKey,
-					Concurrency:   c,
-					KeyId:         keyWire.KeyId,
-					Name:          keyWire.Name,
-					BoundPolicy:   boundPolicy,
+					Status:      keyWire.Status,
+					GmtCreate:   keyWire.GmtCreate,
+					LastUseDate: keyWire.LastUseDate,
+					ApiKey:      keyWire.ApiKey,
+					Concurrency: c,
+					KeyId:       keyWire.KeyId,
+					Name:        keyWire.Name,
+					BoundPolicy: boundPolicy,
 				})
 			}
 			parsed.Data = &DescribeApiKeysResponseBodyData{
@@ -1521,6 +1577,760 @@ func parseDescribeKeyContentResponse(res map[string]interface{}) (*DescribeKeyCo
 				parsed.RequestId = dataWire.RequestId
 			}
 		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
+
+// --- ListTag ---
+
+type listTagJSONWire struct {
+	Code           *string         `json:"Code"`
+	Message        *string         `json:"Message"`
+	RequestId      *string         `json:"RequestId"`
+	HttpStatusCode json.RawMessage `json:"HttpStatusCode"`
+	Success        *bool           `json:"Success"`
+	Data           json.RawMessage `json:"Data"`
+}
+
+type xmlListTagResponse struct {
+	XMLName        xml.Name `xml:"ListTagResponse"`
+	RequestId      string   `xml:"RequestId"`
+	HttpStatusCode string   `xml:"HttpStatusCode"`
+	Code           string   `xml:"Code"`
+	Success        bool     `xml:"Success"`
+	Message        string   `xml:"Message"`
+	Data           []struct {
+		TagName string `xml:"TagName"`
+		TagId   string `xml:"TagId"`
+	} `xml:"Data"`
+}
+
+func parseListTagResponse(res map[string]interface{}) (*ListTagResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &ListTagResponse{Headers: make(map[string]*string)}
+	parsed := &ListTagResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xr xmlListTagResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = dara.String(xr.Code)
+			parsed.RequestId = dara.String(xr.RequestId)
+			parsed.Success = dara.Bool(xr.Success)
+			parsed.Message = dara.String(xr.Message)
+			if s := strings.TrimSpace(xr.HttpStatusCode); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					parsed.HttpStatusCode = dara.Int32(int32(n))
+				}
+			}
+			for _, item := range xr.Data {
+				parsed.Data = append(parsed.Data, ListTagResponseBodyDataItem{
+					TagName: dara.String(item.TagName),
+					TagId:   dara.String(item.TagId),
+				})
+			}
+		} else {
+			var wire listTagJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = wire.Code
+			parsed.Message = wire.Message
+			parsed.RequestId = wire.RequestId
+			parsed.Success = wire.Success
+			n, derr := int32FromFlexibleJSON(wire.HttpStatusCode)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: fmt.Errorf("HttpStatusCode: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.HttpStatusCode = n
+			if len(wire.Data) > 0 {
+				var items []ListTagResponseBodyDataItem
+				if err := json.Unmarshal(wire.Data, &items); err == nil {
+					parsed.Data = items
+				}
+			}
+		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
+
+// --- ListMarketSkillByPage ---
+
+// listMarketSkillByPageOuterJSONWire handles the outer-wrapped response format:
+// {"code":"200","data":{"RequestId":"...","HttpStatusCode":200,"Data":{...},"Code":"ok"},...}
+type listMarketSkillByPageOuterJSONWire struct {
+	Code           *string         `json:"code"`
+	Data           json.RawMessage `json:"data"`
+	HttpStatusCode json.RawMessage `json:"httpStatusCode"`
+	Message        *string         `json:"message"`
+	RequestId      *string         `json:"requestId"`
+	Success        *bool           `json:"successResponse"`
+}
+
+// listMarketSkillByPageInnerJSONWire is the inner "data" payload with pagination info.
+type listMarketSkillByPageInnerJSONWire struct {
+	RequestId      *string                            `json:"RequestId"`
+	HttpStatusCode json.RawMessage                    `json:"HttpStatusCode"`
+	Code           *string                            `json:"Code"`
+	Data           *listMarketSkillByPageDataJSONWire `json:"Data"`
+}
+
+// listMarketSkillByPageDataJSONWire holds the actual paginated data.
+type listMarketSkillByPageDataJSONWire struct {
+	TotalCount json.RawMessage                       `json:"TotalCount"`
+	TotalPage  json.RawMessage                       `json:"TotalPage"`
+	PageSize   json.RawMessage                       `json:"PageSize"`
+	PageNumber json.RawMessage                       `json:"PageNumber"`
+	Result     []listMarketSkillByPageResultJSONWire `json:"Result"`
+}
+
+// listMarketSkillByPageResultJSONWire is a single skill entry.
+type listMarketSkillByPageResultJSONWire struct {
+	SkillName   *string  `json:"SkillName"`
+	SkillId     *string  `json:"SkillId"`
+	TenantTags  []string `json:"TenantTags"`
+	SkillStatus *string  `json:"SkillStatus"`
+	GmtModified *string  `json:"GmtModified"`
+	GmtCreate   *string  `json:"GmtCreate"`
+	Description *string  `json:"Description"`
+	Icon        *string  `json:"Icon"`
+}
+
+type xmlListMarketSkillByPageResult struct {
+	SkillName   string   `xml:"SkillName"`
+	SkillId     string   `xml:"SkillId"`
+	TenantTags  []string `xml:"TenantTags>Tag"`
+	SkillStatus string   `xml:"SkillStatus"`
+	GmtModified string   `xml:"GmtModified"`
+	GmtCreate   string   `xml:"GmtCreate"`
+	Description string   `xml:"Description"`
+	Icon        string   `xml:"Icon"`
+}
+
+type xmlListMarketSkillByPageResponse struct {
+	XMLName        xml.Name `xml:"ListMarketSkillByPageResponse"`
+	RequestId      string   `xml:"RequestId"`
+	HttpStatusCode string   `xml:"HttpStatusCode"`
+	Code           string   `xml:"Code"`
+	Success        bool     `xml:"Success"`
+	Message        string   `xml:"Message"`
+	Data           struct {
+		TotalCount string                           `xml:"TotalCount"`
+		TotalPage  string                           `xml:"TotalPage"`
+		PageSize   string                           `xml:"PageSize"`
+		PageNumber string                           `xml:"PageNumber"`
+		Result     []xmlListMarketSkillByPageResult `xml:"Result>Item"`
+	} `xml:"Data"`
+}
+
+func parseListMarketSkillByPageResponse(res map[string]interface{}) (*ListMarketSkillByPageResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &ListMarketSkillByPageResponse{Headers: make(map[string]*string)}
+	parsed := &ListMarketSkillByPageResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			// XML branch
+			var xr xmlListMarketSkillByPageResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = dara.String(xr.Code)
+			parsed.RequestId = dara.String(xr.RequestId)
+			parsed.Success = dara.Bool(xr.Success)
+			parsed.Message = dara.String(xr.Message)
+			if s := strings.TrimSpace(xr.HttpStatusCode); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					parsed.HttpStatusCode = dara.Int32(int32(n))
+				}
+			}
+			data := &ListMarketSkillByPageResponseBodyData{}
+			if s := strings.TrimSpace(xr.Data.TotalCount); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					data.TotalCount = dara.Int32(int32(n))
+				}
+			}
+			if s := strings.TrimSpace(xr.Data.TotalPage); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					data.TotalPage = dara.Int32(int32(n))
+				}
+			}
+			if s := strings.TrimSpace(xr.Data.PageSize); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					data.PageSize = dara.Int32(int32(n))
+				}
+			}
+			if s := strings.TrimSpace(xr.Data.PageNumber); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					data.PageNumber = dara.Int32(int32(n))
+				}
+			}
+			for _, item := range xr.Data.Result {
+				data.Result = append(data.Result, &ListMarketSkillByPageResponseBodyDataResult{
+					SkillName:   dara.String(item.SkillName),
+					SkillId:     dara.String(item.SkillId),
+					TenantTags:  item.TenantTags,
+					SkillStatus: dara.String(item.SkillStatus),
+					GmtModified: dara.String(item.GmtModified),
+					GmtCreate:   dara.String(item.GmtCreate),
+					Description: dara.String(item.Description),
+					Icon:        dara.String(item.Icon),
+				})
+			}
+			parsed.Data = data
+		} else {
+			// JSON branch: outer-wrapped format
+			// {"code":"200","data":{"RequestId":"...","HttpStatusCode":200,"Data":{...},"Code":"ok"}}
+			var outer listMarketSkillByPageOuterJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &outer); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.RequestId = outer.RequestId
+			n, derr := int32FromFlexibleJSON(outer.HttpStatusCode)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: fmt.Errorf("HttpStatusCode: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.HttpStatusCode = n
+			parsed.Success = outer.Success
+
+			if len(outer.Data) > 0 && string(outer.Data) != "null" {
+				var inner listMarketSkillByPageInnerJSONWire
+				if err := json.Unmarshal(outer.Data, &inner); err != nil {
+					return nil, &ErrWithRequestID{Err: fmt.Errorf("data: %w", err), RequestID: extractRequestIDFromResponse(res)}
+				}
+				// Use inner Code and RequestId if available
+				if inner.Code != nil {
+					parsed.Code = inner.Code
+				} else {
+					parsed.Code = outer.Code
+				}
+				if inner.RequestId != nil {
+					parsed.RequestId = inner.RequestId
+				}
+				if inner.Data != nil {
+					// Double-wrapped ACS format: outer.Data is {"RequestId":...,"Data":{pagination}}
+					data := &ListMarketSkillByPageResponseBodyData{}
+					tc, derr := int32FromFlexibleJSON(inner.Data.TotalCount)
+					if derr != nil {
+						return nil, &ErrWithRequestID{Err: fmt.Errorf("Data.TotalCount: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+					}
+					data.TotalCount = tc
+					tp, derr := int32FromFlexibleJSON(inner.Data.TotalPage)
+					if derr != nil {
+						return nil, &ErrWithRequestID{Err: fmt.Errorf("Data.TotalPage: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+					}
+					data.TotalPage = tp
+					ps, derr := int32FromFlexibleJSON(inner.Data.PageSize)
+					if derr != nil {
+						return nil, &ErrWithRequestID{Err: fmt.Errorf("Data.PageSize: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+					}
+					data.PageSize = ps
+					pn, derr := int32FromFlexibleJSON(inner.Data.PageNumber)
+					if derr != nil {
+						return nil, &ErrWithRequestID{Err: fmt.Errorf("Data.PageNumber: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+					}
+					data.PageNumber = pn
+					for _, item := range inner.Data.Result {
+						data.Result = append(data.Result, &ListMarketSkillByPageResponseBodyDataResult{
+							SkillName:   item.SkillName,
+							SkillId:     item.SkillId,
+							TenantTags:  item.TenantTags,
+							SkillStatus: item.SkillStatus,
+							GmtModified: item.GmtModified,
+							GmtCreate:   item.GmtCreate,
+							Description: item.Description,
+							Icon:        item.Icon,
+						})
+					}
+					parsed.Data = data
+				} else {
+					// Single-wrapped format: outer.Data is the pagination data directly
+					// e.g. outer.Data = {"TotalCount":6,"TotalPage":1,...,"Result":[...]}
+					// This happens when Go JSON case-insensitive matching maps "Data" -> outer.Data.
+					var directData listMarketSkillByPageDataJSONWire
+					if jerr := json.Unmarshal(outer.Data, &directData); jerr == nil && len(directData.Result) > 0 {
+						data := &ListMarketSkillByPageResponseBodyData{}
+						tc, _ := int32FromFlexibleJSON(directData.TotalCount)
+						data.TotalCount = tc
+						tp, _ := int32FromFlexibleJSON(directData.TotalPage)
+						data.TotalPage = tp
+						ps, _ := int32FromFlexibleJSON(directData.PageSize)
+						data.PageSize = ps
+						pn, _ := int32FromFlexibleJSON(directData.PageNumber)
+						data.PageNumber = pn
+						for _, item := range directData.Result {
+							data.Result = append(data.Result, &ListMarketSkillByPageResponseBodyDataResult{
+								SkillName:   item.SkillName,
+								SkillId:     item.SkillId,
+								TenantTags:  item.TenantTags,
+								SkillStatus: item.SkillStatus,
+								GmtModified: item.GmtModified,
+								GmtCreate:   item.GmtCreate,
+								Description: item.Description,
+								Icon:        item.Icon,
+							})
+						}
+						parsed.Data = data
+					} else if jerr == nil {
+						// Empty result set
+						data := &ListMarketSkillByPageResponseBodyData{}
+						tc, _ := int32FromFlexibleJSON(directData.TotalCount)
+						data.TotalCount = tc
+						tp, _ := int32FromFlexibleJSON(directData.TotalPage)
+						data.TotalPage = tp
+						ps, _ := int32FromFlexibleJSON(directData.PageSize)
+						data.PageSize = ps
+						pn, _ := int32FromFlexibleJSON(directData.PageNumber)
+						data.PageNumber = pn
+						parsed.Data = data
+					}
+				}
+			} else {
+				// outer.Data is nil: body has no data field at all
+				parsed.Code = outer.Code
+			}
+		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
+
+// --- CreateTag ---
+
+type createTagJSONWire struct {
+	Code           *string         `json:"Code"`
+	Message        *string         `json:"Message"`
+	RequestId      *string         `json:"RequestId"`
+	HttpStatusCode json.RawMessage `json:"HttpStatusCode"`
+	Success        *bool           `json:"Success"`
+	Data           json.RawMessage `json:"Data"`
+}
+
+type xmlCreateTagResponse struct {
+	XMLName        xml.Name `xml:"CreateTagResponse"`
+	RequestId      string   `xml:"RequestId"`
+	HttpStatusCode string   `xml:"HttpStatusCode"`
+	Code           string   `xml:"Code"`
+	Success        bool     `xml:"Success"`
+	Message        string   `xml:"Message"`
+	Data           []struct {
+		TagName string `xml:"TagName"`
+		TagId   string `xml:"TagId"`
+	} `xml:"Data"`
+}
+
+func parseCreateTagResponse(res map[string]interface{}) (*CreateTagResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &CreateTagResponse{Headers: make(map[string]*string)}
+	parsed := &CreateTagResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xr xmlCreateTagResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = dara.String(xr.Code)
+			parsed.RequestId = dara.String(xr.RequestId)
+			parsed.Success = dara.Bool(xr.Success)
+			parsed.Message = dara.String(xr.Message)
+			if s := strings.TrimSpace(xr.HttpStatusCode); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					parsed.HttpStatusCode = dara.Int32(int32(n))
+				}
+			}
+			for _, item := range xr.Data {
+				parsed.Data = append(parsed.Data, CreateTagResponseBodyDataItem{
+					TagName: dara.String(item.TagName),
+					TagId:   dara.String(item.TagId),
+				})
+			}
+		} else {
+			var wire createTagJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = wire.Code
+			parsed.Message = wire.Message
+			parsed.RequestId = wire.RequestId
+			parsed.Success = wire.Success
+			n, derr := int32FromFlexibleJSON(wire.HttpStatusCode)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: fmt.Errorf("HttpStatusCode: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.HttpStatusCode = n
+			if len(wire.Data) > 0 {
+				var items []CreateTagResponseBodyDataItem
+				if err := json.Unmarshal(wire.Data, &items); err == nil {
+					parsed.Data = items
+				}
+			}
+		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
+
+// --- DeleteMarketSkill ---
+
+type deleteMarketSkillJSONWire struct {
+	Code           *string         `json:"Code"`
+	Data           *bool           `json:"Data"`
+	HttpStatusCode json.RawMessage `json:"HttpStatusCode"`
+	Message        *string         `json:"Message"`
+	RequestId      *string         `json:"RequestId"`
+	Success        *bool           `json:"Success"`
+}
+
+type xmlDeleteMarketSkillResponse struct {
+	XMLName        struct{} `xml:"DeleteMarketSkillResponse"`
+	Code           string   `xml:"Code"`
+	Data           string   `xml:"Data"`
+	HttpStatusCode string   `xml:"HttpStatusCode"`
+	Message        string   `xml:"Message"`
+	RequestId      string   `xml:"RequestId"`
+	Success        string   `xml:"Success"`
+}
+
+func parseDeleteMarketSkillResponse(res map[string]interface{}) (*DeleteMarketSkillResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &DeleteMarketSkillResponse{Headers: make(map[string]*string)}
+	parsed := &DeleteMarketSkillResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xr xmlDeleteMarketSkillResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = dara.String(xr.Code)
+			parsed.RequestId = dara.String(xr.RequestId)
+			parsed.Message = dara.String(xr.Message)
+			if s := strings.TrimSpace(xr.HttpStatusCode); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					parsed.HttpStatusCode = dara.Int32(int32(n))
+				}
+			}
+			if s := strings.TrimSpace(xr.Success); s == "true" {
+				parsed.Success = dara.Bool(true)
+			} else if s == "false" {
+				parsed.Success = dara.Bool(false)
+			}
+			if s := strings.TrimSpace(xr.Data); s == "true" {
+				parsed.Data = dara.Bool(true)
+			} else if s == "false" {
+				parsed.Data = dara.Bool(false)
+			}
+		} else {
+			var wire deleteMarketSkillJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = wire.Code
+			parsed.Message = wire.Message
+			parsed.RequestId = wire.RequestId
+			parsed.Success = wire.Success
+			parsed.Data = wire.Data
+			n, derr := int32FromFlexibleJSON(wire.HttpStatusCode)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: fmt.Errorf("HttpStatusCode: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.HttpStatusCode = n
+		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
+
+// --- ShareDockerRepo ---
+
+type shareDockerRepoJSONWireData struct {
+	TargetAliUid *int64  `json:"TargetAliUid"`
+	OwnerAliUid  *int64  `json:"OwnerAliUid"`
+	AcrRepoName  *string `json:"AcrRepoName"`
+	Status       *string `json:"Status"`
+}
+
+type shareDockerRepoJSONWire struct {
+	Code           *string                      `json:"Code"`
+	Message        *string                      `json:"Message"`
+	RequestId      *string                      `json:"RequestId"`
+	HttpStatusCode json.RawMessage              `json:"HttpStatusCode"`
+	Success        *bool                        `json:"Success"`
+	Data           *shareDockerRepoJSONWireData `json:"Data"`
+}
+
+type xmlShareDockerRepoResponseData struct {
+	TargetAliUid int64  `xml:"TargetAliUid"`
+	OwnerAliUid  int64  `xml:"OwnerAliUid"`
+	AcrRepoName  string `xml:"AcrRepoName"`
+	Status       string `xml:"Status"`
+}
+
+type xmlShareDockerRepoResponse struct {
+	XMLName        xml.Name                        `xml:"ShareDockerRepoResponse"`
+	RequestId      string                          `xml:"RequestId"`
+	HttpStatusCode string                          `xml:"HttpStatusCode"`
+	Code           string                          `xml:"Code"`
+	Success        bool                            `xml:"Success"`
+	Message        string                          `xml:"Message"`
+	Data           *xmlShareDockerRepoResponseData `xml:"Data"`
+}
+
+func parseShareDockerRepoResponse(res map[string]interface{}) (*ShareDockerRepoResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &ShareDockerRepoResponse{Headers: make(map[string]*string)}
+	parsed := &ShareDockerRepoResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xr xmlShareDockerRepoResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = dara.String(xr.Code)
+			parsed.RequestId = dara.String(xr.RequestId)
+			parsed.Success = dara.Bool(xr.Success)
+			parsed.Message = dara.String(xr.Message)
+			if s := strings.TrimSpace(xr.HttpStatusCode); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					parsed.HttpStatusCode = dara.Int32(int32(n))
+				}
+			}
+			if xr.Data != nil {
+				parsed.Data = &ShareDockerRepoResponseBodyData{
+					TargetAliUid: dara.Int64(xr.Data.TargetAliUid),
+					OwnerAliUid:  dara.Int64(xr.Data.OwnerAliUid),
+					AcrRepoName:  dara.String(xr.Data.AcrRepoName),
+					Status:       dara.String(xr.Data.Status),
+				}
+			}
+		} else {
+			var wire shareDockerRepoJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = wire.Code
+			parsed.Message = wire.Message
+			parsed.RequestId = wire.RequestId
+			parsed.Success = wire.Success
+			n, derr := int32FromFlexibleJSON(wire.HttpStatusCode)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: fmt.Errorf("HttpStatusCode: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.HttpStatusCode = n
+			if wire.Data != nil {
+				parsed.Data = &ShareDockerRepoResponseBodyData{
+					TargetAliUid: wire.Data.TargetAliUid,
+					OwnerAliUid:  wire.Data.OwnerAliUid,
+					AcrRepoName:  wire.Data.AcrRepoName,
+					Status:       wire.Data.Status,
+				}
+			}
+		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
+
+// --- UnshareDockerRepo ---
+
+type unshareDockerRepoJSONWireData struct {
+	Revoked *bool `json:"Revoked"`
+}
+
+type unshareDockerRepoJSONWire struct {
+	Code           *string                        `json:"Code"`
+	Message        *string                        `json:"Message"`
+	RequestId      *string                        `json:"RequestId"`
+	HttpStatusCode json.RawMessage                `json:"HttpStatusCode"`
+	Success        *bool                          `json:"Success"`
+	Data           *unshareDockerRepoJSONWireData `json:"Data"`
+}
+
+type xmlUnshareDockerRepoResponseData struct {
+	Revoked string `xml:"Revoked"`
+}
+
+type xmlUnshareDockerRepoResponse struct {
+	XMLName        xml.Name                          `xml:"UnshareDockerRepoResponse"`
+	RequestId      string                            `xml:"RequestId"`
+	HttpStatusCode string                            `xml:"HttpStatusCode"`
+	Code           string                            `xml:"Code"`
+	Success        bool                              `xml:"Success"`
+	Message        string                            `xml:"Message"`
+	Data           *xmlUnshareDockerRepoResponseData `xml:"Data"`
+}
+
+func parseUnshareDockerRepoResponse(res map[string]interface{}) (*UnshareDockerRepoResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &UnshareDockerRepoResponse{Headers: make(map[string]*string)}
+	parsed := &UnshareDockerRepoResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xr xmlUnshareDockerRepoResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = dara.String(xr.Code)
+			parsed.RequestId = dara.String(xr.RequestId)
+			parsed.Success = dara.Bool(xr.Success)
+			parsed.Message = dara.String(xr.Message)
+			if s := strings.TrimSpace(xr.HttpStatusCode); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					parsed.HttpStatusCode = dara.Int32(int32(n))
+				}
+			}
+			if xr.Data != nil {
+				if s := strings.TrimSpace(xr.Data.Revoked); s == "true" {
+					parsed.Data = &UnshareDockerRepoResponseBodyData{Revoked: dara.Bool(true)}
+				} else if s == "false" {
+					parsed.Data = &UnshareDockerRepoResponseBodyData{Revoked: dara.Bool(false)}
+				}
+			}
+		} else {
+			var wire unshareDockerRepoJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = wire.Code
+			parsed.Message = wire.Message
+			parsed.RequestId = wire.RequestId
+			parsed.Success = wire.Success
+			n, derr := int32FromFlexibleJSON(wire.HttpStatusCode)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: fmt.Errorf("HttpStatusCode: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.HttpStatusCode = n
+			if wire.Data != nil {
+				parsed.Data = &UnshareDockerRepoResponseBodyData{
+					Revoked: wire.Data.Revoked,
+				}
+			}
+		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
+
+// --- ListSharedDockerRepos ---
+
+type listSharedDockerReposJSONWireDataItem struct {
+	PeerAliUid *int64  `json:"PeerAliUid"`
+	Status     *string `json:"Status"`
+}
+
+type listSharedDockerReposJSONWire struct {
+	Code           *string                                  `json:"Code"`
+	Message        *string                                  `json:"Message"`
+	RequestId      *string                                  `json:"RequestId"`
+	HttpStatusCode json.RawMessage                          `json:"HttpStatusCode"`
+	Success        *bool                                    `json:"Success"`
+	Data           []*listSharedDockerReposJSONWireDataItem `json:"Data"`
+}
+
+type xmlListSharedDockerReposResponseDataItem struct {
+	PeerAliUid int64  `xml:"PeerAliUid"`
+	Status     string `xml:"Status"`
+}
+
+type xmlListSharedDockerReposResponse struct {
+	XMLName        xml.Name                                    `xml:"ListSharedDockerReposResponse"`
+	RequestId      string                                      `xml:"RequestId"`
+	HttpStatusCode string                                      `xml:"HttpStatusCode"`
+	Code           string                                      `xml:"Code"`
+	Success        bool                                        `xml:"Success"`
+	Message        string                                      `xml:"Message"`
+	Data           []*xmlListSharedDockerReposResponseDataItem `xml:"Data>object"`
+}
+
+func parseListSharedDockerReposResponse(res map[string]interface{}) (*ListSharedDockerReposResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &ListSharedDockerReposResponse{Headers: make(map[string]*string)}
+	parsed := &ListSharedDockerReposResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xr xmlListSharedDockerReposResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = dara.String(xr.Code)
+			parsed.RequestId = dara.String(xr.RequestId)
+			parsed.Success = dara.Bool(xr.Success)
+			parsed.Message = dara.String(xr.Message)
+			if s := strings.TrimSpace(xr.HttpStatusCode); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					parsed.HttpStatusCode = dara.Int32(int32(n))
+				}
+			}
+			for _, item := range xr.Data {
+				if item != nil {
+					parsed.Data = append(parsed.Data, &ListSharedDockerReposResponseBodyDataItem{
+						PeerAliUid: dara.Int64(item.PeerAliUid),
+						Status:     dara.String(item.Status),
+					})
+				}
+			}
+		} else {
+			var wire listSharedDockerReposJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = wire.Code
+			parsed.Message = wire.Message
+			parsed.RequestId = wire.RequestId
+			parsed.Success = wire.Success
+			n, derr := int32FromFlexibleJSON(wire.HttpStatusCode)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: fmt.Errorf("HttpStatusCode: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.HttpStatusCode = n
+			for _, item := range wire.Data {
+				if item != nil {
+					parsed.Data = append(parsed.Data, &ListSharedDockerReposResponseBodyDataItem{
+						PeerAliUid: item.PeerAliUid,
+						Status:     item.Status,
+					})
+				}
+			}
+		}
+	}
+	if parsed.Data == nil {
+		parsed.Data = []*ListSharedDockerReposResponseBodyDataItem{}
 	}
 	out.Body = parsed
 	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)

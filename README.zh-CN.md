@@ -2,15 +2,22 @@
 
 [English](README.md) | **中文**
 
-AgentBay 服务的命令行工具。
+> 🤖 **LLM 友好**:本项目提供 [llms.txt](llms.txt) 与 [llms-full.txt](llms-full.txt),便于 AI 助手理解。
+
+阿里云 AgentBay 服务的命令行工具 —— 镜像生命周期、API Key、Docker 与技能管理。
+
+> 当前 CLI 版本仅支持创建和激活 **CodeSpace** 类型的镜像。
 
 ---
 
-## 概述
+## 功能特性
 
-AgentBay CLI 是基于 Cobra 框架的命令行工具，通过阿里云 OpenAPI 与 AgentBay 服务交互。提供镜像管理、API Key 管理、网络管理、技能管理、Docker 操作及灵活的认证方式。
-
-> 当前 CLI 版本仅支持创建和激活 **CodeSpace** 类型的镜像。
+- **镜像生命周期** —— 基于 Dockerfile/模板创建、激活、查询、删除
+- **Docker 集成** —— ACR 登录、镜像推送、跨账号共享/取消共享
+- **API Key 管理** —— 创建、启用/禁用、删除、并发配置
+- **技能与网络** —— 技能推送/更新、网络包查询
+- **多种认证方式** —— AccessKey（AK/SK）、STS、OAuth
+- **跨平台支持** —— macOS、Linux、Windows
 
 ---
 
@@ -27,7 +34,10 @@ powershell -Command "irm https://aliyun.github.io/agentbay-cli/windows | iex"
 agentbay version
 ```
 
-### 更新
+> 首次执行 `brew install agentbay` 会从源码编译，并自动安装 Go 作为构建依赖，整个过程可能需要几分钟。后续升级会复用缓存。
+
+<details>
+<summary><b>更新</b></summary>
 
 **macOS / Linux（Homebrew）—— 快速通道（推荐用于日常升级）：**
 
@@ -51,7 +61,10 @@ brew update && brew upgrade agentbay
 powershell -Command "irm https://aliyun.github.io/agentbay-cli/windows | iex"
 ```
 
-### 卸载
+</details>
+
+<details>
+<summary><b>卸载</b></summary>
 
 ```bash
 # macOS / Linux（Homebrew）
@@ -71,219 +84,13 @@ $newPath = ($currentPath.Split(';') | Where-Object { $_ -ne $agentbayPath }) -jo
 # 请重启 PowerShell 让 PATH 变更生效。
 ```
 
-> **Homebrew 提示：** 首次执行 `brew install agentbay` 会从源码编译，并自动安装 Go 作为构建依赖，整个过程可能需要几分钟。后续升级会复用缓存。
+</details>
 
 详见 [安装指南](docs/zh/installation.md)（含预编译二进制及故障排除）。
 
 ---
 
-## 认证方式
-
-**AccessKey（推荐用于脚本/CI）：**
-
-```bash
-export AGENTBAY_ACCESS_KEY_ID="your-access-key-id"
-export AGENTBAY_ACCESS_KEY_SECRET="your-access-key-secret"
-```
-
-STS、OAuth（不推荐使用）及环境变量详见 [认证与环境](docs/zh/authentication.md)。
-
----
-
-## RAM 账号接口权限（仅 RAM 子账号需要配置）
-
-> 阿里云**主账号**无需任何额外权限配置。
-> 本节仅适用于使用 AK/SK 认证的 **RAM 子账号**。
-
-如果使用 RAM 子账号的 AK/SK，请在 [RAM 控制台](https://ram.console.aliyun.com/users) 为该账号授予所需接口权限。
-
-### `apikey` 命令分组
-
-| OpenAPI Action | 所需权限 | 调用命令 |
-|---|---|---|
-| `CreateApiKey` | `agentbay:CreateApiKey` | `apikey create` |
-| `DescribeMcpApiKey` | `agentbay:DescribeMcpApiKey` | `apikey enable`、`apikey disable`、`apikey delete`、`apikey list`、`apikey concurrency set` |
-| `DescribeApiKeys` | `agentbay:DescribeApiKeys` | `apikey delete`、`apikey list` |
-| `ModifyApiKeyStatus` | `agentbay:ModifyApiKeyStatus` | `apikey enable`、`apikey disable`、`apikey delete` |
-| `DeleteApiKey` | `agentbay:DeleteApiKey` | `apikey delete` |
-| `ModifyMcpApiKeyConfig` | `agentbay:ModifyMcpApiKeyConfig` | `apikey concurrency set` |
-| `DescribeKeyContent` | `agentbay:DescribeKeyContent` | `apikey describe-key-content` |
-
-**RAM Policy 示例（`apikey` 命令完整授权）：**
-
-```json
-{
-  "Version": "1",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "agentbay:CreateApiKey",
-        "agentbay:DescribeMcpApiKey",
-        "agentbay:DescribeApiKeys",
-        "agentbay:ModifyApiKeyStatus",
-        "agentbay:DeleteApiKey",
-        "agentbay:ModifyMcpApiKeyConfig",
-        "agentbay:DescribeKeyContent"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
-> 如果只使用特定命令，请参考 [API Key 文档](docs/zh/apikey.md) 中各命令的**涉及接口**章节，仅授予所需的最小权限。
-
-### `image` 命令分组
-
-| OpenAPI Action | 所需权限 | 调用命令 |
-|---|---|---|
-| `ListMcpImages` | `agentbay:ListMcpImages` | `image list`、`image deactivate` |
-| `GetMcpImageInfo` | `agentbay:GetMcpImageInfo` | `image create`、`image activate`、`image deactivate`、`image delete`、`image status`、`image set-max-session` |
-| `GetDockerFileStoreCredential` | `agentbay:GetDockerFileStoreCredential` | `image create` |
-| `CreateDockerImageTask` | `agentbay:CreateDockerImageTask` | `image create` |
-| `GetDockerImageTask` | `agentbay:GetDockerImageTask` | `image create` |
-| `CreateImageFromTemplate` | `agentbay:CreateImageFromTemplate` | `image create-from-template` |
-| `DescribeInstanceTypes` | `agentbay:DescribeInstanceTypes` | `image activate` |
-| `DescribeMcpPolicyData` | `agentbay:DescribeMcpPolicyData` | `image activate` |
-| `CreateMcpPolicyData` | `agentbay:CreateMcpPolicyData` | `image activate` |
-| `ModifyMcpPolicyData` | `agentbay:ModifyMcpPolicyData` | `image activate` |
-| `DescribeOfficeSites` | `agentbay:DescribeOfficeSites` | `image activate` |
-| `SaveMcpPolicyData` | `agentbay:SaveMcpPolicyData` | `image activate` |
-| `CreateResourceGroup` | `agentbay:CreateResourceGroup` | `image activate` |
-| `DeleteResourceGroup` | `agentbay:DeleteResourceGroup` | `image deactivate` |
-| `DeleteMcpImage` | `agentbay:DeleteMcpImage` | `image delete` |
-| `GetDockerfileTemplate` | `agentbay:GetDockerfileTemplate` | `image init` |
-| `BatchCreateHideResourceGroupsWithMaxSession` | `agentbay:BatchCreateHideResourceGroupsWithMaxSession` | `image set-max-session` |
-| `DescribeWarmUpStatusOpen` | `agentbay:DescribeWarmUpStatusOpen` | `image warmup-status` |
-
-**RAM Policy 示例（`image` 命令完整授权）：**
-
-```json
-{
-  "Version": "1",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "agentbay:ListMcpImages",
-        "agentbay:GetMcpImageInfo",
-        "agentbay:GetDockerFileStoreCredential",
-        "agentbay:CreateDockerImageTask",
-        "agentbay:GetDockerImageTask",
-        "agentbay:CreateImageFromTemplate",
-        "agentbay:DescribeInstanceTypes",
-        "agentbay:DescribeMcpPolicyData",
-        "agentbay:CreateMcpPolicyData",
-        "agentbay:ModifyMcpPolicyData",
-        "agentbay:DescribeOfficeSites",
-        "agentbay:SaveMcpPolicyData",
-        "agentbay:CreateResourceGroup",
-        "agentbay:DeleteResourceGroup",
-        "agentbay:DeleteMcpImage",
-        "agentbay:GetDockerfileTemplate",
-        "agentbay:BatchCreateHideResourceGroupsWithMaxSession",
-        "agentbay:DescribeWarmUpStatusOpen"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
-> 如果只使用特定命令，请参考 [镜像文档](docs/zh/image.md) 中各命令的**涉及接口**章节，仅授予所需的最小权限。
-
-### `network` 命令分组
-
-| OpenAPI Action | 所需权限 | 调用命令 |
-|---|---|---|
-| `DescribeNetworkPackages` | `agentbay:DescribeNetworkPackages` | `network package list` |
-
-**RAM Policy 示例：**
-
-```json
-{
-  "Version": "1",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "agentbay:DescribeNetworkPackages"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
-### `skills` 命令分组
-
-| OpenAPI Action | 所需权限 | 调用命令 |
-|---|---|---|
-| `GetMarketSkillCredential` | `agentbay:GetMarketSkillCredential` | `skills push` |
-| `CreateMarketSkill` | `agentbay:CreateMarketSkill` | `skills push` |
-| `DescribeMarketSkillDetail` | `agentbay:DescribeMarketSkillDetail` | `skills show` |
-
-**RAM Policy 示例：**
-
-```json
-{
-  "Version": "1",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "agentbay:GetMarketSkillCredential",
-        "agentbay:CreateMarketSkill",
-        "agentbay:DescribeMarketSkillDetail"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
-### `docker` 命令分组
-
-| OpenAPI Action | 所需权限 | 调用命令 |
-|---|---|---|
-| `GetACRRepoCredential` | `agentbay:GetACRRepoCredential` | `docker login` |
-
-**RAM Policy 示例：**
-
-```json
-{
-  "Version": "1",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "agentbay:GetACRRepoCredential"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
-> `docker tag` 和 `docker push` 是对原生 `docker` CLI 的封装，不直接调用任何 AgentBay API。
-
----
-
-## 命令概览
-
-| 分组 | 命令 | 说明 | 详情 |
-|------|------|------|------|
-| 核心 | `version`, `login`, `logout` | 版本与认证 | [→](docs/zh/core.md) |
-| 镜像 | `list`, `init`, `create`, `create-from-template`, `activate`, `deactivate`, `delete`, `status`, `set-max-session`, `warmup-status` | 镜像生命周期 | [→](docs/zh/image.md) |
-| API Key | `create`, `enable`, `disable`, `delete`, `list`, `concurrency set`, `describe-key-content` | 密钥管理 | [→](docs/zh/apikey.md) |
-| 网络 | `package list` | 网络配置 | [→](docs/zh/network.md) |
-| 技能 | `push`, `show`, `list` | 技能管理 | [→](docs/zh/skills.md) |
-| Docker | `login`, `tag`, `push` | Docker 仓库 | [→](docs/zh/docker.md) |
-
----
-
-## 快速入门
+## 快速入门 —— 60 秒上手 API Key
 
 ```bash
 # 1. 完成认证（推荐 AccessKey）
@@ -293,37 +100,89 @@ export AGENTBAY_ACCESS_KEY_SECRET="your-access-key-secret"
 # 2. 创建 API Key（账户需先完成实名认证）
 agentbay apikey create "my-api-key"
 
-# 3. 查看已创建的 API Key，从输出中获取 API Key（akm-xxxxxxxxxxxxxxxx）
+# 3. 查询 / 禁用 / 重新启用 / 删除
 agentbay apikey list
-
-# 4. 临时不需要时禁用 API Key
 agentbay apikey disable --api-key akm-xxxxxxxxxxxxxxxx
-
-# 5. 需要时重新启用
-agentbay apikey enable --api-key akm-xxxxxxxxxxxxxxxx
-
-# 6. 永久删除 API Key（必须先 DISABLED；--yes 跳过确认）
-agentbay apikey delete --api-key akm-xxxxxxxxxxxxxxxx --yes
+agentbay apikey enable  --api-key akm-xxxxxxxxxxxxxxxx
+agentbay apikey delete  --api-key akm-xxxxxxxxxxxxxxxx --yes
 ```
 
 > **提示：** 自动化脚本可使用 `--api-key-id ak-xxxxxxxxxxxxxxxx`（由 `apikey create` 返回）代替 `--api-key`。详见 [API Key 文档](docs/zh/apikey.md#术语说明)。
+>
+> 使用 RAM 子账号？请先参照 [RAM 权限配置](docs/zh/ram-permissions.md) 授予所需权限。
 
-完整命令说明请参考 [命令参考](docs/zh/README.md)。
+---
+
+## 进阶教程 —— 镜像创建与共享
+
+基于 Dockerfile 模板构建自定义镜像、推送至 ACR，并按需跨阿里云账号共享。
+
+```bash
+# ── 镜像创建（任何账号都能独立完成） ─────────────────────────
+agentbay image init --sourceImageId aio-ubuntu-2404            # 1. 下载 Dockerfile 模板
+agentbay docker login                                          # 2. 登录 ACR（临时凭证，~1 小时）
+docker build -t <registry>/<namespace>/<uid>:<tag> -f Dockerfile .   # 3. 本地构建
+docker push  <registry>/<namespace>/<uid>:<tag>                # 4. 推送到 ACR
+agentbay image create-from-template \                          # 5. 创建自定义镜像
+  --source-image /<namespace>/<uid>:<tag> \
+  --name my-image --imageId aio-ubuntu-2404
+
+# ── 镜像共享（可选，A 账号 → B 账号） ────────────────────────
+# A 账号（共享方）：
+agentbay docker share <ACCOUNT_B_UID>                          # 1. 共享仓库给 B 账号
+agentbay docker list-shares --direction Outgoing               # 2. 确认共享生效
+# B 账号（接收方）：
+agentbay docker list-shares --direction Incoming               # 3. 查看收到的共享
+agentbay image create-from-template ...                        # 4. 基于 A 的镜像创建自己的镜像（复用上面 Step 5）
+```
+
+→ **完整流程**（含真实参数示例、命令输出、故障排查）：**[镜像创建与共享](docs/zh/image-workflow.md)**
+
+> **前置条件：** 本机已安装 Docker。macOS 推荐使用 [OrbStack](https://orbstack.dev/) —— 轻量、快速，资源占用远低于 Docker Desktop。
+
+---
+
+## 命令概览
+
+| 分组    | 命令                                                                                                                               | 说明         | 详情                    |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------ | ----------------------- |
+| 核心    | `version`, `login`, `logout`                                                                                                       | 版本与认证   | [→](docs/zh/core.md)    |
+| 镜像    | `list`, `init`, `create`, `create-from-template`, `activate`, `deactivate`, `delete`, `status`, `set-max-session`, `warmup-status` | 镜像生命周期 | [→](docs/zh/image.md)   |
+| API Key | `create`, `enable`, `disable`, `delete`, `list`, `concurrency set`, `describe-key-content`                                         | 密钥管理     | [→](docs/zh/apikey.md)  |
+| 网络    | `package list`                                                                                                                     | 网络配置     | [→](docs/zh/network.md) |
+| 技能    | `push`, `update`, `show`, `list`, `delete`                                                                                         | 技能管理     | [→](docs/zh/skills.md)  |
+| Docker  | `login`, `tag`, `push`, `share`, `unshare`, `list-shares`                                                                          | Docker 仓库  | [→](docs/zh/docker.md)  |
+
+完整命令说明请参考 [命令参考](docs/zh/README.md)
+
+---
+
+## 文档导航
+
+| 主题                       | 文档                                              |
+| -------------------------- | ------------------------------------------------- |
+| 安装与故障排除             | [installation.md](docs/zh/installation.md)        |
+| 认证与环境变量             | [authentication.md](docs/zh/authentication.md)    |
+| 镜像创建与共享             | [image-workflow.md](docs/zh/image-workflow.md)    |
+| 镜像管理                   | [image.md](docs/zh/image.md)                      |
+| Docker 操作                | [docker.md](docs/zh/docker.md)                    |
+| API Key 管理               | [apikey.md](docs/zh/apikey.md)                    |
+| RAM 权限配置（子账号专用） | [ram-permissions.md](docs/zh/ram-permissions.md)  |
+| 常见问题                   | [faq.md](docs/zh/faq.md)                          |
+
+---
+
+## 认证方式
+
+推荐使用 AccessKey（脚本/CI/RAM 子账号必选）。CLI 同时支持 STS 与 OAuth 登录（`agentbay login`，**仅支持阿里云主账号** —— RAM 子账号会被拒绝）。详见 [认证与环境](docs/zh/authentication.md)。
+
+阿里云**主账号**无需额外配置。若使用 **RAM 子账号**的 AK/SK 认证，可以到 [RAM 控制台](https://ram.console.aliyun.com/policies) 先新建或修改权限策略，再将策略授权给对应的 RAM 子账号 —— 完整 Policy 列表参见 [RAM 权限配置](docs/zh/ram-permissions.md)。
 
 ---
 
 ## 更新日志
 
 查看 [CHANGELOG.md](CHANGELOG.md) 了解版本更新记录。
-
----
-
-## 注意事项
-
-- 同时设置了 AccessKey 环境变量与 OAuth Token 时，CLI 优先使用 AccessKey 调用 API。
-- 系统镜像始终可用，无需激活；只有用户镜像必须先激活才能使用。
-- API Key 创建前账户需完成实名认证，且每个 Key 必须使用唯一名称。
-- 在非交互式环境中执行破坏性命令（`apikey delete`、`image delete`）时，请使用 `--yes` / `-y` 跳过确认提示。
 
 ---
 

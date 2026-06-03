@@ -207,7 +207,8 @@ func TestRunSkillsPush_validationOnly(t *testing.T) {
 }
 
 func TestRunSkillsList(t *testing.T) {
-	// runSkillsList is a placeholder that prints to stderr and returns nil.
+	// runSkillsList now calls the real API, so without auth it should return an error.
 	err := runSkillsList(skillsListCmd, nil)
-	require.NoError(t, err)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "[ERROR]")
 }

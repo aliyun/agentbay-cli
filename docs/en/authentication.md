@@ -27,9 +27,9 @@ export AGENTBAY_ACCESS_KEY_SECRET="your-sts-secret"
 export AGENTBAY_ACCESS_KEY_SESSION_TOKEN="your-sts-session-token"
 ```
 
-### 3. OAuth Login (not recommended)
+### 3. OAuth Login
 
-> NOTE: `agentbay login` is **not recommended**. Please prefer AccessKey or STS instead.
+> **Main account only.** `agentbay login` is convenient for interactive use with an Aliyun main account. **RAM sub-accounts and RAM roles are not supported** — they will be rejected at login. RAM users should use the AccessKey environment variables shown above (method 1, recommended). To continue with OAuth, open the [Alibaba Cloud website](https://www.aliyun.com/) in your browser and sign out of the current Aliyun account, then run `agentbay login` again and select/sign in with an Aliyun main account in the browser.
 
 ```bash
 agentbay login    # Opens a browser for OAuth login
@@ -116,7 +116,7 @@ Endpoints per environment:
 | -------------------------- | --------------------------------------------------------------------------- |
 | `AGENTBAY_CLI_ENDPOINT`    | Override the default API endpoint for the current environment               |
 | `AGENTBAY_CLI_TIMEOUT_MS`  | API request timeout in milliseconds                                         |
-| `AGENTBAY_CLI_CONFIG_DIR`  | Override the default config directory (default: `~/.agentbay`)              |
+| `AGENTBAY_CLI_CONFIG_DIR`  | Override the default config directory. The default is decided by Go's `os.UserConfigDir()`: macOS `~/Library/Application Support/agentbay`, Linux `~/.config/agentbay` (or `$XDG_CONFIG_HOME/agentbay`), Windows `%AppData%\agentbay` |
 | `AGENTBAY_OAUTH_CLIENT_ID` | Override the default OAuth client ID (only relevant for `agentbay login`)   |
 | `AGENTBAY_OAUTH_REGION`    | Override the OAuth region (`cn` or `intl`)                                  |
 | `AGENTBAY_API_URL`         | _(Legacy)_ Same as `AGENTBAY_CLI_ENDPOINT`, kept for backward compatibility |
