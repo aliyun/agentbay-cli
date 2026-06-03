@@ -273,10 +273,10 @@ agentbay image activate imgc-xxxxxxxxxxxxxx --region-id cn-shanghai
 | `--network-type`           |        | string | 否   | 网络类型：`DEFAULT` 或 `ADVANCED`             |
 | `--session-bandwidth`      |        | int    | 否   | 会话带宽（ADVANCED 网络必填）                 |
 | `--dns-address`            |        | string | 否   | DNS 地址（可重复指定；ADVANCED 网络必填）     |
-| `--lifecycle-mode`         |        | string | 否   | 生命周期模式：`auto` 或 `manual`              |
-| `--lifecycle-max-runtime`  |        | int    | 否   | 最大运行时间（秒）                            |
-| `--lifecycle-hibernate`    |        | int    | 否   | 休眠超时（秒）                                |
-| `--lifecycle-idle-timeout` |        | int    | 否   | 空闲超时（秒）                                |
+| `--lifecycle-mode`         |        | string | 否   | 释放模式：`auto`（自动释放）或 `manual`（手动释放） |
+| `--lifecycle-max-runtime`  |        | int    | 否   | 单次运行最长时长（分钟）；需 `--lifecycle-mode` 为 `auto` |
+| `--lifecycle-hibernate`    |        | int    | 否   | 休眠最大时长（小时）；需 `--lifecycle-mode` 为 `auto`   |
+| `--lifecycle-idle-timeout` |        | int    | 否   | 无活动最大时长（分钟）；需 `--lifecycle-mode` 为 `auto` |
 | `--region-id`              |        | string | 否   | 资源部署的区域 ID                             |
 
 **支持的资源规格：** `2c4g`（默认）、`4c8g`、`8c16g`

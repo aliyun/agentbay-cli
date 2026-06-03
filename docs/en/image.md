@@ -285,10 +285,10 @@ agentbay image activate imgc-xxxxxxxxxxxxxx --region-id cn-shanghai
 | `--network-type`           |       | string | No       | Network type: `DEFAULT` or `ADVANCED`                   |
 | `--session-bandwidth`      |       | int    | No       | Session bandwidth (required for ADVANCED network)       |
 | `--dns-address`            |       | string | No       | DNS address (repeatable; required for ADVANCED network) |
-| `--lifecycle-mode`         |       | string | No       | Lifecycle mode: `auto` or `manual`                      |
-| `--lifecycle-max-runtime`  |       | int    | No       | Max runtime in seconds                                  |
-| `--lifecycle-hibernate`    |       | int    | No       | Hibernate timeout in seconds                            |
-| `--lifecycle-idle-timeout` |       | int    | No       | Idle timeout in seconds                                 |
+| `--lifecycle-mode`         |       | string | No       | Release mode: `auto` (auto-release) or `manual` (manual release)               |
+| `--lifecycle-max-runtime`  |       | int    | No       | Max runtime per session (minutes); requires `--lifecycle-mode auto`            |
+| `--lifecycle-hibernate`    |       | int    | No       | Max hibernate duration (hours); requires `--lifecycle-mode auto`               |
+| `--lifecycle-idle-timeout` |       | int    | No       | Max idle duration (minutes); requires `--lifecycle-mode auto`                  |
 | `--region-id`              |       | string | No       | Region ID for resource deployment                       |
 
 **Supported resource combinations:** `2c4g` (default), `4c8g`, `8c16g`
