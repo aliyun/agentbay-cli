@@ -60,6 +60,14 @@ $newPath = ($currentPath.Split(';') | Where-Object { $_ -ne $agentbayPath }) -jo
 
 ## macOS / Linux（Homebrew）
 
+### 前置条件
+
+- macOS 或 Linux
+- 已安装 [Homebrew](https://brew.sh)（Linux 用户参考 [Homebrew on Linux](https://docs.brew.sh/Homebrew-on-Linux)，与 macOS 共用同一个 `brew` 命令）
+- 网络连接
+
+### 安装
+
 ```bash
 # 1. 添加 Homebrew tap
 brew tap aliyun/agentbay
@@ -71,7 +79,7 @@ brew install agentbay
 agentbay version
 ```
 
-> 首次安装会从源码编译，并自动安装 Go 作为构建依赖，整个过程可能需要几分钟。后续升级会复用缓存。
+> 在现代 macOS（sonoma / ventura / sequoia，含 Apple Silicon）和 Linux（x86_64 / aarch64）上会直接下载预编译 bottle，通常几秒钟完成。仅当没有匹配 bottle 的环境（如较旧的 macOS）才会从源码编译并自动拉取 Go 作为构建依赖，需要几分钟。
 
 ### 更新
 
@@ -109,10 +117,50 @@ brew reinstall agentbay
 
 ## 预编译二进制
 
-各平台的预编译二进制发布在 [GitHub Releases](https://github.com/aliyun/agentbay-cli/releases) 页面。下载与您操作系统/架构匹配的二进制，添加执行权限并放入 PATH 中。
+各平台的预编译二进制发布在 [GitHub Releases](https://github.com/aliyun/agentbay-cli/releases) 页面。下载与您操作系统/架构匹配的产物（Linux/macOS 是 `.tar.gz`，Windows 是 `.zip` 或 `.exe`），按下面对应平台的步骤安装。
+
+### Linux
 
 ```bash
+# 解压(以 amd64 为例，arm64 同理)
+tar -xzf agentbay-*-linux-amd64.tar.gz
+
+# 安装到 PATH 内的目录
 chmod +x agentbay
 sudo mv agentbay /usr/local/bin/
+
+agentbay version
+```
+
+### macOS
+
+```bash
+# 解压(以 Apple Silicon 为例，Intel 用 darwin-amd64)
+tar -xzf agentbay-*-darwin-arm64.tar.gz
+
+chmod +x agentbay
+
+# 浏览器下载会被 Gatekeeper 标记为隔离文件，首次运行会被拦截；
+# 使用 curl/wget 下载则无需此步。
+xattr -d com.apple.quarantine agentbay 2>/dev/null || true
+
+sudo mv agentbay /usr/local/bin/
+
+agentbay version
+```
+
+### Windows
+
+```powershell
+# 解压 zip（或直接下载 .exe，跳过此步）
+Expand-Archive agentbay-*-windows-amd64.zip -DestinationPath .
+
+# 放到 PATH 内的目录(与一键安装脚本默认位置一致)
+$dst = "$env:LOCALAPPDATA\agentbay"
+New-Item -ItemType Directory -Force -Path $dst | Out-Null
+Move-Item .\agentbay.exe "$dst\agentbay.exe" -Force
+
+# 如果 $dst 不在 PATH 中，把它加入用户 PATH 并重启 PowerShell；
+# 或直接使用上文 PowerShell 一键安装脚本。
 agentbay version
 ```
