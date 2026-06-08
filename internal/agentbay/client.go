@@ -50,6 +50,7 @@ type Client interface {
 	DescribeMcpPolicyData(ctx context.Context, request *client.DescribeMcpPolicyDataRequest) (*client.DescribeMcpPolicyDataResponse, error)
 	SaveMcpPolicyData(ctx context.Context, request *client.SaveMcpPolicyDataRequest) (*client.SaveMcpPolicyDataResponse, error)
 	DescribeOfficeSites(ctx context.Context, request *client.DescribeOfficeSitesRequest) (*client.DescribeOfficeSitesResponse, error)
+	CreateSimpleOfficeSite(ctx context.Context, request *client.CreateSimpleOfficeSiteRequest) (*client.CreateSimpleOfficeSiteResponse, error)
 	// Policy Data Create/Modify
 	CreateMcpPolicyData(ctx context.Context, request *client.CreateModifyMcpPolicyDataRequest) (*client.CreateMcpPolicyDataResponse, error)
 	ModifyMcpPolicyData(ctx context.Context, request *client.CreateModifyMcpPolicyDataRequest) (*client.ModifyMcpPolicyDataResponse, error)
@@ -354,6 +355,15 @@ func (cw *clientWrapper) DescribeOfficeSites(ctx context.Context, request *clien
 		return nil, err
 	}
 	return sdkClient.DescribeOfficeSitesWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// CreateSimpleOfficeSite wraps the SDK client method
+func (cw *clientWrapper) CreateSimpleOfficeSite(ctx context.Context, request *client.CreateSimpleOfficeSiteRequest) (*client.CreateSimpleOfficeSiteResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.CreateSimpleOfficeSiteWithContext(ctx, request, cw.getRuntimeOptions())
 }
 
 // CreateMcpPolicyData wraps the SDK client method

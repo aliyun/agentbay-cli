@@ -164,6 +164,10 @@ func (m *mockGetMcpImageInfoClient) ListSharedDockerRepos(ctx context.Context, r
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockGetMcpImageInfoClient) CreateSimpleOfficeSite(ctx context.Context, request *client.CreateSimpleOfficeSiteRequest) (*client.CreateSimpleOfficeSiteResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 var _ agentbay.Client = (*mockGetMcpImageInfoClient)(nil)
 
 func TestInferImageTypeFromImageID(t *testing.T) {

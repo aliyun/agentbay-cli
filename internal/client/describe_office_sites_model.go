@@ -10,6 +10,7 @@ import (
 // DescribeOfficeSitesRequest - 查询办公网络请求
 type DescribeOfficeSitesRequest struct {
 	OfficeSiteType *string `json:"OfficeSiteType,omitempty" xml:"OfficeSiteType,omitempty"`
+	VpcId          *string `json:"VpcId,omitempty" xml:"VpcId,omitempty"`
 	RegionName     *string `json:"RegionName,omitempty" xml:"RegionName,omitempty"`
 }
 
@@ -27,6 +28,15 @@ func (s *DescribeOfficeSitesRequest) GetOfficeSiteType() *string {
 
 func (s *DescribeOfficeSitesRequest) SetOfficeSiteType(v string) *DescribeOfficeSitesRequest {
 	s.OfficeSiteType = &v
+	return s
+}
+
+func (s *DescribeOfficeSitesRequest) GetVpcId() *string {
+	return s.VpcId
+}
+
+func (s *DescribeOfficeSitesRequest) SetVpcId(v string) *DescribeOfficeSitesRequest {
+	s.VpcId = &v
 	return s
 }
 
