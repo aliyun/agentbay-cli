@@ -209,6 +209,8 @@ feat(apikey): add concurrency management command
    ```
 
 2. 翻译 `CHANGELOG.md` 顶部 `## [X.Y.Z]` 版本段中的 `### English` 内容到 `### 中文`，删除 `TRANSLATE_ME` 占位；中文段分类标题必须使用中文，不得保留 `Bug Fixes` / `Documentation` 等英文标题。
+   
+   > **注**：`## [Unreleased]` 始终保留在 CHANGELOG 最顶部，新版本段在它下方。本项目不在本地打 tag，因此 `[Unreleased]` 是给未来 commits 保留的永久锁点，不得被移到版本段下方。
 3. 验证：
 
    ```bash
@@ -302,7 +304,8 @@ feat(apikey): add concurrency management command
 - [ ] 每个分类下的命令组数量一致、顺序一致（如 `skills` ↔ `skills`、`global` ↔ `全局`）
 - [ ] 每个命令组下的子条目数量一致、顺序一致
 - [ ] 英文聚合了多个 commit 时，中文使用相同聚合粒度；中文拆行时，英文同步拆行
-- [ ] commit / PR 链接可以只保留在 English 段；但链接对应的用户可感知改动必须在中文段有等价描述
+- [ ] commit / PR 链接已从 English 段删除（整理阶段统一去掉 git-cliff 自动生成的 `([xxxxx](...))` 和 `by @xxx`），双语均不展示 commit 链接
+- [ ] 若本次只是给已有参数新增了取値／模式，条目必须明写「新增（adds）」具体取値，不得展示全量取値列表再载其中新的那个
 
 ### 翻译术语
 
