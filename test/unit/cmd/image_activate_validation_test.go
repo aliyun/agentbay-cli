@@ -30,6 +30,11 @@ func TestImageActivate_NetworkTypeValidation(t *testing.T) {
 			expectError: false,
 		},
 		{
+			name:        "valid_CUSTOMIZED",
+			networkType: "CUSTOMIZED",
+			expectError: false,
+		},
+		{
 			name:        "invalid_lowercase",
 			networkType: "default",
 			expectError: true,
@@ -58,7 +63,7 @@ func TestImageActivate_NetworkTypeValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test network type validation logic
-			isValid := tt.networkType == "DEFAULT" || tt.networkType == "ADVANCED"
+			isValid := tt.networkType == "DEFAULT" || tt.networkType == "ADVANCED" || tt.networkType == "CUSTOMIZED"
 			
 			if tt.expectError {
 				assert.False(t, isValid, "Network type '%s' should be invalid", tt.networkType)
@@ -93,7 +98,7 @@ func TestImageActivate_AdvancedNetworkParamsValidation(t *testing.T) {
 			sessionBandwidth: 0,
 			dnsAddresses:     []string{"8.8.8.8"},
 			expectError:      true,
-			errorMsg:         "--dns-address is only valid for ADVANCED network",
+			errorMsg:         "--dns-address is only valid for ADVANCED or CUSTOMIZED network",
 		},
 		{
 			name:             "DEFAULT_with_both_params_should_fail",
@@ -150,7 +155,7 @@ func TestImageActivate_AdvancedNetworkParamsValidation(t *testing.T) {
 					err = fmt.Errorf("--session-bandwidth is only valid for ADVANCED network")
 				}
 				if err == nil && len(tt.dnsAddresses) > 0 {
-					err = fmt.Errorf("--dns-address is only valid for ADVANCED network")
+					err = fmt.Errorf("--dns-address is only valid for ADVANCED or CUSTOMIZED network")
 				}
 			}
 
@@ -276,19 +281,19 @@ func TestImageActivate_DNSAddressParsing(t *testing.T) {
 // TestImageActivate_NetworkTypeConstants tests that network type constants are correct
 func TestImageActivate_NetworkTypeConstants(t *testing.T) {
 	// Test valid network types
-	validTypes := []string{"DEFAULT", "ADVANCED"}
+	validTypes := []string{"DEFAULT", "ADVANCED", "CUSTOMIZED"}
 	for _, networkType := range validTypes {
 		t.Run("valid_"+networkType, func(t *testing.T) {
-			isValid := networkType == "DEFAULT" || networkType == "ADVANCED"
+			isValid := networkType == "DEFAULT" || networkType == "ADVANCED" || networkType == "CUSTOMIZED"
 			assert.True(t, isValid, "Network type '%s' should be valid", networkType)
 		})
 	}
 
 	// Test invalid network types
-	invalidTypes := []string{"default", "advanced", "Advanced", "INVALID", "", "BRIDGE", "HOST"}
+	invalidTypes := []string{"default", "advanced", "Advanced", "customized", "INVALID", "", "BRIDGE", "HOST"}
 	for _, networkType := range invalidTypes {
 		t.Run("invalid_"+networkType, func(t *testing.T) {
-			isValid := networkType == "DEFAULT" || networkType == "ADVANCED"
+			isValid := networkType == "DEFAULT" || networkType == "ADVANCED" || networkType == "CUSTOMIZED"
 			assert.False(t, isValid, "Network type '%s' should be invalid", networkType)
 		})
 	}
@@ -345,6 +350,130 @@ func TestImageActivate_RegionIdResolution(t *testing.T) {
 
 			assert.Equal(t, tt.expectedRegionId, effectiveBizRegionId,
 				"Effective region ID should match expected")
+		})
+	}
+}
+
+// TestImageActivate_CustomizedNetworkValidation tests CUSTOMIZED network parameter validation
+func TestImageActivate_CustomizedNetworkValidation(t *testing.T) {
+	tests := []struct {
+		name             string
+		networkType      string
+		vpcId            string
+		vswitchId        string
+		sessionBandwidth int
+		dnsAddresses     []string
+		expectError      bool
+		errorMsg         string
+	}{
+		{
+			name:        "CUSTOMIZED_with_all_required_params_should_pass",
+			networkType: "CUSTOMIZED",
+			vpcId:       "vpc-123",
+			vswitchId:   "vsw-456",
+			expectError: false,
+		},
+		{
+			name:        "CUSTOMIZED_with_dns_should_pass",
+			networkType: "CUSTOMIZED",
+			vpcId:       "vpc-123",
+			vswitchId:   "vsw-456",
+			dnsAddresses: []string{"8.8.8.8"},
+			expectError: false,
+		},
+		{
+			name:        "CUSTOMIZED_missing_vpc_id_should_fail",
+			networkType: "CUSTOMIZED",
+			vpcId:       "",
+			vswitchId:   "vsw-456",
+			expectError: true,
+			errorMsg:    "--vpc-id is required for CUSTOMIZED network",
+		},
+		{
+			name:        "CUSTOMIZED_missing_vswitch_id_should_fail",
+			networkType: "CUSTOMIZED",
+			vpcId:       "vpc-123",
+			vswitchId:   "",
+			expectError: true,
+			errorMsg:    "--vswitch-id is required for CUSTOMIZED network",
+		},
+		{
+			name:             "CUSTOMIZED_with_session_bandwidth_should_fail",
+			networkType:      "CUSTOMIZED",
+			vpcId:            "vpc-123",
+			vswitchId:        "vsw-456",
+			sessionBandwidth: 10,
+			expectError:      true,
+			errorMsg:         "--session-bandwidth is not supported for CUSTOMIZED network",
+		},
+		{
+			name:        "DEFAULT_with_vpc_id_should_fail",
+			networkType: "DEFAULT",
+			vpcId:       "vpc-123",
+			expectError: true,
+			errorMsg:    "--vpc-id is only valid for CUSTOMIZED network",
+		},
+		{
+			name:        "DEFAULT_with_vswitch_id_should_fail",
+			networkType: "DEFAULT",
+			vswitchId:   "vsw-456",
+			expectError: true,
+			errorMsg:    "--vswitch-id is only valid for CUSTOMIZED network",
+		},
+		{
+			name:        "ADVANCED_with_vpc_id_should_fail",
+			networkType: "ADVANCED",
+			vpcId:       "vpc-123",
+			expectError: true,
+			errorMsg:    "--vpc-id is only valid for CUSTOMIZED network",
+		},
+		{
+			name:        "ADVANCED_with_vswitch_id_should_fail",
+			networkType: "ADVANCED",
+			vswitchId:   "vsw-456",
+			expectError: true,
+			errorMsg:    "--vswitch-id is only valid for CUSTOMIZED network",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Simulate the CUSTOMIZED validation logic from runImageActivate
+			var err error
+
+			if tt.networkType == "DEFAULT" {
+				if tt.vpcId != "" {
+					err = fmt.Errorf("--vpc-id is only valid for CUSTOMIZED network")
+				}
+				if err == nil && tt.vswitchId != "" {
+					err = fmt.Errorf("--vswitch-id is only valid for CUSTOMIZED network")
+				}
+			} else if tt.networkType == "ADVANCED" {
+				if tt.vpcId != "" {
+					err = fmt.Errorf("--vpc-id is only valid for CUSTOMIZED network")
+				}
+				if err == nil && tt.vswitchId != "" {
+					err = fmt.Errorf("--vswitch-id is only valid for CUSTOMIZED network")
+				}
+			} else if tt.networkType == "CUSTOMIZED" {
+				if tt.vpcId == "" {
+					err = fmt.Errorf("--vpc-id is required for CUSTOMIZED network")
+				} else if tt.vswitchId == "" {
+					err = fmt.Errorf("--vswitch-id is required for CUSTOMIZED network")
+				} else if tt.sessionBandwidth > 0 {
+					err = fmt.Errorf("--session-bandwidth is not supported for CUSTOMIZED network")
+				}
+			}
+
+			if tt.expectError {
+				assert.Error(t, err)
+				if tt.errorMsg != "" && err != nil {
+					assert.True(t, strings.Contains(err.Error(), tt.errorMsg),
+						"Expected error to contain '%s', got: %s", tt.errorMsg, err.Error())
+				}
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }

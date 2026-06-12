@@ -95,11 +95,21 @@ type NetworkData struct {
 	OfficeSiteType   *string `json:"OfficeSiteType,omitempty" xml:"OfficeSiteType,omitempty"`
 	DnsAddress       *string `json:"DnsAddress,omitempty" xml:"DnsAddress,omitempty"`
 	VpcName          *string `json:"VpcName,omitempty" xml:"VpcName,omitempty"`
+	VSwitchId        *string `json:"VSwitchId,omitempty" xml:"VSwitchId,omitempty"`
 	SessionBandwidth *int32  `json:"SessionBandwidth,omitempty" xml:"SessionBandwidth,omitempty"`
 }
 
 func (s *NetworkData) String() string {
 	return dara.Prettify(s)
+}
+
+func (s *NetworkData) GetVSwitchId() *string {
+	return s.VSwitchId
+}
+
+func (s *NetworkData) SetVSwitchId(v string) *NetworkData {
+	s.VSwitchId = &v
+	return s
 }
 
 // DescribeMcpPolicyDataResponseBodyData - 响应数据

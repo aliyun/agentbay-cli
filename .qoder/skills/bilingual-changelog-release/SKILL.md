@@ -60,7 +60,7 @@ make release-prep VERSION=X.Y.Z
 - 用 git-cliff 生成 `## [X.Y.Z] - YYYY-MM-DD`
 - 写入 `### English` 与 `### 中文` 双语结构
 - 在中文段留下 `TRANSLATE_ME` 占位
-- 重新插入空的 `## [Unreleased]` anchor
+- 将新版本段插入到 `## [Unreleased]` 下方（保持 `## [Unreleased]` 始终在最顶部，因为本项目不在本地打 tag）
 - 展示 `CHANGELOG.md` diff 和下一步提示
 
 如 `git-cliff` 缺失，提示：
@@ -71,15 +71,18 @@ make changelog-install
 
 ### Phase 2：翻译与内容修订
 
-默认使用方式 A（AI 对话翻译 + 结构对齐）：
+��认使用方式 A（AI 对话翻译 + 结构对齐）：
 
 1. 读取 `CHANGELOG.md` 顶部目标版本段。
 2. 先整理 `### English`：按用户可感知的功能点做适度聚合，并按命令组归类；多改动命令组必须使用父条目 + 子条目结构。
+   - **条目必须具体到子命令和关键参数**：使用反引号标注，例如 `` `image activate --network-type` 支持 DEFAULT / ADVANCED / CUSTOMIZED ``，而非模糊描述"支持自定义网络"。
+   - **新增取値 / 模式时必须明确标注「新增」**：若参数已有旧取値而本次只新增其中一个，条目必须突出新增项，不得只列全量取値。例：“adds \`--network-type CUSTOMIZED\` support”，而非“supports \`--network-type\` flag (DEFAULT / ADVANCED / CUSTOMIZED)”。
+   - **删除 commit / PR 链接及 author**：整理阶段统一从 English 段删除 git-cliff 自动生成的 `([xxxxx](...))` 链接和 `by @xxx`，保持条目简洁，便于双语对齐。
 3. 再将 `### English` 下的分类、命令组与条目逐项翻译到 `### 中文` 下；中文段的分类标题必须使用中文，不得保留 `Bug Fixes` / `Documentation` 等英文标题。
 4. `### English` 与 `### 中文` 必须保持**结构对齐**：分类标题、命令组、子条目数量和顺序必须一一对应；中文段不得新增、遗漏或合并英文段中的独立条目。
 5. 删除 `TRANSLATE_ME` 注释。
 6. 如条目过细，可在不丢语义的前提下做粗粒度聚合，但必须**双语同步聚合**：英文聚合后中文使用同一粒度；中文拆行时英文同步拆行。
-7. 对 CLI 命令相关条目，英文和中文都优先按命令组归类（如 `apikey`、`image`、`docker`、`skills`、`network`、`core/auth`）；无法归入命令组或属于全局能力 / 基础设施 / 发版流程的改动，英文可归为 `global`、`security/compliance`、`RAM permissions`、`release`，中文对应归为“全局”“安全合规”“RAM 权限”“发版”。
+7. 对 CLI 命令相关条目，英文和中文都优先按命令组归类（如 `apikey`、`image`、`docker`、`skills`、`network`、`core/auth`）；无法归入命令组或属于全局能力 / 基础设施 / 发版流程的改动，英文可归为 `global`、`security/compliance`、`RAM permissions`、`release`，中文对应归为"全局""安全合规""RAM 权限""发版"。
 8. 如需要 Highlights，在版本标题下添加 2-3 条用户视角亮点。
 
 中文分类标题建议：
@@ -117,7 +120,7 @@ make changelog-install
 - [ ] `### English` 与 `### 中文` 结构对齐：分类数量/顺序一致、命令组数量/顺序一致、子条目数量/顺序一致
 - [ ] 英文聚合和中文聚合粒度一致；不存在英文拆分但中文合并、或中文拆分但英文合并的情况
 - [ ] 无残留 `TRANSLATE_ME` 或 `中文翻译待补充`
-- [ ] 顶部仍保留空的 `## [Unreleased]`
+- [ ] `## [Unreleased]` 始终保留在最顶部（新版本段在它下方），不得被移动到版本段下方
 - [ ] 无真实 UID、账号 ID 等敏感信息未脱敏
 - [ ] 如本次 release 包含 `README.md` 或 `docs/en/**` 变更，`llms-full.txt` 已由 `bash scripts/build-llms-full.sh` 重新生成并提交
 - [ ] 如本次 release 新增 / 删除 / 重命名对外文档，`llms.txt` 已同步

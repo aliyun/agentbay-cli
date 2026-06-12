@@ -253,6 +253,13 @@ agentbay image activate imgc-xxxxxxxxxxxxxx \
   --dns-address 8.8.8.8 \
   --dns-address 8.8.4.4
 
+# 自定义网络（自定义 VPC）
+agentbay image activate imgc-xxxxxxxxxxxxxx \
+  --network-type CUSTOMIZED \
+  --vpc-id vpc-xxxxxxxxxxxxxx \
+  --vswitch-id vsw-xxxxxxxxxxxxxx \
+  --dns-address 8.8.8.8
+
 # 沙箱生命周期
 agentbay image activate imgc-xxxxxxxxxxxxxx \
   --lifecycle-mode auto \
@@ -270,9 +277,11 @@ agentbay image activate imgc-xxxxxxxxxxxxxx --region-id cn-shanghai
 | -------------------------- | ------ | ------ | ---- | --------------------------------------------- |
 | `--cpu`                    | `-c`   | int    | 否   | CPU 核数（2、4、8），须与 `--memory` 同时指定 |
 | `--memory`                 | `-m`   | int    | 否   | 内存 GB（4、8、16），须与 `--cpu` 同时指定    |
-| `--network-type`           |        | string | 否   | 网络类型：`DEFAULT` 或 `ADVANCED`             |
+| `--network-type`           |        | string | 否   | 网络类型：`DEFAULT`、`ADVANCED` 或 `CUSTOMIZED` |
 | `--session-bandwidth`      |        | int    | 否   | 单 session 最高公网带宽，单位 Mbps，建议设置范围 2-200；仅 ADVANCED 网络可用，不传表示不限制单 session 公网访问带宽上限 |
-| `--dns-address`            |        | string | 否   | DNS 地址；仅 ADVANCED 网络可用，可重复指定；不传则 CLI 自动使用当前 office network 的默认 DNS |
+| `--dns-address`            |        | string | 否   | DNS 地址；仅 ADVANCED 或 CUSTOMIZED 网络可用，可重复指定；不传则 CLI 自动使用当前 office network 的默认 DNS |
+| `--vpc-id`                 |        | string | 否   | VPC ID；CUSTOMIZED 网络必填                   |
+| `--vswitch-id`             |        | string | 否   | 交换机 ID；CUSTOMIZED 网络必填                 |
 | `--lifecycle-mode`         |        | string | 否   | 释放模式：`auto`（自动释放）或 `manual`（手动释放） |
 | `--lifecycle-max-runtime`  |        | int    | 否   | 单次运行最长时长（分钟）；需 `--lifecycle-mode` 为 `auto` |
 | `--lifecycle-hibernate`    |        | int    | 否   | 休眠最大时长（小时）；需 `--lifecycle-mode` 为 `auto`   |
@@ -284,7 +293,9 @@ agentbay image activate imgc-xxxxxxxxxxxxxx --region-id cn-shanghai
 **注意事项：**
 
 - `--cpu` 和 `--memory` 必须同时指定。
-- `--session-bandwidth` 与 `--dns-address` 仅在 `--network-type ADVANCED` 时可用，且均为可选；DEFAULT 网络下传这两个参数会被拒绝。不传 `--dns-address` 时，CLI 会自动从当前 office network 拉取默认 DNS 填充。
+- `--session-bandwidth` 仅在 `--network-type ADVANCED` 时可用，且为可选；DEFAULT 或 CUSTOMIZED 网络下传该参数会被拒绝。
+- `--dns-address` 在 `--network-type ADVANCED` 或 `CUSTOMIZED` 时可用，且为可选。不传时，CLI 会自动从当前 office network 拉取默认 DNS 填充。
+- `--vpc-id` 和 `--vswitch-id` 在 `--network-type CUSTOMIZED` 时**必填**，DEFAULT 或 ADVANCED 网络下不可传。
 - 激活通常需要 1-2 分钟。如果已激活，会提示 "No action needed."
 
 **输出：**

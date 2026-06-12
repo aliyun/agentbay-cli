@@ -199,6 +199,10 @@ func (m *mockImageListClient) ListSharedDockerRepos(ctx context.Context, request
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockImageListClient) CreateSimpleOfficeSite(ctx context.Context, request *client.CreateSimpleOfficeSiteRequest) (*client.CreateSimpleOfficeSiteResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 // Helper functions for testing
 func boolPtr(b bool) *bool {
 	return &b

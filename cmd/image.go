@@ -213,9 +213,11 @@ func init() {
 	// Add flags to image activate command
 	imageActivateCmd.Flags().IntP("cpu", "c", 0, "CPU cores (must be specified together with --memory)")
 	imageActivateCmd.Flags().IntP("memory", "m", 0, "Memory in GB (must be specified together with --cpu)")
-	imageActivateCmd.Flags().String("network-type", "DEFAULT", "Network type: DEFAULT or ADVANCED (default: DEFAULT)")
+	imageActivateCmd.Flags().String("network-type", "DEFAULT", "Network type: DEFAULT, ADVANCED or CUSTOMIZED (default: DEFAULT)")
 	imageActivateCmd.Flags().Int("session-bandwidth", 0, "Max public-network bandwidth per session in Mbps (only for ADVANCED network, recommended range: 2-200)")
-	imageActivateCmd.Flags().StringArray("dns-address", []string{}, "DNS addresses (only for ADVANCED network, can be specified multiple times)")
+	imageActivateCmd.Flags().StringArray("dns-address", []string{}, "DNS addresses (for ADVANCED or CUSTOMIZED network, can be specified multiple times)")
+	imageActivateCmd.Flags().String("vpc-id", "", "VPC ID (required for CUSTOMIZED network)")
+	imageActivateCmd.Flags().String("vswitch-id", "", "VSwitch ID (required for CUSTOMIZED network)")
 	imageActivateCmd.Flags().String("lifecycle-mode", "", "Sandbox release mode: auto or manual (optional)")
 	imageActivateCmd.Flags().Float64("lifecycle-max-runtime", 0, "Maximum runtime in hours for the sandbox (optional, maps to DesktopMaxRuntime)")
 	imageActivateCmd.Flags().Float64("lifecycle-hibernate", 0, "Hibernate timeout in hours (optional, maps to HibernateTimeout)")
@@ -1196,6 +1198,8 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 	networkType, _ := cmd.Flags().GetString("network-type")
 	sessionBandwidth, _ := cmd.Flags().GetInt("session-bandwidth")
 	dnsAddresses, _ := cmd.Flags().GetStringArray("dns-address")
+	vpcId, _ := cmd.Flags().GetString("vpc-id")
+	vswitchId, _ := cmd.Flags().GetString("vswitch-id")
 
 	// Parse lifecycle parameters
 	lifecycleMode, _ := cmd.Flags().GetString("lifecycle-mode")
@@ -1218,17 +1222,40 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 	}
 
 	// Validate network type
-	if networkType != "DEFAULT" && networkType != "ADVANCED" {
-		return fmt.Errorf("[ERROR] Invalid network type: %s. Must be DEFAULT or ADVANCED", networkType)
+	if networkType != "DEFAULT" && networkType != "ADVANCED" && networkType != "CUSTOMIZED" {
+		return fmt.Errorf("[ERROR] Invalid network type: %s. Must be DEFAULT, ADVANCED or CUSTOMIZED", networkType)
 	}
 
-	// Validate advanced network parameters
+	// Validate network-type-specific parameters
 	if networkType == "DEFAULT" {
 		if sessionBandwidth > 0 {
 			return fmt.Errorf("[ERROR] --session-bandwidth is only valid for ADVANCED network")
 		}
 		if len(dnsAddresses) > 0 {
-			return fmt.Errorf("[ERROR] --dns-address is only valid for ADVANCED network")
+			return fmt.Errorf("[ERROR] --dns-address is only valid for ADVANCED or CUSTOMIZED network")
+		}
+		if vpcId != "" {
+			return fmt.Errorf("[ERROR] --vpc-id is only valid for CUSTOMIZED network")
+		}
+		if vswitchId != "" {
+			return fmt.Errorf("[ERROR] --vswitch-id is only valid for CUSTOMIZED network")
+		}
+	} else if networkType == "ADVANCED" {
+		if vpcId != "" {
+			return fmt.Errorf("[ERROR] --vpc-id is only valid for CUSTOMIZED network")
+		}
+		if vswitchId != "" {
+			return fmt.Errorf("[ERROR] --vswitch-id is only valid for CUSTOMIZED network")
+		}
+	} else if networkType == "CUSTOMIZED" {
+		if vpcId == "" {
+			return fmt.Errorf("[ERROR] --vpc-id is required for CUSTOMIZED network")
+		}
+		if vswitchId == "" {
+			return fmt.Errorf("[ERROR] --vswitch-id is required for CUSTOMIZED network")
+		}
+		if sessionBandwidth > 0 {
+			return fmt.Errorf("[ERROR] --session-bandwidth is not supported for CUSTOMIZED network")
 		}
 	}
 
@@ -1250,6 +1277,13 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 		if sessionBandwidth > 0 {
 			fmt.Printf("[NETWORK] Session Bandwidth: %d Mbps\n", sessionBandwidth)
 		}
+		if len(dnsAddresses) > 0 {
+			fmt.Printf("[NETWORK] DNS Addresses: %s\n", strings.Join(dnsAddresses, ", "))
+		}
+	} else if networkType == "CUSTOMIZED" {
+		fmt.Printf("[NETWORK] Type: CUSTOMIZED\n")
+		fmt.Printf("[NETWORK] VPC ID: %s\n", vpcId)
+		fmt.Printf("[NETWORK] VSwitch ID: %s\n", vswitchId)
 		if len(dnsAddresses) > 0 {
 			fmt.Printf("[NETWORK] DNS Addresses: %s\n", strings.Join(dnsAddresses, ", "))
 		}
@@ -1367,12 +1401,31 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+
+	// Handle CUSTOMIZED network flow - must be done BEFORE CreateResourceGroup
+	var effectiveOfficeSiteId string
+	if networkType == "CUSTOMIZED" && shouldCreateResourceGroup {
+		var err error
+		appInstanceType, err = getAppInstanceType(statusCtx, apiClient, imageId, cpu, memory, 8)
+		if err != nil {
+			return err
+		}
+
+		// DescribeMcpPolicyData + Create/ModifyMcpPolicyData + DescribeOfficeSites + (CreateSimpleOfficeSite) + SaveMcpPolicyData
+		serverRegionId, effectiveDnsAddresses, effectiveOfficeSiteId, err = handleCustomizedNetworkActivation(statusCtx, apiClient, imageId, appInstanceType, cpu, memory, vpcId, vswitchId, dnsAddresses, lifecycleParams, imageInfo.OsName, regionId)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Create resource group if needed
 	if shouldCreateResourceGroup {
 		// ADVANCED: STEP 1=DescribeInstanceTypes, STEP 2=DescribeMcpPolicyData, STEP 3=Create/ModifyMcpPolicyData, STEP 4=DescribeOfficeSites, STEP 5=SaveMcpPolicyData, STEP 6=CreateResourceGroup, STEP 7=Polling
 		// DEFAULT: STEP 1=DescribeInstanceTypes, STEP 2=DescribeMcpPolicyData, STEP 3=Create/ModifyMcpPolicyData, STEP 4=SaveMcpPolicyData, STEP 5=CreateResourceGroup, STEP 6=Polling
 		if networkType == "ADVANCED" {
 			fmt.Printf("[STEP 6/7] Creating resource group...")
+		} else if networkType == "CUSTOMIZED" {
+			fmt.Printf("[STEP 6/8] Creating resource group...")
 		} else {
 			fmt.Printf("[STEP 5/6] Creating resource group...")
 		}
@@ -1408,6 +1461,19 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 			createReq.SetOfficeSiteType("DEFAULT")
 			if appInstanceType != "" {
 				createReq.SetAppInstanceType(appInstanceType)
+			}
+		} else if networkType == "CUSTOMIZED" {
+			createReq.SetOfficeSiteType("CUSTOMIZED")
+			if appInstanceType != "" {
+				createReq.SetAppInstanceType(appInstanceType)
+			}
+			createReq.SetVpcId(vpcId)
+			createReq.SetVSwitchId(vswitchId)
+			if effectiveOfficeSiteId != "" {
+				createReq.SetOfficeSiteId(effectiveOfficeSiteId)
+			}
+			if len(effectiveDnsAddresses) > 0 {
+				createReq.SetDnsAddress(effectiveDnsAddresses)
 			}
 		}
 
@@ -1498,6 +1564,8 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 	fmt.Printf("[INFO] Image ID: %s\n", imageId)
 	if networkType == "ADVANCED" {
 		fmt.Printf("[INFO] Network Type: ADVANCED\n")
+	} else if networkType == "CUSTOMIZED" {
+		fmt.Printf("[INFO] Network Type: CUSTOMIZED\n")
 	}
 
 	return nil
@@ -2401,6 +2469,217 @@ func handleDefaultNetworkActivation(ctx context.Context, apiClient agentbay.Clie
 	}
 
 	return serverRegionId, nil
+}
+
+// handleCustomizedNetworkActivation handles the CUSTOMIZED network activation flow
+// Flow: DescribeMcpPolicyData -> Create/ModifyMcpPolicyData -> DescribeOfficeSites -> (CreateSimpleOfficeSite) -> SaveMcpPolicyData
+// Returns: serverRegionId, effectiveDnsAddresses, effectiveOfficeSiteId, error
+func handleCustomizedNetworkActivation(ctx context.Context, apiClient agentbay.Client, imageId, appInstanceType string, cpu, memory int, vpcId, vswitchId string, dnsAddresses []string, lf *lifecycleFlags, osName string, regionId string) (string, []string, string, error) {
+	// STEP 2/8: DescribeMcpPolicyData
+	fmt.Printf("[STEP 2/8] Fetching policy data...")
+	policyReq := &client.DescribeMcpPolicyDataRequest{
+		ImageId: dara.String(imageId),
+	}
+	policyResp, err := apiClient.DescribeMcpPolicyData(ctx, policyReq)
+	if err != nil {
+		fmt.Printf(" Failed.\n")
+		return "", nil, "", fmt.Errorf("failed to fetch policy data: %w", err)
+	}
+	if policyResp.Body != nil && policyResp.Body.GetRequestId() != nil {
+		fmt.Printf(" Done. (Action: DescribeMcpPolicyData, Request ID: %s)\n", *policyResp.Body.GetRequestId())
+	} else {
+		fmt.Printf(" Done. (Action: DescribeMcpPolicyData)\n")
+	}
+
+	var serverRegionId string
+	var regionName string
+	if policyResp.Body != nil && policyResp.Body.Data != nil && policyResp.Body.Data.GroupSpec != nil && policyResp.Body.Data.GroupSpec.RegionId != nil {
+		serverRegionId = *policyResp.Body.Data.GroupSpec.RegionId
+	}
+	if regionId != "" {
+		regionName = regionId
+	} else {
+		regionName = serverRegionId
+	}
+
+	// Merge SandboxLifeCycle
+	var existingSandboxLifeCycle *client.SandboxLifeCycle
+	if policyResp.Body != nil && policyResp.Body.Data != nil {
+		existingSandboxLifeCycle = policyResp.Body.Data.SandboxLifeCycle
+	}
+	mergedSandboxLifeCycle := mergeSandboxLifeCycle(existingSandboxLifeCycle, lf)
+
+	// STEP 3/8: Create/ModifyMcpPolicyData
+	if policyResp.Body != nil && policyResp.Body.Data != nil {
+		if err := handlePolicyDataCreateOrModify(ctx, apiClient, imageId, policyResp.Body.Data, mergedSandboxLifeCycle, osName, regionId, 3, 8); err != nil {
+			return "", nil, "", err
+		}
+	}
+
+	// STEP 4/8: DescribeOfficeSites with CUSTOMIZED type and VpcId
+	var defaultDnsAddresses []string
+	var officeSiteId string
+	fmt.Printf("[STEP 4/8] Querying customized office network...")
+	if regionName != "" {
+		officeSiteReq := &client.DescribeOfficeSitesRequest{
+			OfficeSiteType: dara.String("CUSTOMIZED"),
+			RegionName:     dara.String(regionName),
+			VpcId:          dara.String(vpcId),
+		}
+		officeSiteResp, err := apiClient.DescribeOfficeSites(ctx, officeSiteReq)
+		if err != nil {
+			fmt.Printf(" Failed.\n")
+			return "", nil, "", fmt.Errorf("failed to query customized office network: %w", err)
+		}
+		if officeSiteResp.Body != nil && officeSiteResp.Body.GetRequestId() != nil {
+			fmt.Printf(" Done. (Action: DescribeOfficeSites, Request ID: %s)\n", *officeSiteResp.Body.GetRequestId())
+		} else {
+			fmt.Printf(" Done. (Action: DescribeOfficeSites)\n")
+		}
+		if officeSiteResp.Body != nil && officeSiteResp.Body.Data != nil {
+			defaultDnsAddresses = officeSiteResp.Body.Data.DnsAddress
+			if officeSiteResp.Body.Data.OfficeSiteId != nil {
+				officeSiteId = *officeSiteResp.Body.Data.OfficeSiteId
+			}
+			if officeSiteId != "" {
+				fmt.Printf("[INFO] Found existing office site: %s\n", officeSiteId)
+			}
+			if len(defaultDnsAddresses) > 0 {
+				fmt.Printf("[INFO] Office network default DNS: %s\n", strings.Join(defaultDnsAddresses, ", "))
+			}
+		}
+	} else {
+		fmt.Printf(" Skipped. (RegionName not available)\n")
+	}
+
+	// STEP 5/8: CreateSimpleOfficeSite (conditional - only if no OfficeSiteId found)
+	if officeSiteId == "" {
+		fmt.Printf("[STEP 5/8] Creating simple office site...")
+		effectiveRegionId := regionId
+		if effectiveRegionId == "" {
+			effectiveRegionId = serverRegionId
+		}
+		createOfficeSiteReq := &client.CreateSimpleOfficeSiteRequest{
+			VpcType:           dara.String("customized"),
+			OfficeSiteName:    dara.String(fmt.Sprintf("AgentBay-%s", time.Now().Format("20060102-15:04:05"))),
+			VpcId:             dara.String(vpcId),
+			RegionId:          dara.String(effectiveRegionId),
+			RegionName:        dara.String(effectiveRegionId),
+			DesktopAccessType: dara.String("INTERNET"),
+		}
+		createOfficeSiteResp, err := apiClient.CreateSimpleOfficeSite(ctx, createOfficeSiteReq)
+		if err != nil {
+			fmt.Printf(" Failed.\n")
+			return "", nil, "", fmt.Errorf("failed to create simple office site: %w", err)
+		}
+		if createOfficeSiteResp.Body != nil && createOfficeSiteResp.Body.GetRequestId() != nil {
+			fmt.Printf(" Done. (Action: CreateSimpleOfficeSite, Request ID: %s)\n", *createOfficeSiteResp.Body.GetRequestId())
+		} else {
+			fmt.Printf(" Done. (Action: CreateSimpleOfficeSite)\n")
+		}
+
+		// Success determination: Code-based (new API, Success field may not be returned)
+		if createOfficeSiteResp.Body != nil {
+			code := createOfficeSiteResp.Body.GetCode()
+			successPtr := createOfficeSiteResp.Body.Success
+			if (successPtr != nil && !*successPtr) || (code != nil && *code != "" && !strings.EqualFold(*code, "ok")) {
+				msg := createOfficeSiteResp.Body.GetMessage()
+				codeStr := ""
+				msgStr := ""
+				if code != nil {
+					codeStr = *code
+				}
+				if msg != nil {
+					msgStr = *msg
+				}
+				return "", nil, "", fmt.Errorf("failed to create simple office site: Code=%s, Message=%s", codeStr, msgStr)
+			}
+			if createOfficeSiteResp.Body.Data != nil {
+				officeSiteId = *createOfficeSiteResp.Body.Data
+			}
+			if officeSiteId == "" {
+				return "", nil, "", fmt.Errorf("create simple office site succeeded but returned empty OfficeSiteId")
+			}
+			fmt.Printf("[INFO] Created office site: %s\n", officeSiteId)
+		} else {
+			return "", nil, "", fmt.Errorf("invalid response from CreateSimpleOfficeSite")
+		}
+	} else {
+		fmt.Printf("[STEP 5/8] Skipped. (Office site already exists: %s)\n", officeSiteId)
+	}
+
+	// Determine effective DNS addresses
+	effectiveDnsAddresses := dnsAddresses
+	if len(effectiveDnsAddresses) == 0 && len(defaultDnsAddresses) > 0 {
+		effectiveDnsAddresses = defaultDnsAddresses
+		fmt.Printf("[INFO] Using default DNS addresses from office network: %s\n", strings.Join(effectiveDnsAddresses, ", "))
+	}
+
+	// STEP 6/8: SaveMcpPolicyData
+	fmt.Printf("[STEP 6/8] Saving policy configuration...")
+	saveReq := &client.SaveMcpPolicyDataRequest{}
+
+	if policyResp.Body != nil && policyResp.Body.Data != nil {
+		data := policyResp.Body.Data
+
+		saveReq.ImageId = dara.String(imageId)
+		if data.PolicyId != nil {
+			saveReq.PolicyId = data.PolicyId
+		}
+
+		if data.GroupSpec != nil {
+			saveReq.GroupSpec = &client.GroupSpec{
+				AppInstanceType: dara.String(appInstanceType),
+				RegionName:      data.GroupSpec.RegionName,
+				Memory:          dara.Int32(int32(memory)),
+				Cpu:             dara.Int32(int32(cpu)),
+				RegionId:        data.GroupSpec.RegionId,
+			}
+			if regionId != "" {
+				saveReq.GroupSpec.RegionName = dara.String(regionId)
+				saveReq.GroupSpec.RegionId = dara.String(regionId)
+			}
+		}
+
+		saveReq.SandboxLifeCycle = mergedSandboxLifeCycle
+		saveReq.ScreenSettings = data.ScreenSettings
+		saveReq.NetworkConfig = data.NetworkConfig
+		saveReq.DisplayConfig = data.DisplayConfig
+		if regionId != "" {
+			saveReq.RegionId = dara.String(regionId)
+		} else if data.GroupSpec != nil && data.GroupSpec.RegionId != nil {
+			saveReq.RegionId = data.GroupSpec.RegionId
+		}
+
+		// NetworkData with CUSTOMIZED settings
+		saveReq.NetworkData = &client.NetworkData{
+			OfficeSiteType: dara.String("CUSTOMIZED"),
+			VpcId:          dara.String(vpcId),
+			VSwitchId:      dara.String(vswitchId),
+		}
+		if data.NetworkData != nil {
+			saveReq.NetworkData.VpcName = data.NetworkData.VpcName
+		}
+		if len(effectiveDnsAddresses) > 0 {
+			saveReq.NetworkData.DnsAddress = dara.String(strings.Join(effectiveDnsAddresses, ","))
+		}
+	} else {
+		fmt.Printf(" Failed.\n")
+		return "", nil, "", fmt.Errorf("invalid policy data response")
+	}
+
+	saveResp, err := apiClient.SaveMcpPolicyData(ctx, saveReq)
+	if err != nil {
+		fmt.Printf(" Failed.\n")
+		return "", nil, "", fmt.Errorf("failed to save policy data: %w", err)
+	}
+	if saveResp.Body != nil && saveResp.Body.GetRequestId() != nil {
+		fmt.Printf(" Done. (Action: SaveMcpPolicyData, Request ID: %s)\n", *saveResp.Body.GetRequestId())
+	} else {
+		fmt.Printf(" Done. (Action: SaveMcpPolicyData)\n")
+	}
+
+	return serverRegionId, effectiveDnsAddresses, officeSiteId, nil
 }
 
 func runImageDelete(cmd *cobra.Command, args []string) error {

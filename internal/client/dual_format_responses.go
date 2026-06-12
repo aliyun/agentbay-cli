@@ -2336,3 +2336,87 @@ func parseListSharedDockerReposResponse(res map[string]interface{}) (*ListShared
 	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
 	return out, nil
 }
+
+// parseCreateSimpleOfficeSiteResponse builds CreateSimpleOfficeSiteResponse from CallApi map.
+// Data field is a string (OfficeSiteId). HttpStatusCode uses int32FromFlexibleJSON for flexible parsing.
+func parseCreateSimpleOfficeSiteResponse(res map[string]interface{}) (*CreateSimpleOfficeSiteResponse, error) {
+	out := &CreateSimpleOfficeSiteResponse{}
+	bodyStr := ""
+	switch v := res["body"].(type) {
+	case string:
+		bodyStr = v
+	case []byte:
+		bodyStr = string(v)
+	default:
+		return nil, &ErrWithRequestID{Err: errors.New("missing or invalid body in response"), RequestID: extractRequestIDFromResponse(res)}
+	}
+	out.RawBody = bodyStr
+	parsed := &CreateSimpleOfficeSiteResponseBody{}
+	if bodyStr != "" {
+		trimmed := strings.TrimSpace(bodyStr)
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			// XML response
+			var xmlResp xmlCreateSimpleOfficeSiteResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xmlResp); err != nil {
+				return nil, &ErrWithRequestID{Err: fmt.Errorf("XML parse error: %w", err), RequestID: extractRequestIDFromResponse(res)}
+			}
+			if xmlResp.RequestId != "" {
+				parsed.RequestId = xmlResp.RequestId
+			}
+			if xmlResp.Data != nil {
+				parsed.Data = xmlResp.Data
+			}
+			if xmlResp.Code != nil {
+				parsed.Code = xmlResp.Code
+			}
+			if xmlResp.Success != nil {
+				parsed.Success = xmlResp.Success
+			}
+			if xmlResp.Message != nil {
+				parsed.Message = xmlResp.Message
+			}
+			if xmlResp.HttpStatusCode != nil {
+				parsed.HttpStatusCode = xmlResp.HttpStatusCode
+			}
+		} else {
+			// JSON response - use flexible parsing for HttpStatusCode
+			type wireCreateSimpleOfficeSiteResponse struct {
+				RequestId      string          `json:"RequestId"`
+				HttpStatusCode json.RawMessage `json:"HttpStatusCode"`
+				Data           *string         `json:"Data"`
+				Code           *string         `json:"Code"`
+				Success        *bool           `json:"Success"`
+				Message        *string         `json:"Message"`
+			}
+			var wire wireCreateSimpleOfficeSiteResponse
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.RequestId = wire.RequestId
+			parsed.Data = wire.Data
+			parsed.Code = wire.Code
+			parsed.Success = wire.Success
+			parsed.Message = wire.Message
+			if len(wire.HttpStatusCode) > 0 {
+				ht, derr := int32FromFlexibleJSON(wire.HttpStatusCode)
+				if derr == nil {
+					parsed.HttpStatusCode = ht
+				}
+			}
+		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
+
+// xmlCreateSimpleOfficeSiteResponse for XML response parsing
+type xmlCreateSimpleOfficeSiteResponse struct {
+	XMLName        xml.Name `xml:"CreateSimpleOfficeSiteResponse"`
+	RequestId      string   `xml:"RequestId"`
+	HttpStatusCode *int32   `xml:"HttpStatusCode"`
+	Data           *string  `xml:"Data"`
+	Code           *string  `xml:"Code"`
+	Success        *bool    `xml:"Success"`
+	Message        *string  `xml:"Message"`
+}

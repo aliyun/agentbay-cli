@@ -256,6 +256,7 @@ func (client *Client) SaveMcpPolicyDataWithOptions(request *SaveMcpPolicyDataReq
 			"OfficeSiteType":   request.NetworkData.OfficeSiteType,
 			"DnsAddress":       request.NetworkData.DnsAddress,
 			"VpcName":          request.NetworkData.VpcName,
+			"VSwitchId":        request.NetworkData.VSwitchId,
 			"SessionBandwidth": request.NetworkData.SessionBandwidth,
 		})
 	}
@@ -384,6 +385,9 @@ func (client *Client) DescribeOfficeSitesWithOptions(request *DescribeOfficeSite
 	query := map[string]interface{}{}
 	if !dara.IsNil(request.OfficeSiteType) {
 		query["OfficeSiteType"] = request.OfficeSiteType
+	}
+	if !dara.IsNil(request.VpcId) {
+		query["VpcId"] = request.VpcId
 	}
 	if !dara.IsNil(request.RegionName) {
 		query["RegionName"] = request.RegionName
