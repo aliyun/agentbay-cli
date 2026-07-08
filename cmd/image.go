@@ -219,9 +219,9 @@ func init() {
 	imageActivateCmd.Flags().String("vpc-id", "", "VPC ID (required for CUSTOMIZED network)")
 	imageActivateCmd.Flags().String("vswitch-id", "", "VSwitch ID (required for CUSTOMIZED network)")
 	imageActivateCmd.Flags().String("lifecycle-mode", "", "Sandbox release mode: auto or manual (optional)")
-	imageActivateCmd.Flags().Float64("lifecycle-max-runtime", 0, "Maximum runtime in hours for the sandbox (optional, maps to DesktopMaxRuntime)")
+	imageActivateCmd.Flags().Float64("lifecycle-max-runtime", 0, "Maximum runtime in minutes for the sandbox (optional, maps to DesktopMaxRuntime)")
 	imageActivateCmd.Flags().Float64("lifecycle-hibernate", 0, "Hibernate timeout in hours (optional, maps to HibernateTimeout)")
-	imageActivateCmd.Flags().Float64("lifecycle-idle-timeout", 0, "User idle timeout in hours (optional, maps to UserIdleTimeout)")
+	imageActivateCmd.Flags().Float64("lifecycle-idle-timeout", 0, "User idle timeout in minutes (optional, maps to UserIdleTimeout)")
 	imageActivateCmd.Flags().String("region-id", "", "Region ID for resource deployment (optional, overrides server default)")
 
 	// Add flags to image list command

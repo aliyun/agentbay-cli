@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-07-08
+
+### English
+
+#### 🐛 Bug Fixes
+
+- **image**: `image activate --lifecycle-max-runtime` and `--lifecycle-idle-timeout` help text incorrectly stated "in hours"; corrected to "in minutes" to match documentation
+
+### 中文
+
+#### 🐛 缺陷修复
+
+- **image**：`image activate --lifecycle-max-runtime` 与 `--lifecycle-idle-timeout` 帮助文本错误标注为"小时"，修正为"分钟"以与文档保持一致
+
+---
+
 ## [0.4.1] - 2026-06-12
 
 
