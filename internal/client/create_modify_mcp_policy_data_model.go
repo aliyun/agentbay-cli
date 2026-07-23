@@ -41,14 +41,19 @@ func (s *CreateModifyMcpPolicyDataRequest) Validate() error {
 
 // ---------- CreateMcpPolicyData Response ----------
 
-// CreateMcpPolicyDataResponseBody - 响应体 (same structure as SaveMcpPolicyData)
+// CreateMcpPolicyDataResponseBody - 响应体
+// PolicyId is the edsPolicyId string returned by the server.
 type CreateMcpPolicyDataResponseBody struct {
 	RequestId      string  `json:"RequestId,omitempty" xml:"RequestId,omitempty"`
 	HttpStatusCode *int32  `json:"HttpStatusCode,omitempty" xml:"HttpStatusCode,omitempty"`
-	Data           *bool   `json:"Data,omitempty" xml:"Data,omitempty"`
+	PolicyId       *string `json:"PolicyId,omitempty" xml:"PolicyId,omitempty"`
 	Code           *string `json:"Code,omitempty" xml:"Code,omitempty"`
 	Success        *bool   `json:"Success,omitempty" xml:"Success,omitempty"`
 	Message        *string `json:"Message,omitempty" xml:"Message,omitempty"`
+}
+
+func (s *CreateMcpPolicyDataResponseBody) GetPolicyId() *string {
+	return s.PolicyId
 }
 
 func (s *CreateMcpPolicyDataResponseBody) String() string {
