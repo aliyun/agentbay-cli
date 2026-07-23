@@ -1401,7 +1401,6 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-
 	// Handle CUSTOMIZED network flow - must be done BEFORE CreateResourceGroup
 	var effectiveOfficeSiteId string
 	if networkType == "CUSTOMIZED" && shouldCreateResourceGroup {
@@ -2067,6 +2066,7 @@ func mergeSandboxLifeCycle(existing *client.SandboxLifeCycle, lf *lifecycleFlags
 
 // handlePolicyDataCreateOrModify calls CreateMcpPolicyData or ModifyMcpPolicyData
 // based on IsDefaultData from DescribeMcpPolicyData response.
+// Returns the edsPolicyId from CreateMcpPolicyData response (empty string for Modify path).
 func handlePolicyDataCreateOrModify(
 	ctx context.Context,
 	apiClient agentbay.Client,
@@ -2076,7 +2076,7 @@ func handlePolicyDataCreateOrModify(
 	osName string,
 	regionId string,
 	stepNum, totalSteps int,
-) error {
+) (string, error) {
 	isDefaultData := policyData.IsDefaultData != nil && *policyData.IsDefaultData
 
 	actionName := "ModifyMcpPolicyData"
@@ -2124,27 +2124,32 @@ func handlePolicyDataCreateOrModify(
 		resp, err := apiClient.CreateMcpPolicyData(ctx, req)
 		if err != nil {
 			fmt.Printf(" Failed.\n")
-			return fmt.Errorf("failed to create policy data: %w", err)
+			return "", fmt.Errorf("failed to create policy data: %w", err)
 		}
 		if resp.Body != nil && resp.Body.GetRequestId() != nil {
 			fmt.Printf(" Done. (Action: CreateMcpPolicyData, Request ID: %s)\n", *resp.Body.GetRequestId())
 		} else {
 			fmt.Printf(" Done. (Action: CreateMcpPolicyData)\n")
 		}
+		// Extract edsPolicyId from the response PolicyId field
+		var edsPolicyId string
+		if resp.Body != nil && resp.Body.GetPolicyId() != nil {
+			edsPolicyId = *resp.Body.GetPolicyId()
+		}
+		return edsPolicyId, nil
 	} else {
 		resp, err := apiClient.ModifyMcpPolicyData(ctx, req)
 		if err != nil {
 			fmt.Printf(" Failed.\n")
-			return fmt.Errorf("failed to modify policy data: %w", err)
+			return "", fmt.Errorf("failed to modify policy data: %w", err)
 		}
 		if resp.Body != nil && resp.Body.GetRequestId() != nil {
 			fmt.Printf(" Done. (Action: ModifyMcpPolicyData, Request ID: %s)\n", *resp.Body.GetRequestId())
 		} else {
 			fmt.Printf(" Done. (Action: ModifyMcpPolicyData)\n")
 		}
+		return "", nil
 	}
-
-	return nil
 }
 
 // getAppInstanceType queries DescribeInstanceTypes to get AppInstanceType for given cpu and memory
@@ -2245,11 +2250,15 @@ func handleAdvancedNetworkActivation(ctx context.Context, apiClient agentbay.Cli
 	}
 	mergedSandboxLifeCycle := mergeSandboxLifeCycle(existingSandboxLifeCycle, lf)
 
+	var createdEdsPolicyId string
 	// Step 2: Create/ModifyMcpPolicyData
 	if policyResp.Body != nil && policyResp.Body.Data != nil {
-		if err := handlePolicyDataCreateOrModify(ctx, apiClient, imageId, policyResp.Body.Data, mergedSandboxLifeCycle, osName, regionId, 3, 7); err != nil {
+		edsPolicyId, err := handlePolicyDataCreateOrModify(ctx, apiClient, imageId, policyResp.Body.Data, mergedSandboxLifeCycle, osName, regionId, 3, 7)
+		if err != nil {
 			return "", nil, "", err
 		}
+		// Store edsPolicyId for use in SaveMcpPolicyData
+		createdEdsPolicyId = edsPolicyId
 	}
 
 	// Step 3: DescribeOfficeSites - Query office network to get default DNS addresses
@@ -2297,7 +2306,9 @@ func handleAdvancedNetworkActivation(ctx context.Context, apiClient agentbay.Cli
 
 		// Set ImageId and PolicyId
 		saveReq.ImageId = dara.String(imageId)
-		if data.PolicyId != nil {
+		if createdEdsPolicyId != "" {
+			saveReq.PolicyId = dara.String(createdEdsPolicyId)
+		} else if data.PolicyId != nil {
 			saveReq.PolicyId = data.PolicyId
 		}
 
@@ -2397,10 +2408,13 @@ func handleDefaultNetworkActivation(ctx context.Context, apiClient agentbay.Clie
 	mergedSandboxLifeCycle := mergeSandboxLifeCycle(existingSandboxLifeCycle, lf)
 
 	// Step 2: Create/ModifyMcpPolicyData
+	var createdEdsPolicyId string
 	if policyResp.Body != nil && policyResp.Body.Data != nil {
-		if err := handlePolicyDataCreateOrModify(ctx, apiClient, imageId, policyResp.Body.Data, mergedSandboxLifeCycle, osName, regionId, 3, 6); err != nil {
+		edsPolicyId, err := handlePolicyDataCreateOrModify(ctx, apiClient, imageId, policyResp.Body.Data, mergedSandboxLifeCycle, osName, regionId, 3, 6)
+		if err != nil {
 			return "", err
 		}
+		createdEdsPolicyId = edsPolicyId
 	}
 
 	// Step 3: SaveMcpPolicyData - Save updated policy data with DEFAULT network settings
@@ -2413,7 +2427,9 @@ func handleDefaultNetworkActivation(ctx context.Context, apiClient agentbay.Clie
 
 		// Set ImageId and PolicyId
 		saveReq.ImageId = dara.String(imageId)
-		if data.PolicyId != nil {
+		if createdEdsPolicyId != "" {
+			saveReq.PolicyId = dara.String(createdEdsPolicyId)
+		} else if data.PolicyId != nil {
 			saveReq.PolicyId = data.PolicyId
 		}
 
@@ -2510,10 +2526,13 @@ func handleCustomizedNetworkActivation(ctx context.Context, apiClient agentbay.C
 	mergedSandboxLifeCycle := mergeSandboxLifeCycle(existingSandboxLifeCycle, lf)
 
 	// STEP 3/8: Create/ModifyMcpPolicyData
+	var createdEdsPolicyId string
 	if policyResp.Body != nil && policyResp.Body.Data != nil {
-		if err := handlePolicyDataCreateOrModify(ctx, apiClient, imageId, policyResp.Body.Data, mergedSandboxLifeCycle, osName, regionId, 3, 8); err != nil {
+		edsPolicyId, err := handlePolicyDataCreateOrModify(ctx, apiClient, imageId, policyResp.Body.Data, mergedSandboxLifeCycle, osName, regionId, 3, 8)
+		if err != nil {
 			return "", nil, "", err
 		}
+		createdEdsPolicyId = edsPolicyId
 	}
 
 	// STEP 4/8: DescribeOfficeSites with CUSTOMIZED type and VpcId
@@ -2623,7 +2642,9 @@ func handleCustomizedNetworkActivation(ctx context.Context, apiClient agentbay.C
 		data := policyResp.Body.Data
 
 		saveReq.ImageId = dara.String(imageId)
-		if data.PolicyId != nil {
+		if createdEdsPolicyId != "" {
+			saveReq.PolicyId = dara.String(createdEdsPolicyId)
+		} else if data.PolicyId != nil {
 			saveReq.PolicyId = data.PolicyId
 		}
 
