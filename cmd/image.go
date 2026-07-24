@@ -2094,7 +2094,7 @@ func handlePolicyDataCreateOrModify(
 		BusinessType:          dara.Int32(1),
 		ResourceType:          dara.String("AIAgent"),
 		DisconnectKeepSession: dara.String("persistent"),
-		Name:                  dara.String(fmt.Sprintf("policy-%s", time.Now().Format("20060102-15:04:05"))),
+		Name:                  dara.String(fmt.Sprintf("policy-agentbay-cli-%s", time.Now().Format("20060102-15:04:05"))),
 	}
 
 	// ScreenSettings flattened
