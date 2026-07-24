@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-07-24
+
+### English
+
+#### 🐞 Bug Fixes
+
+- **image**: Add `agentbay-cli` prefix to policy name for traceability
+
+### 中文
+
+#### 🐞 缺陷修复
+
+- **image**：策略名称添加 `agentbay-cli` 前缀，便于溯源
+
+---
+
 ## [0.4.3] - 2026-07-23
 
 ### English
