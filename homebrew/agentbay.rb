@@ -1,27 +1,27 @@
 class Agentbay < Formula
   desc "Secure infrastructure for running AI-generated code"
   homepage "https://github.com/aliyun/agentbay-cli"
-  url "https://github.com/aliyun/agentbay-cli/archive/refs/tags/v0.4.3.tar.gz"
-  sha256 "d0e6c270d8aa4673249bf282d44beb7245baf06bbfd82be1b5c1e94eab1b8e5d"
+  url "https://github.com/aliyun/agentbay-cli/archive/refs/tags/v0.4.4.tar.gz"
+  sha256 "906e2083fdf93c9b7ab3061aad6b7b5bba9266956684fc2548d62f4064dc61ca"
   license "Apache-2.0"
   head "https://github.com/aliyun/agentbay-cli.git", branch: "master"
 
   bottle do
-    root_url "https://github.com/aliyun/agentbay-cli/releases/download/v0.4.3"
-    sha256 cellar: :any_skip_relocation, arm64_sonoma: "5d6ef31fa716522c62717e600d3c5908520db22ef256bf238e35370d195c688e"
-    sha256 cellar: :any_skip_relocation, arm64_ventura: "5d6ef31fa716522c62717e600d3c5908520db22ef256bf238e35370d195c688e"
-    sha256 cellar: :any_skip_relocation, arm64_sequoia: "5d6ef31fa716522c62717e600d3c5908520db22ef256bf238e35370d195c688e"
-    sha256 cellar: :any_skip_relocation, sonoma:       "6d6abf338bacfd7e8a2f9ec4a5581ce4221d9d6232c450811789412f0a2087dd"
-    sha256 cellar: :any_skip_relocation, ventura:      "6d6abf338bacfd7e8a2f9ec4a5581ce4221d9d6232c450811789412f0a2087dd"
-    sha256 cellar: :any_skip_relocation, x86_64_linux: "9da567ccb026c38e87b4752fd6421505d31976afc4f8656831116b7fb2a7ac7a"
-    sha256 cellar: :any_skip_relocation, aarch64_linux: "a4724999c10999ea3e59221a10b461f2238aa4a2e24fdf109f6be9828520ce9e"
+    root_url "https://github.com/aliyun/agentbay-cli/releases/download/v0.4.4"
+    sha256 cellar: :any_skip_relocation, arm64_sonoma: "61152d544d7841f55e7a4593cf968b59c68883e90e1d5262a56ab06ebb2fb6c8"
+    sha256 cellar: :any_skip_relocation, arm64_ventura: "61152d544d7841f55e7a4593cf968b59c68883e90e1d5262a56ab06ebb2fb6c8"
+    sha256 cellar: :any_skip_relocation, arm64_sequoia: "61152d544d7841f55e7a4593cf968b59c68883e90e1d5262a56ab06ebb2fb6c8"
+    sha256 cellar: :any_skip_relocation, sonoma:       "b90666f18763f0796858b570bc0b92df6662c6715d5f58beff5f39a6cf816edf"
+    sha256 cellar: :any_skip_relocation, ventura:      "b90666f18763f0796858b570bc0b92df6662c6715d5f58beff5f39a6cf816edf"
+    sha256 cellar: :any_skip_relocation, x86_64_linux: "49b98c98179accc5a62baf367b158ee8c0e1e0dc68ee3975e7580973476f727d"
+    sha256 cellar: :any_skip_relocation, aarch64_linux: "4a07371e0c619bfcde54dc27b32674c9778e38f9aab90372f0b7091922766144"
   end
 
   depends_on "go" => :build
 
   def install
     version = self.version
-    git_commit = "d94c649"
+    git_commit = "0619699"
     build_date = Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     ENV["GOPROXY"] = "https://proxy.golang.org,https://goproxy.io,direct"
