@@ -203,6 +203,10 @@ func (m *mockImageListClient) CreateSimpleOfficeSite(ctx context.Context, reques
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockImageListClient) UpdateImageReserveMinAmount(ctx context.Context, request *client.UpdateImageReserveMinAmountRequest) (*client.UpdateImageReserveMinAmountResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 // Helper functions for testing
 func boolPtr(b bool) *bool {
 	return &b

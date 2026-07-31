@@ -498,6 +498,41 @@ agentbay image set-max-session --image-id imgc-xxxxxxxxxxxxxx --max-session-num 
 
 ---
 
+### `image set-pre-open`
+
+设置已激活 ACS 镜像的预开值（reserveMinAmount）。要求镜像为 User 类型、处于 `RESOURCE_PUBLISHED` 状态且使用 **ACS（高级网络）**。此操作需要 Diamond 白名单配置。
+
+```bash
+agentbay image set-pre-open --image-id imgc-xxxxxxxxxxxxxx --pre-open 10
+```
+
+**参数：**
+
+| 参数         | 类型   | 必填 | 说明                                  |
+| ------------ | ------ | ---- | ------------------------------------- |
+| `--image-id` | string | 是   | 镜像 ID                               |
+| `--pre-open` | int    | 是   | 预开值（reserveMinAmount，必须 ≥ 1）  |
+
+> 资源扩缩容异步处理中，可使用 `agentbay image warmup-status` 查看实际状态。
+
+**涉及接口：**
+
+| Action                        | 所需权限                              |
+| ----------------------------- | ------------------------------------- |
+| `GetMcpImageInfo`             | `agentbay:GetMcpImageInfo`             |
+| `UpdateImageReserveMinAmount` | `agentbay:UpdateImageReserveMinAmount` |
+
+```json
+{
+  "Action": [
+    "agentbay:GetMcpImageInfo",
+    "agentbay:UpdateImageReserveMinAmount"
+  ]
+}
+```
+
+---
+
 ### `image warmup-status`
 
 查询当前账户的预热状态，包括会话配额、镜像配额以及预热镜像详情。

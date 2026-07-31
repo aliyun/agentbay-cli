@@ -979,6 +979,71 @@ func parseBatchCreateHideResourceGroupsWithMaxSessionResponse(res map[string]int
 	return out, nil
 }
 
+// --- UpdateImageReserveMinAmount ---
+
+// updateImageReserveMinAmountJSONWire decodes JSON tolerantly,
+// because some gateways stringify HttpStatusCode (e.g. "200") which breaks *int32 unmarshal.
+type updateImageReserveMinAmountJSONWire struct {
+	Code           *string         `json:"Code"`
+	Message        *string         `json:"Message"`
+	RequestId      *string         `json:"RequestId"`
+	HttpStatusCode json.RawMessage `json:"HttpStatusCode"`
+	Success        *bool           `json:"Success"`
+}
+
+type xmlUpdateImageReserveMinAmountResponse struct {
+	XMLName        xml.Name `xml:"UpdateImageReserveMinAmountResponse"`
+	RequestId      string   `xml:"RequestId"`
+	HttpStatusCode string   `xml:"HttpStatusCode"`
+	Code           string   `xml:"Code"`
+	Success        bool     `xml:"Success"`
+	Message        string   `xml:"Message"`
+}
+
+func parseUpdateImageReserveMinAmountResponse(res map[string]interface{}) (*UpdateImageReserveMinAmountResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &UpdateImageReserveMinAmountResponse{Headers: make(map[string]*string)}
+	parsed := &UpdateImageReserveMinAmountResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xr xmlUpdateImageReserveMinAmountResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = dara.String(xr.Code)
+			parsed.RequestId = dara.String(xr.RequestId)
+			parsed.Success = dara.Bool(xr.Success)
+			parsed.Message = dara.String(xr.Message)
+			if s := strings.TrimSpace(xr.HttpStatusCode); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					parsed.HttpStatusCode = dara.Int32(int32(n))
+				}
+			}
+		} else {
+			var wire updateImageReserveMinAmountJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = wire.Code
+			parsed.Message = wire.Message
+			parsed.RequestId = wire.RequestId
+			parsed.Success = wire.Success
+			n, derr := int32FromFlexibleJSON(wire.HttpStatusCode)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: fmt.Errorf("HttpStatusCode: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.HttpStatusCode = n
+		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
+
 // --- GetDockerfileTemplate ---
 
 type getDockerfileTemplateJSONWire struct {

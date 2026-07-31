@@ -510,6 +510,41 @@ agentbay image set-max-session --image-id imgc-xxxxxxxxxxxxxx --max-session-num 
 
 ---
 
+### `image set-pre-open`
+
+Set the pre-open (reserveMinAmount) for an activated ACS image. Requires the image to be a User type image in `RESOURCE_PUBLISHED` state and using **ACS (advanced network)**. This operation requires Diamond whitelist configuration.
+
+```bash
+agentbay image set-pre-open --image-id imgc-xxxxxxxxxxxxxx --pre-open 10
+```
+
+**Flags:**
+
+| Flag          | Type   | Required | Description                                    |
+| ------------- | ------ | -------- | ---------------------------------------------- |
+| `--image-id`  | string | Yes      | Image ID                                       |
+| `--pre-open`  | int    | Yes      | Pre-open value (reserveMinAmount, must be ≥ 1) |
+
+> Resource expansion/shrinkage is processed asynchronously. Use `agentbay image warmup-status` to check the actual status.
+
+**Involved APIs:**
+
+| Action                        | Required Permission                    |
+| ----------------------------- | -------------------------------------- |
+| `GetMcpImageInfo`             | `agentbay:GetMcpImageInfo`             |
+| `UpdateImageReserveMinAmount` | `agentbay:UpdateImageReserveMinAmount` |
+
+```json
+{
+  "Action": [
+    "agentbay:GetMcpImageInfo",
+    "agentbay:UpdateImageReserveMinAmount"
+  ]
+}
+```
+
+---
+
 ### `image warmup-status`
 
 Query the warm-up status for the current account, including session quota, image quota, and details of warm-up images.

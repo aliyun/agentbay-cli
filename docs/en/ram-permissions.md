@@ -90,7 +90,7 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
 | OpenAPI Action                                | Required Permission                                    | Used By                                                                                                       |
 | --------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
 | `ListMcpImages`                               | `agentbay:ListMcpImages`                               | `image list`, `image deactivate`                                                                              |
-| `GetMcpImageInfo`                             | `agentbay:GetMcpImageInfo`                             | `image create`, `image activate`, `image deactivate`, `image delete`, `image status`, `image set-max-session` |
+| `GetMcpImageInfo`                             | `agentbay:GetMcpImageInfo`                             | `image create`, `image activate`, `image deactivate`, `image delete`, `image status`, `image set-max-session`, `image set-pre-open` |
 | `GetDockerFileStoreCredential`                | `agentbay:GetDockerFileStoreCredential`                | `image create`                                                                                                |
 | `CreateDockerImageTask`                       | `agentbay:CreateDockerImageTask`                       | `image create`                                                                                                |
 | `GetDockerImageTask`                          | `agentbay:GetDockerImageTask`                          | `image create`                                                                                                |
@@ -107,6 +107,7 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
 | `DeleteMcpImage`                              | `agentbay:DeleteMcpImage`                              | `image delete`                                                                                                |
 | `GetDockerfileTemplate`                       | `agentbay:GetDockerfileTemplate`                       | `image init`                                                                                                  |
 | `BatchCreateHideResourceGroupsWithMaxSession` | `agentbay:BatchCreateHideResourceGroupsWithMaxSession` | `image set-max-session`                                                                                       |
+| `UpdateImageReserveMinAmount`                 | `agentbay:UpdateImageReserveMinAmount`                 | `image set-pre-open`                                                                                           |
 | `DescribeWarmUpStatusOpen`                    | `agentbay:DescribeWarmUpStatusOpen`                    | `image warmup-status`                                                                                         |
 
 **RAM Policy example (full access to `image` commands):**
@@ -136,6 +137,7 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
         "agentbay:DeleteMcpImage",
         "agentbay:GetDockerfileTemplate",
         "agentbay:BatchCreateHideResourceGroupsWithMaxSession",
+        "agentbay:UpdateImageReserveMinAmount",
         "agentbay:DescribeWarmUpStatusOpen"
       ],
       "Resource": "*"

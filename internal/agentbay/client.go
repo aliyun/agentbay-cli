@@ -58,6 +58,8 @@ type Client interface {
 	DescribeNetworkPackages(ctx context.Context, request *client.DescribeNetworkPackagesRequest) (*client.DescribeNetworkPackagesResponse, error)
 	// Resource Group Max Session
 	BatchCreateHideResourceGroupsWithMaxSession(ctx context.Context, request *client.BatchCreateHideResourceGroupsWithMaxSessionRequest) (*client.BatchCreateHideResourceGroupsWithMaxSessionResponse, error)
+	// Image Reserve Min Amount (Pre-Open)
+	UpdateImageReserveMinAmount(ctx context.Context, request *client.UpdateImageReserveMinAmountRequest) (*client.UpdateImageReserveMinAmountResponse, error)
 	// WarmUp Status
 	DescribeWarmUpStatusOpen(ctx context.Context, request *client.DescribeWarmUpStatusOpenRequest) (*client.DescribeWarmUpStatusOpenResponse, error)
 	// Docker Repo Sharing
@@ -400,6 +402,15 @@ func (cw *clientWrapper) BatchCreateHideResourceGroupsWithMaxSession(ctx context
 		return nil, err
 	}
 	return sdkClient.BatchCreateHideResourceGroupsWithMaxSessionWithContext(ctx, request, cw.getRuntimeOptions())
+}
+
+// UpdateImageReserveMinAmount wraps the SDK client method
+func (cw *clientWrapper) UpdateImageReserveMinAmount(ctx context.Context, request *client.UpdateImageReserveMinAmountRequest) (*client.UpdateImageReserveMinAmountResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.UpdateImageReserveMinAmountWithContext(ctx, request, cw.getRuntimeOptions())
 }
 
 // DescribeMcpApiKey wraps the SDK client method

@@ -168,6 +168,10 @@ func (m *mockGetMcpImageInfoClient) CreateSimpleOfficeSite(ctx context.Context, 
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockGetMcpImageInfoClient) UpdateImageReserveMinAmount(ctx context.Context, request *client.UpdateImageReserveMinAmountRequest) (*client.UpdateImageReserveMinAmountResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 var _ agentbay.Client = (*mockGetMcpImageInfoClient)(nil)
 
 func TestInferImageTypeFromImageID(t *testing.T) {

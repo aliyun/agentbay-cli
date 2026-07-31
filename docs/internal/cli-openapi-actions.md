@@ -17,6 +17,8 @@
 | `agentbay image set-max-session`      | `GetMcpImageInfo`                             | 校验镜像状态（前置检查）                       |
 |                                       | `BatchCreateHideResourceGroupsWithMaxSession` | 设置最大会话数                                 |
 |                                       | `GetMcpImageInfo`（轮询）                     | 等待资源组就绪                                 |
+| `agentbay image set-pre-open`         | `GetMcpImageInfo`                             | 校验镜像状态（前置检查）                       |
+|                                       | `UpdateImageReserveMinAmount`                 | 设置预开值（reserveMinAmount）                 |
 | `agentbay image deactivate`           | `GetMcpImageInfo`                             | 获取镜像信息（前置检查）                       |
 |                                       | `ListMcpImages`                               | 获取 ResourceGroupId                           |
 |                                       | `DeleteResourceGroup`                         | 删除资源组（停用镜像）                         |
@@ -85,7 +87,20 @@
 - **调用方式**: OpenAPI SDK（版本 2025-05-01）
 - **主要参数**: ImageId, MaxSessionNum
 
-### 6. `agentbay image deactivate`
+### 6. `agentbay image set-pre-open`
+
+该命令涉及 2 步：
+
+| 步骤   | Action                        | 用途                                       |
+| ------ | ----------------------------- | ------------------------------------------ |
+| Step 1 | `GetMcpImageInfo`             | 校验镜像类型和状态（必须为 User 且已激活） |
+| Step 2 | `UpdateImageReserveMinAmount` | 设置预开值（reserveMinAmount）             |
+
+- **调用方式**: OpenAPI SDK（版本 2025-05-01）
+- **主要参数**: ImageId, ReserveMinAmount
+- **注意**: 需要 Diamond 白名单配置；仅支持 ACS 镜像；资源扩缩容异步处理
+
+### 7. `agentbay image deactivate`
 
 该命令涉及 4 步：
 
@@ -99,62 +114,62 @@
 - **调用方式**: OpenAPI SDK（版本 2025-05-01）
 - **主要参数**: ImageId, ResourceGroupId
 
-### 7. `agentbay image warmup-status`
+### 8. `agentbay image warmup-status`
 
 - **Action**: `DescribeWarmUpStatusOpen`
 - **调用方式**: OpenAPI SDK（版本 2025-05-01）
 - **参数**: 无
 
-### 8. `agentbay image delete`
+### 9. `agentbay image delete`
 
 - **Action**: `GetMcpImageInfo`（前置） → `DeleteMcpImage`
 - **调用方式**: OpenAPI SDK（版本 2025-05-01）
 - **主要参数**: ImageId
 
-### 9. `agentbay image status`
+### 10. `agentbay image status`
 
 - **Action**: `GetMcpImageInfo`
 - **调用方式**: OpenAPI SDK（版本 2025-05-01）
 - **主要参数**: ImageId
-- **说明**: 与 image activate / set-max-session / deactivate 共用同一 Action，但仅查询状态
+- **说明**: 与 image activate / set-max-session / set-pre-open / deactivate 共用同一 Action，但仅查询状态
 
-### 10. `agentbay apikey create`
+### 11. `agentbay apikey create`
 
 - **Action**: `CreateApiKey`
 - **调用方式**: OpenAPI SDK（版本 2025-05-01）
 - **主要参数**: ApiKeyName
 
-### 11. `agentbay apikey enable`
+### 12. `agentbay apikey enable`
 
 - **Action**: `ModifyMcpApiKeyConfig`（Action=EnableMcpApiKey）
 - **调用方式**: OpenAPI SDK（版本 2025-05-01）
 - **主要参数**: ApiKeyId
 
-### 12. `agentbay apikey disable`
+### 13. `agentbay apikey disable`
 
 - **Action**: `ModifyMcpApiKeyConfig`（Action=DisableMcpApiKey）
 - **调用方式**: OpenAPI SDK（版本 2025-05-01）
 - **主要参数**: ApiKeyId
 
-### 13. `agentbay apikey delete`
+### 14. `agentbay apikey delete`
 
 - **Action**: `DeleteApiKey`
 - **调用方式**: OpenAPI SDK（版本 2025-05-01）
 - **主要参数**: ApiKeyId
 
-### 14. `agentbay apikey list`
+### 15. `agentbay apikey list`
 
 - **Action**: `DescribeMcpApiKey`
 - **调用方式**: OpenAPI SDK（版本 2025-05-01）
 - **主要参数**: MaxResults, ApiKeyId, NextToken
 
-### 15. `agentbay apikey concurrency set`
+### 16. `agentbay apikey concurrency set`
 
 - **Action**: `ModifyMcpApiKeyConfig`（Action=SetMcpApiKeyConcurrency）
 - **调用方式**: OpenAPI SDK（版本 2025-05-01）
 - **主要参数**: ApiKeyId, MaxConcurrency
 
-### 16. `agentbay network package list`
+### 17. `agentbay network package list`
 
 - **Action**: `DescribeNetworkPackages`
 - **调用方式**: OpenAPI SDK（版本 2025-05-01）
@@ -162,14 +177,14 @@
 
 ## Action 汇总（去重）
 
-共涉及 **20 个** 不同的 OpenAPI Action：
+共涉及 **21 个** 不同的 OpenAPI Action：
 
 | #   | Action                                        | 涉及命令                                                        |
 | --- | --------------------------------------------- | --------------------------------------------------------------- |
 | 1   | `GetDockerfileTemplate`                       | image init                                                      |
 | 2   | `GetACRRepoCredential`                        | docker login                                                    |
 | 3   | `CreateImageFromTemplate`                     | image create-from-template                                      |
-| 4   | `GetMcpImageInfo`                             | image activate / set-max-session / deactivate / delete / status |
+| 4   | `GetMcpImageInfo`                             | image activate / set-max-session / set-pre-open / deactivate / delete / status |
 | 5   | `DescribeInstanceTypes`                       | image activate                                                  |
 | 6   | `DescribeMcpPolicyData`                       | image activate                                                  |
 | 7   | `CreateMcpPolicyData`                         | image activate                                                  |
@@ -180,9 +195,10 @@
 | 12  | `ListMcpImages`                               | image deactivate                                                |
 | 13  | `DeleteResourceGroup`                         | image deactivate                                                |
 | 14  | `BatchCreateHideResourceGroupsWithMaxSession` | image set-max-session                                           |
-| 15  | `DescribeWarmUpStatusOpen`                    | image warmup-status                                             |
-| 16  | `DeleteMcpImage`                              | image delete                                                    |
-| 17  | `CreateApiKey`                                | apikey create                                                   |
-| 18  | `ModifyMcpApiKeyConfig`                       | apikey enable / disable / concurrency set                       |
-| 19  | `DeleteApiKey`                                | apikey delete                                                   |
-| 20  | `DescribeMcpApiKey`                           | apikey list                                                     |
+| 15  | `UpdateImageReserveMinAmount`                 | image set-pre-open                                              |
+| 16  | `DescribeWarmUpStatusOpen`                    | image warmup-status                                             |
+| 17  | `DeleteMcpImage`                              | image delete                                                    |
+| 18  | `CreateApiKey`                                | apikey create                                                   |
+| 19  | `ModifyMcpApiKeyConfig`                       | apikey enable / disable / concurrency set                       |
+| 20  | `DeleteApiKey`                                | apikey delete                                                   |
+| 21  | `DescribeMcpApiKey`                           | apikey list                                                     |

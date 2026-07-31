@@ -159,7 +159,7 @@ agentbay image create-from-template ...                        # 4. create your 
 | Group   | Commands                                                                                                                           | Description      | Details                 |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------------- |
 | Core    | `version`, `login`, `logout`                                                                                                       | Version & auth   | [→](docs/en/core.md)    |
-| Image   | `list`, `init`, `create`, `create-from-template`, `activate`, `deactivate`, `delete`, `status`, `set-max-session`, `warmup-status` | Image lifecycle  | [→](docs/en/image.md)   |
+| Image   | `list`, `init`, `create`, `create-from-template`, `activate`, `deactivate`, `delete`, `status`, `set-max-session`, `set-pre-open`, `warmup-status` | Image lifecycle  | [→](docs/en/image.md)   |
 | API Key | `create`, `enable`, `disable`, `delete`, `list`, `concurrency set`, `describe-key-content`                                         | Key management   | [→](docs/en/apikey.md)  |
 | Network | `package list`                                                                                                                     | Network config   | [→](docs/en/network.md) |
 | Skills  | `push`, `update`, `show`, `list`, `delete`                                                                                         | Skill management | [→](docs/en/skills.md)  |
@@ -1307,6 +1307,41 @@ agentbay image set-max-session --image-id imgc-xxxxxxxxxxxxxx --max-session-num 
 
 ---
 
+### `image set-pre-open`
+
+Set the pre-open (reserveMinAmount) for an activated ACS image. Requires the image to be a User type image in `RESOURCE_PUBLISHED` state and using **ACS (advanced network)**. This operation requires Diamond whitelist configuration.
+
+```bash
+agentbay image set-pre-open --image-id imgc-xxxxxxxxxxxxxx --pre-open 10
+```
+
+**Flags:**
+
+| Flag          | Type   | Required | Description                                    |
+| ------------- | ------ | -------- | ---------------------------------------------- |
+| `--image-id`  | string | Yes      | Image ID                                       |
+| `--pre-open`  | int    | Yes      | Pre-open value (reserveMinAmount, must be ≥ 1) |
+
+> Resource expansion/shrinkage is processed asynchronously. Use `agentbay image warmup-status` to check the actual status.
+
+**Involved APIs:**
+
+| Action                        | Required Permission                    |
+| ----------------------------- | -------------------------------------- |
+| `GetMcpImageInfo`             | `agentbay:GetMcpImageInfo`             |
+| `UpdateImageReserveMinAmount` | `agentbay:UpdateImageReserveMinAmount` |
+
+```json
+{
+  "Action": [
+    "agentbay:GetMcpImageInfo",
+    "agentbay:UpdateImageReserveMinAmount"
+  ]
+}
+```
+
+---
+
 ### `image warmup-status`
 
 Query the warm-up status for the current account, including session quota, image quota, and details of warm-up images.
@@ -2433,7 +2468,7 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
 | OpenAPI Action                                | Required Permission                                    | Used By                                                                                                       |
 | --------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
 | `ListMcpImages`                               | `agentbay:ListMcpImages`                               | `image list`, `image deactivate`                                                                              |
-| `GetMcpImageInfo`                             | `agentbay:GetMcpImageInfo`                             | `image create`, `image activate`, `image deactivate`, `image delete`, `image status`, `image set-max-session` |
+| `GetMcpImageInfo`                             | `agentbay:GetMcpImageInfo`                             | `image create`, `image activate`, `image deactivate`, `image delete`, `image status`, `image set-max-session`, `image set-pre-open` |
 | `GetDockerFileStoreCredential`                | `agentbay:GetDockerFileStoreCredential`                | `image create`                                                                                                |
 | `CreateDockerImageTask`                       | `agentbay:CreateDockerImageTask`                       | `image create`                                                                                                |
 | `GetDockerImageTask`                          | `agentbay:GetDockerImageTask`                          | `image create`                                                                                                |
@@ -2450,6 +2485,7 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
 | `DeleteMcpImage`                              | `agentbay:DeleteMcpImage`                              | `image delete`                                                                                                |
 | `GetDockerfileTemplate`                       | `agentbay:GetDockerfileTemplate`                       | `image init`                                                                                                  |
 | `BatchCreateHideResourceGroupsWithMaxSession` | `agentbay:BatchCreateHideResourceGroupsWithMaxSession` | `image set-max-session`                                                                                       |
+| `UpdateImageReserveMinAmount`                 | `agentbay:UpdateImageReserveMinAmount`                 | `image set-pre-open`                                                                                           |
 | `DescribeWarmUpStatusOpen`                    | `agentbay:DescribeWarmUpStatusOpen`                    | `image warmup-status`                                                                                         |
 
 **RAM Policy example (full access to `image` commands):**
@@ -2479,6 +2515,7 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
         "agentbay:DeleteMcpImage",
         "agentbay:GetDockerfileTemplate",
         "agentbay:BatchCreateHideResourceGroupsWithMaxSession",
+        "agentbay:UpdateImageReserveMinAmount",
         "agentbay:DescribeWarmUpStatusOpen"
       ],
       "Resource": "*"

@@ -2068,6 +2068,100 @@ func (client *Client) BatchCreateHideResourceGroupsWithMaxSessionWithContext(ctx
 	return _result, _err
 }
 
+// UpdateImageReserveMinAmountWithOptions 设置 ACS 镜像的预开值（reserveMinAmount）
+func (client *Client) UpdateImageReserveMinAmountWithOptions(request *UpdateImageReserveMinAmountRequest, runtime *dara.RuntimeOptions) (_result *UpdateImageReserveMinAmountResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.ImageId) {
+		query["ImageId"] = request.ImageId
+	}
+	if !dara.IsNil(request.ReserveMinAmount) {
+		query["ReserveMinAmount"] = request.ReserveMinAmount
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("UpdateImageReserveMinAmount"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &UpdateImageReserveMinAmountResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseUpdateImageReserveMinAmountResponse(_body)
+	return _result, _err
+}
+
+// UpdateImageReserveMinAmount 设置 ACS 镜像的预开值（简便方法）
+func (client *Client) UpdateImageReserveMinAmount(request *UpdateImageReserveMinAmountRequest) (_result *UpdateImageReserveMinAmountResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	return client.UpdateImageReserveMinAmountWithOptions(request, runtime)
+}
+
+// UpdateImageReserveMinAmountWithContext 设置 ACS 镜像的预开值，支持 context
+func (client *Client) UpdateImageReserveMinAmountWithContext(ctx context.Context, request *UpdateImageReserveMinAmountRequest, runtime *dara.RuntimeOptions) (_result *UpdateImageReserveMinAmountResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	if !dara.IsNil(request.ImageId) {
+		query["ImageId"] = request.ImageId
+	}
+	if !dara.IsNil(request.ReserveMinAmount) {
+		query["ReserveMinAmount"] = request.ReserveMinAmount
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("UpdateImageReserveMinAmount"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &UpdateImageReserveMinAmountResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseUpdateImageReserveMinAmountResponse(_body)
+	return _result, _err
+}
+
 // DescribeMcpApiKey 查询 MCP API Key 详情
 func (client *Client) DescribeMcpApiKeyWithOptions(request *DescribeMcpApiKeyRequest, runtime *dara.RuntimeOptions) (_result *DescribeMcpApiKeyResponse, _err error) {
 	_err = request.Validate()

@@ -19,7 +19,7 @@ This project currently supports creating and activating **CodeSpace** type image
 ## Command Reference
 
 - [Core Commands](https://github.com/aliyun/agentbay-cli/blob/master/docs/en/core.md): `version`, `login`, `logout` — version info and authentication.
-- [Image Management](https://github.com/aliyun/agentbay-cli/blob/master/docs/en/image.md): `image list / init / create / create-from-template / activate / deactivate / delete / status / set-max-session / warmup-status` — full image lifecycle.
+- [Image Management](https://github.com/aliyun/agentbay-cli/blob/master/docs/en/image.md): `image list / init / create / create-from-template / activate / deactivate / delete / status / set-max-session / set-pre-open / warmup-status` — full image lifecycle.
 - [API Key Management](https://github.com/aliyun/agentbay-cli/blob/master/docs/en/apikey.md): `apikey create / enable / disable / delete / list / concurrency set / describe-key-content` — API key CRUD plus per-key concurrency control. Defines the `--api-key` vs `--api-key-id` terminology used across the CLI.
 - [Network Management](https://github.com/aliyun/agentbay-cli/blob/master/docs/en/network.md): `network package list` — query network packages and EIP bindings.
 - [Skills Management](https://github.com/aliyun/agentbay-cli/blob/master/docs/en/skills.md): `skills push / update / show / list / delete` — manage skill bundles.
