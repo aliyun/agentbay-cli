@@ -19,8 +19,8 @@ func (s *UpdateImageReserveMinAmountRequest) Validate() error {
 	if s.ReserveMinAmount == nil {
 		return errors.New("ReserveMinAmount is required")
 	}
-	if *s.ReserveMinAmount < 0 {
-		return errors.New("ReserveMinAmount must be greater than or equal to 0")
+	if *s.ReserveMinAmount < 1 {
+		return errors.New("ReserveMinAmount must be greater than or equal to 1")
 	}
 	return nil
 }

@@ -6,6 +6,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -29,8 +30,8 @@ using ACS (advanced network).
 Note: Only ACS images support this feature. If the image is not an ACS
 image, the server will return an error.
 
-This operation requires Diamond whitelist configuration. If your account
-is not in the whitelist, the server will return an error.
+This operation requires whitelist approval. If your account is not
+whitelisted, the server will return an error.
 
 Examples:
   # Set pre-open to 10
@@ -121,8 +122,9 @@ func runImageSetPreOpen(cmd *cobra.Command, args []string) error {
 			fmt.Printf("[INFO] UpdateImageReserveMinAmount Request ID: %s\n", requestId)
 		}
 
-		if !resp.Body.GetSuccess() {
-			code := resp.Body.GetCode()
+		code := resp.Body.GetCode()
+		successPtr := resp.Body.Success
+		if (successPtr != nil && !*successPtr) || (code != "" && !strings.EqualFold(code, "ok")) {
 			message := ""
 			if resp.Body.Message != nil {
 				message = dara.StringValue(resp.Body.Message)

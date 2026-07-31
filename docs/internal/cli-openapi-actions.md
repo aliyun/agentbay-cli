@@ -98,7 +98,7 @@
 
 - **调用方式**: OpenAPI SDK（版本 2025-05-01）
 - **主要参数**: ImageId, ReserveMinAmount
-- **注意**: 需要 Diamond 白名单配置；仅支持 ACS 镜像；资源扩缩容异步处理
+- **注意**: 需要申请加白；仅支持 ACS 镜像；资源扩缩容异步处理
 
 ### 7. `agentbay image deactivate`
 

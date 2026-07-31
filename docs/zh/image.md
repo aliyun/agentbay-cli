@@ -500,7 +500,7 @@ agentbay image set-max-session --image-id imgc-xxxxxxxxxxxxxx --max-session-num 
 
 ### `image set-pre-open`
 
-设置已激活 ACS 镜像的预开值（reserveMinAmount）。要求镜像为 User 类型、处于 `RESOURCE_PUBLISHED` 状态且使用 **ACS（高级网络）**。此操作需要 Diamond 白名单配置。
+设置已激活 ACS 镜像的预开值（reserveMinAmount）。该功能仅支持 ACS 镜像，使用前需要申请加白。
 
 ```bash
 agentbay image set-pre-open --image-id imgc-xxxxxxxxxxxxxx --pre-open 10

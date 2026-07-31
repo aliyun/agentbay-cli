@@ -147,7 +147,7 @@ agentbay image create-from-template ...                        # 4. create your 
 | Group   | Commands                                                                                                                           | Description      | Details                 |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------------- |
 | Core    | `version`, `login`, `logout`                                                                                                       | Version & auth   | [→](docs/en/core.md)    |
-| Image   | `list`, `init`, `create`, `create-from-template`, `activate`, `deactivate`, `delete`, `status`, `set-max-session`, `warmup-status` | Image lifecycle  | [→](docs/en/image.md)   |
+| Image   | `list`, `init`, `create`, `create-from-template`, `activate`, `deactivate`, `delete`, `status`, `set-max-session`, `set-pre-open`, `warmup-status` | Image lifecycle  | [→](docs/en/image.md)   |
 | API Key | `create`, `enable`, `disable`, `delete`, `list`, `concurrency set`, `describe-key-content`                                         | Key management   | [→](docs/en/apikey.md)  |
 | Network | `package list`                                                                                                                     | Network config   | [→](docs/en/network.md) |
 | Skills  | `push`, `update`, `show`, `list`, `delete`                                                                                         | Skill management | [→](docs/en/skills.md)  |

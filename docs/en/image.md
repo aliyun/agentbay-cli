@@ -512,7 +512,7 @@ agentbay image set-max-session --image-id imgc-xxxxxxxxxxxxxx --max-session-num 
 
 ### `image set-pre-open`
 
-Set the pre-open (reserveMinAmount) for an activated ACS image. Requires the image to be a User type image in `RESOURCE_PUBLISHED` state and using **ACS (advanced network)**. This operation requires Diamond whitelist configuration.
+Set the pre-open (reserveMinAmount) for an activated ACS image. This feature supports ACS images only and requires whitelist approval before use.
 
 ```bash
 agentbay image set-pre-open --image-id imgc-xxxxxxxxxxxxxx --pre-open 10
