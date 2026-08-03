@@ -222,19 +222,6 @@ func runImageDescribePreOpen(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Print image summary table
-	fmt.Printf("%s %s\n",
-		padString("IMAGE ID", 25),
-		padString("GROUP COUNT", 14))
-	fmt.Printf("%s %s\n",
-		padString("--------", 25),
-		padString("-----------", 14))
-	for _, img := range images {
-		fmt.Printf("%s %s\n",
-			padString(truncateString(img.GetImageId(), 25), 25),
-			padString(fmt.Sprintf("%d", len(img.GetResourceGroups())), 14))
-	}
-
 	// Print resource group details for each image
 	for _, img := range images {
 		groups := img.GetResourceGroups()
@@ -243,17 +230,17 @@ func runImageDescribePreOpen(cmd *cobra.Command, args []string) error {
 		}
 
 		fmt.Println()
-		fmt.Printf("Resource Group Details for Image: %s\n", img.GetImageId())
+		fmt.Printf("Resource Group Details for Image: %s (Total: %d)\n", img.GetImageId(), len(groups))
 		fmt.Printf("  %s %s %s %s %s %s\n",
 			padString("Type", 10),
-			padString("Pool ID", 20),
+			padString("Pool ID", 50),
 			padString("Reserve", 10),
 			padString("Max", 8),
 			padString("Group ID", 25),
 			padString("Status", 20))
 		fmt.Printf("  %s %s %s %s %s %s\n",
 			padString("----", 10),
-			padString("-------", 20),
+			padString("-------", 50),
 			padString("-------", 10),
 			padString("---", 8),
 			padString("--------", 25),
@@ -261,7 +248,7 @@ func runImageDescribePreOpen(cmd *cobra.Command, args []string) error {
 		for _, rg := range groups {
 			fmt.Printf("  %s %s %s %s %s %s\n",
 				padString(truncateString(rg.GetResourceGroupType(), 10), 10),
-				padString(truncateString(rg.GetAppInstanceGroupId(), 20), 20),
+				padString(truncateString(rg.GetAppInstanceGroupId(), 50), 50),
 				func() string {
 					if rg.ReserveMinAmount == nil {
 						return padString("-", 10)

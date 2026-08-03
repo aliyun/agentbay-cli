@@ -1413,14 +1413,10 @@ Default table output:
 [DESCRIBE-PRE-OPEN] Querying pre-open values for all images...
 [INFO] DescribeImageReserveMinAmount Request ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
-IMAGE ID                  GROUP COUNT
---------                  -----------
-imgc-0a9mg1hbmx9nt8i68    1
-
-Resource Group Details for Image: imgc-0a9mg1hbmx9nt8i68
-  Type       Pool ID              Reserve    Max      Group ID                  Status
-  ----       -------              -------    ---      --------                  ------
-  DEFAULT    arc-pool-xxxxxxxx    5          1000     group-xxxxxxxxxxxxxxxx    PUBLISHED
+Resource Group Details for Image: imgc-0a9mg1hbmx9nt8i68 (Total: 1)
+  Type       Pool ID                                            Reserve    Max      Group ID                  Status
+  ----       -------                                            -------    ---      --------                  ------
+  DEFAULT    arc-pool-xxxxxxxx                                  5          1000     group-xxxxxxxxxxxxxxxx    PUBLISHED
 
 (NextToken: eyJpZCI6..., use --next-token to get the next page)
 ```
