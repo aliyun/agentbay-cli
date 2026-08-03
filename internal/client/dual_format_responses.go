@@ -519,6 +519,169 @@ func parseDescribeWarmUpStatusOpenResponse(res map[string]interface{}) (*Describ
 	return out, nil
 }
 
+// --- DescribeImageReserveMinAmount ---
+
+type describeImageReserveMinAmountJSONWireResourceGroup struct {
+	ResourceGroupId    *string         `json:"ResourceGroupId"`
+	AppInstanceGroupId *string         `json:"AppInstanceGroupId"`
+	ReserveMinAmount   json.RawMessage `json:"ReserveMinAmount"`
+	MaxAmount          json.RawMessage `json:"MaxAmount"`
+	ResourceGroupType  *string         `json:"ResourceGroupType"`
+	Status             *string         `json:"Status"`
+}
+
+type describeImageReserveMinAmountJSONWireImage struct {
+	ImageId        *string                                              `json:"ImageId"`
+	ResourceGroups []describeImageReserveMinAmountJSONWireResourceGroup `json:"ResourceGroups"`
+}
+
+type describeImageReserveMinAmountJSONWireData struct {
+	Images    []describeImageReserveMinAmountJSONWireImage `json:"Images"`
+	NextToken *string                                      `json:"NextToken"`
+}
+
+type describeImageReserveMinAmountJSONWire struct {
+	Code           *string                                    `json:"Code"`
+	Message        *string                                    `json:"Message"`
+	RequestId      *string                                    `json:"RequestId"`
+	HttpStatusCode json.RawMessage                            `json:"HttpStatusCode"`
+	Success        *bool                                      `json:"Success"`
+	Data           *describeImageReserveMinAmountJSONWireData `json:"Data"`
+}
+
+type xmlDescribeImageReserveMinAmountResourceGroup struct {
+	ResourceGroupId    string `xml:"ResourceGroupId"`
+	AppInstanceGroupId string `xml:"AppInstanceGroupId"`
+	ReserveMinAmount   string `xml:"ReserveMinAmount"`
+	MaxAmount          string `xml:"MaxAmount"`
+	ResourceGroupType  string `xml:"ResourceGroupType"`
+	Status             string `xml:"Status"`
+}
+
+type xmlDescribeImageReserveMinAmountImage struct {
+	ImageId        string                                          `xml:"ImageId"`
+	ResourceGroups []xmlDescribeImageReserveMinAmountResourceGroup `xml:"ResourceGroups>ResourceGroup"`
+}
+
+type xmlDescribeImageReserveMinAmountData struct {
+	Images    []xmlDescribeImageReserveMinAmountImage `xml:"Images>Image"`
+	NextToken string                                  `xml:"NextToken"`
+}
+
+type xmlDescribeImageReserveMinAmountResponse struct {
+	XMLName        xml.Name                             `xml:"DescribeImageReserveMinAmountResponse"`
+	RequestId      string                               `xml:"RequestId"`
+	HttpStatusCode string                               `xml:"HttpStatusCode"`
+	Code           string                               `xml:"Code"`
+	Success        bool                                 `xml:"Success"`
+	Message        string                               `xml:"Message"`
+	Data           xmlDescribeImageReserveMinAmountData `xml:"Data"`
+}
+
+func parseDescribeImageReserveMinAmountResponse(res map[string]interface{}) (*DescribeImageReserveMinAmountResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &DescribeImageReserveMinAmountResponse{Headers: make(map[string]*string)}
+	parsed := &DescribeImageReserveMinAmountResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xr xmlDescribeImageReserveMinAmountResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = dara.String(xr.Code)
+			parsed.RequestId = dara.String(xr.RequestId)
+			parsed.Success = dara.Bool(xr.Success)
+			parsed.Message = dara.String(xr.Message)
+			if s := strings.TrimSpace(xr.HttpStatusCode); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					parsed.HttpStatusCode = dara.Int32(int32(n))
+				}
+			}
+			data := &DescribeImageReserveMinAmountResponseBodyData{}
+			for _, img := range xr.Data.Images {
+				item := &DescribeImageReserveMinAmountImage{
+					ImageId: dara.String(img.ImageId),
+				}
+				for _, rg := range img.ResourceGroups {
+					rgItem := &DescribeImageReserveMinAmountResourceGroup{
+						ResourceGroupId:    dara.String(rg.ResourceGroupId),
+						AppInstanceGroupId: dara.String(rg.AppInstanceGroupId),
+						ResourceGroupType:  dara.String(rg.ResourceGroupType),
+						Status:             dara.String(rg.Status),
+					}
+					if s := strings.TrimSpace(rg.ReserveMinAmount); s != "" {
+						if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+							rgItem.ReserveMinAmount = dara.Int32(int32(n))
+						}
+					}
+					if s := strings.TrimSpace(rg.MaxAmount); s != "" {
+						if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+							rgItem.MaxAmount = dara.Int32(int32(n))
+						}
+					}
+					item.ResourceGroups = append(item.ResourceGroups, rgItem)
+				}
+				data.Images = append(data.Images, item)
+			}
+			if s := strings.TrimSpace(xr.Data.NextToken); s != "" {
+				data.NextToken = dara.String(s)
+			}
+			parsed.Data = data
+		} else {
+			var wire describeImageReserveMinAmountJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = wire.Code
+			parsed.Message = wire.Message
+			parsed.RequestId = wire.RequestId
+			parsed.Success = wire.Success
+			n, derr := int32FromFlexibleJSON(wire.HttpStatusCode)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: fmt.Errorf("HttpStatusCode: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.HttpStatusCode = n
+			if wire.Data != nil {
+				data := &DescribeImageReserveMinAmountResponseBodyData{}
+				for _, img := range wire.Data.Images {
+					item := &DescribeImageReserveMinAmountImage{
+						ImageId: img.ImageId,
+					}
+					for _, rg := range img.ResourceGroups {
+						rgItem := &DescribeImageReserveMinAmountResourceGroup{
+							ResourceGroupId:    rg.ResourceGroupId,
+							AppInstanceGroupId: rg.AppInstanceGroupId,
+							ResourceGroupType:  rg.ResourceGroupType,
+							Status:             rg.Status,
+						}
+						rma, derr := int32FromFlexibleJSON(rg.ReserveMinAmount)
+						if derr != nil {
+							return nil, &ErrWithRequestID{Err: fmt.Errorf("ResourceGroups.ReserveMinAmount: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+						}
+						rgItem.ReserveMinAmount = rma
+						ma, derr := int32FromFlexibleJSON(rg.MaxAmount)
+						if derr != nil {
+							return nil, &ErrWithRequestID{Err: fmt.Errorf("ResourceGroups.MaxAmount: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+						}
+						rgItem.MaxAmount = ma
+						item.ResourceGroups = append(item.ResourceGroups, rgItem)
+					}
+					data.Images = append(data.Images, item)
+				}
+				data.NextToken = wire.Data.NextToken
+				parsed.Data = data
+			}
+		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
+
 // --- ListMcpImages ---
 
 type xmlListMcpImagesResponse struct {
@@ -960,6 +1123,71 @@ func parseBatchCreateHideResourceGroupsWithMaxSessionResponse(res map[string]int
 			}
 		} else {
 			var wire batchCreateHideResourceGroupsWithMaxSessionJSONWire
+			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = wire.Code
+			parsed.Message = wire.Message
+			parsed.RequestId = wire.RequestId
+			parsed.Success = wire.Success
+			n, derr := int32FromFlexibleJSON(wire.HttpStatusCode)
+			if derr != nil {
+				return nil, &ErrWithRequestID{Err: fmt.Errorf("HttpStatusCode: %w", derr), RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.HttpStatusCode = n
+		}
+	}
+	out.Body = parsed
+	applyMapHeadersAndStatus(&out.Headers, &out.StatusCode, res)
+	return out, nil
+}
+
+// --- UpdateImageReserveMinAmount ---
+
+// updateImageReserveMinAmountJSONWire decodes JSON tolerantly,
+// because some gateways stringify HttpStatusCode (e.g. "200") which breaks *int32 unmarshal.
+type updateImageReserveMinAmountJSONWire struct {
+	Code           *string         `json:"Code"`
+	Message        *string         `json:"Message"`
+	RequestId      *string         `json:"RequestId"`
+	HttpStatusCode json.RawMessage `json:"HttpStatusCode"`
+	Success        *bool           `json:"Success"`
+}
+
+type xmlUpdateImageReserveMinAmountResponse struct {
+	XMLName        xml.Name `xml:"UpdateImageReserveMinAmountResponse"`
+	RequestId      string   `xml:"RequestId"`
+	HttpStatusCode string   `xml:"HttpStatusCode"`
+	Code           string   `xml:"Code"`
+	Success        bool     `xml:"Success"`
+	Message        string   `xml:"Message"`
+}
+
+func parseUpdateImageReserveMinAmountResponse(res map[string]interface{}) (*UpdateImageReserveMinAmountResponse, error) {
+	bodyStr, err := rawBodyStringFromMap(res)
+	if err != nil {
+		return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+	}
+	out := &UpdateImageReserveMinAmountResponse{Headers: make(map[string]*string)}
+	parsed := &UpdateImageReserveMinAmountResponseBody{}
+	trimmed := strings.TrimSpace(bodyStr)
+	if bodyStr != "" {
+		if len(trimmed) > 0 && trimmed[0] == '<' {
+			var xr xmlUpdateImageReserveMinAmountResponse
+			if err := xml.Unmarshal([]byte(bodyStr), &xr); err != nil {
+				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
+			}
+			parsed.Code = dara.String(xr.Code)
+			parsed.RequestId = dara.String(xr.RequestId)
+			parsed.Success = dara.Bool(xr.Success)
+			parsed.Message = dara.String(xr.Message)
+			if s := strings.TrimSpace(xr.HttpStatusCode); s != "" {
+				if n, perr := strconv.ParseInt(s, 10, 32); perr == nil {
+					parsed.HttpStatusCode = dara.Int32(int32(n))
+				}
+			}
+		} else {
+			var wire updateImageReserveMinAmountJSONWire
 			if err := json.Unmarshal([]byte(bodyStr), &wire); err != nil {
 				return nil, &ErrWithRequestID{Err: err, RequestID: extractRequestIDFromResponse(res)}
 			}

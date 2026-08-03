@@ -510,6 +510,41 @@ agentbay image set-max-session --image-id imgc-xxxxxxxxxxxxxx --max-session-num 
 
 ---
 
+### `image set-pre-open`
+
+Set the pre-open (reserveMinAmount) for an activated ACS image. This feature supports ACS images only and requires whitelist approval before use.
+
+```bash
+agentbay image set-pre-open --image-id imgc-xxxxxxxxxxxxxx --pre-open 10
+```
+
+**Flags:**
+
+| Flag          | Type   | Required | Description                                    |
+| ------------- | ------ | -------- | ---------------------------------------------- |
+| `--image-id`  | string | Yes      | Image ID                                       |
+| `--pre-open`  | int    | Yes      | Pre-open value (reserveMinAmount, must be ≥ 1; server enforces a per-account max, default 40) |
+
+> Expansion is processed asynchronously; shrinkage is processed synchronously. Use `agentbay image describe-pre-open` to verify configured pre-open values (not runtime instance status).
+
+**Involved APIs:**
+
+| Action                        | Required Permission                    |
+| ----------------------------- | -------------------------------------- |
+| `GetMcpImageInfo`             | `agentbay:GetMcpImageInfo`             |
+| `UpdateImageReserveMinAmount` | `agentbay:UpdateImageReserveMinAmount` |
+
+```json
+{
+  "Action": [
+    "agentbay:GetMcpImageInfo",
+    "agentbay:UpdateImageReserveMinAmount"
+  ]
+}
+```
+
+---
+
 ### `image warmup-status`
 
 Query the warm-up status for the current account, including session quota, image quota, and details of warm-up images.
@@ -533,5 +568,99 @@ agentbay image warmup-status
 ```json
 {
   "Action": ["agentbay:DescribeWarmUpStatusOpen"]
+}
+```
+
+---
+
+### `image describe-pre-open`
+
+Query the pre-open (reserveMinAmount) configuration values for ACS images. Reads DB configuration values directly, covering both default and hidden resource groups. Unlike `warmup-status`, this command does not depend on `set-max-session` and returns per-resource-group details.
+
+Supports batch query with multiple `--image-id` flags, pagination via `--next-token` / `--max-results`, and JSON output via `--output json`.
+
+```bash
+# Query a single image
+agentbay image describe-pre-open --image-id imgc-xxxxxxxxxxxxxx
+
+# Query multiple images
+agentbay image describe-pre-open --image-id imgc-aaa --image-id imgc-bbb
+
+# Query all images (first page)
+agentbay image describe-pre-open
+
+# Get the next page of results
+agentbay image describe-pre-open --next-token eyJpZCI6...
+
+# Use a larger page size
+agentbay image describe-pre-open --max-results 50
+
+# JSON output
+agentbay image describe-pre-open --output json
+```
+
+**Flags:**
+
+| Flag            | Short | Type   | Required | Description                                                                        |
+| --------------- | ----- | ------ | -------- | ---------------------------------------------------------------------------------- |
+| `--image-id`    |       | string | No       | Image ID (repeatable for batch query; omit to query all images)                    |
+| `--next-token`  |       | string | No       | Pagination token from a previous response                                          |
+| `--max-results` |       | int    | No       | Page size (images per page, default 20, max 500)                                   |
+| `--output`      | `-o`  | string | No       | Output format. Use `json` for machine-readable complete data (e.g. for AI/scripts) |
+
+**Output example:**
+
+Default table output:
+
+```
+[DESCRIBE-PRE-OPEN] Querying pre-open values for all images...
+[INFO] DescribeImageReserveMinAmount Request ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+Resource Group Details for Image: imgc-0a9mg1hbmx9nt8i68 (Total: 1)
+  Type       Pool ID                                            Reserve    Max      Group ID                  Status
+  ----       -------                                            -------    ---      --------                  ------
+  DEFAULT    arc-pool-xxxxxxxx                                  5          1000     group-xxxxxxxxxxxxxxxx    PUBLISHED
+
+(NextToken: eyJpZCI6..., use --next-token to get the next page)
+```
+
+Use `--output json` for complete JSON output:
+
+```bash
+agentbay image describe-pre-open --output json
+```
+
+```json
+{
+  "totalCount": 1,
+  "nextToken": "eyJpZCI6...",
+  "images": [
+    {
+      "imageId": "imgc-xxxxxxxxxxxxxx",
+      "groupCount": 1,
+      "resourceGroups": [
+        {
+          "resourceGroupId": "group-xxxxxxxxxxxxxxxx",
+          "appInstanceGroupId": "arc-pool-xxxxxxxx",
+          "reserveMinAmount": 5,
+          "maxAmount": 1000,
+          "resourceGroupType": "DEFAULT",
+          "status": "PUBLISHED"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Involved APIs:**
+
+| Action                          | Required Permission                      |
+| ------------------------------- | ---------------------------------------- |
+| `DescribeImageReserveMinAmount` | `agentbay:DescribeImageReserveMinAmount` |
+
+```json
+{
+  "Action": ["agentbay:DescribeImageReserveMinAmount"]
 }
 ```

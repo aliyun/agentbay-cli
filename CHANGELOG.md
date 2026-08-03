@@ -6,6 +6,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-03
+
+### English
+
+#### 🚀 Features
+
+- **image**
+  - `image set-pre-open`: Set pre-open (reserveMinAmount) for activated ACS images
+  - `image describe-pre-open`: Query pre-open configuration values, supporting `--image-id` batch query, `--next-token` / `--max-results` pagination, and `--output json`
+
+#### 🐞 Bug Fixes
+
+- **image**
+  - `image activate`: Add `agentbay-cli` prefix to policy name for traceability
+
+### 中文
+
+#### 🚀 功能
+
+- **image**
+  - `image set-pre-open`：为已激活的 ACS 镜像设置预开值（reserveMinAmount）
+  - `image describe-pre-open`：查询预开配置值，支持 `--image-id` 批量查询、`--next-token` / `--max-results` 分页以及 `--output json`
+
+#### 🐞 缺陷修复
+
+- **image**
+  - `image activate`：策略名称添加 `agentbay-cli` 前缀，便于溯源
+
+---
+
 ## [0.4.4] - 2026-07-24
 
 ### English

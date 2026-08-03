@@ -90,7 +90,7 @@
 | OpenAPI Action                                | 所需权限                                               | 调用命令                                                                                                      |
 | --------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
 | `ListMcpImages`                               | `agentbay:ListMcpImages`                               | `image list`、`image deactivate`                                                                              |
-| `GetMcpImageInfo`                             | `agentbay:GetMcpImageInfo`                             | `image create`、`image activate`、`image deactivate`、`image delete`、`image status`、`image set-max-session` |
+| `GetMcpImageInfo`                             | `agentbay:GetMcpImageInfo`                             | `image create`、`image activate`、`image deactivate`、`image delete`、`image status`、`image set-max-session`、`image set-pre-open` |
 | `GetDockerFileStoreCredential`                | `agentbay:GetDockerFileStoreCredential`                | `image create`                                                                                                |
 | `CreateDockerImageTask`                       | `agentbay:CreateDockerImageTask`                       | `image create`                                                                                                |
 | `GetDockerImageTask`                          | `agentbay:GetDockerImageTask`                          | `image create`                                                                                                |
@@ -107,7 +107,9 @@
 | `DeleteMcpImage`                              | `agentbay:DeleteMcpImage`                              | `image delete`                                                                                                |
 | `GetDockerfileTemplate`                       | `agentbay:GetDockerfileTemplate`                       | `image init`                                                                                                  |
 | `BatchCreateHideResourceGroupsWithMaxSession` | `agentbay:BatchCreateHideResourceGroupsWithMaxSession` | `image set-max-session`                                                                                       |
+| `UpdateImageReserveMinAmount`                 | `agentbay:UpdateImageReserveMinAmount`                 | `image set-pre-open`                                                                                           |
 | `DescribeWarmUpStatusOpen`                    | `agentbay:DescribeWarmUpStatusOpen`                    | `image warmup-status`                                                                                         |
+| `DescribeImageReserveMinAmount`               | `agentbay:DescribeImageReserveMinAmount`               | `image describe-pre-open`                                                                                     |
 
 **RAM Policy 示例（`image` 命令完整授权）：**
 
@@ -136,7 +138,9 @@
         "agentbay:DeleteMcpImage",
         "agentbay:GetDockerfileTemplate",
         "agentbay:BatchCreateHideResourceGroupsWithMaxSession",
-        "agentbay:DescribeWarmUpStatusOpen"
+        "agentbay:UpdateImageReserveMinAmount",
+        "agentbay:DescribeWarmUpStatusOpen",
+        "agentbay:DescribeImageReserveMinAmount"
       ],
       "Resource": "*"
     }

@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -20,7 +21,7 @@ func TestWithTransientRetry_recoverAfterTransient(t *testing.T) {
 		BackoffFactor: 2.0,
 	}
 	var n int
-	err := withTransientRetry(cfg, "test", func() error {
+	err := withTransientRetry(context.Background(), cfg, "test", func() error {
 		n++
 		if n < 2 {
 			return errors.New("connection reset by peer")
@@ -33,10 +34,23 @@ func TestWithTransientRetry_recoverAfterTransient(t *testing.T) {
 
 func TestWithTransientRetry_nonRetryableStopsImmediately(t *testing.T) {
 	var n int
-	err := withTransientRetry(client.DefaultRetryConfig(), "test", func() error {
+	err := withTransientRetry(context.Background(), client.DefaultRetryConfig(), "test", func() error {
 		n++
 		return errors.New("InvalidParameter: not transient")
 	})
 	require.Error(t, err)
 	require.Equal(t, 1, n)
+}
+
+func TestWithTransientRetry_alreadyCancelledContextReturnsError(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	var n int
+	err := withTransientRetry(ctx, client.DefaultRetryConfig(), "test", func() error {
+		n++
+		return nil
+	})
+	require.Error(t, err)
+	require.Equal(t, context.Canceled, err)
+	require.Equal(t, 0, n)
 }

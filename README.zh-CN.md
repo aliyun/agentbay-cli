@@ -147,7 +147,7 @@ agentbay image create-from-template ...                        # 4. 基于 A 的
 | 分组    | 命令                                                                                                                               | 说明         | 详情                    |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------ | ----------------------- |
 | 核心    | `version`, `login`, `logout`                                                                                                       | 版本与认证   | [→](docs/zh/core.md)    |
-| 镜像    | `list`, `init`, `create`, `create-from-template`, `activate`, `deactivate`, `delete`, `status`, `set-max-session`, `warmup-status` | 镜像生命周期 | [→](docs/zh/image.md)   |
+| 镜像    | `list`, `init`, `create`, `create-from-template`, `activate`, `deactivate`, `delete`, `status`, `set-max-session`, `set-pre-open`, `describe-pre-open`, `warmup-status` | 镜像生命周期 | [→](docs/zh/image.md)   |
 | API Key | `create`, `enable`, `disable`, `delete`, `list`, `concurrency set`, `describe-key-content`                                         | 密钥管理     | [→](docs/zh/apikey.md)  |
 | 网络    | `package list`                                                                                                                     | 网络配置     | [→](docs/zh/network.md) |
 | 技能    | `push`, `update`, `show`, `list`, `delete`                                                                                         | 技能管理     | [→](docs/zh/skills.md)  |
