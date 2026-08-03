@@ -511,9 +511,9 @@ agentbay image set-pre-open --image-id imgc-xxxxxxxxxxxxxx --pre-open 10
 | 参数         | 类型   | 必填 | 说明                                  |
 | ------------ | ------ | ---- | ------------------------------------- |
 | `--image-id` | string | 是   | 镜像 ID                               |
-| `--pre-open` | int    | 是   | 预开值（reserveMinAmount，必须 ≥ 1）  |
+| `--pre-open` | int    | 是   | 预开值（reserveMinAmount，必须 ≥ 1；服务端按账号上限校验，默认上限 40）  |
 
-> 资源扩缩容异步处理中，可使用 `agentbay image warmup-status` 查看实际状态。
+> 扩容操作异步处理，缩容操作同步处理。可使用 `agentbay image describe-pre-open` 查看配置后的预开值。
 
 **涉及接口：**
 
@@ -556,5 +556,103 @@ agentbay image warmup-status
 ```json
 {
   "Action": ["agentbay:DescribeWarmUpStatusOpen"]
+}
+```
+
+---
+
+### `image describe-pre-open`
+
+查询 ACS 镜像的预开值（reserveMinAmount）配置。直接读取 DB 配置值，覆盖默认交付组和隐藏交付组。与 `warmup-status` 不同，本命令不依赖 `set-max-session`，且返回每个交付组的明细。
+
+支持多镜像批量查询（多次传入 `--image-id`）、分页（`--next-token` / `--max-results`）以及通过 `--output json` 输出 JSON。
+
+```bash
+# 查询单个镜像
+agentbay image describe-pre-open --image-id imgc-xxxxxxxxxxxxxx
+
+# 批量查询多个镜像
+agentbay image describe-pre-open --image-id imgc-aaa --image-id imgc-bbb
+
+# 查询全部镜像（第一页）
+agentbay image describe-pre-open
+
+# 获取下一页结果
+agentbay image describe-pre-open --next-token eyJpZCI6...
+
+# 设置更大的每页条数
+agentbay image describe-pre-open --max-results 50
+
+# JSON 输出
+agentbay image describe-pre-open --output json
+```
+
+**参数：**
+
+| 参数            | 短参数 | 类型   | 必填 | 说明                                                                 |
+| --------------- | ------ | ------ | ---- | -------------------------------------------------------------------- |
+| `--image-id`    |        | string | 否   | 镜像 ID（可重复传入实现批量查询；不传查全部）                         |
+| `--next-token`  |        | string | 否   | 分页游标，由上一次响应返回                                            |
+| `--max-results` |        | int    | 否   | 每页镜像数（默认 20，最大 500）                                       |
+| `--output`      | `-o`   | string | 否   | 输出格式。使用 `json` 获取机器可读的完整数据（适合 AI/脚本使用）     |
+
+**输出示例：**
+
+默认表格输出：
+
+```
+[DESCRIBE-PRE-OPEN] Querying pre-open values for all images...
+[INFO] DescribeImageReserveMinAmount Request ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+IMAGE ID                  GROUP COUNT
+--------                  -----------
+imgc-0a9mg1hbmx9nt8i68    1
+
+Resource Group Details for Image: imgc-0a9mg1hbmx9nt8i68
+  Type       Pool ID              Reserve    Max      Group ID                  Status
+  ----       -------              -------    ---      --------                  ------
+  DEFAULT    arc-pool-xxxxxxxx    5          1000     group-xxxxxxxxxxxxxxxx    PUBLISHED
+
+(NextToken: eyJpZCI6..., use --next-token to get the next page)
+```
+
+使用 `--output json` 输出完整 JSON：
+
+```bash
+agentbay image describe-pre-open --output json
+```
+
+```json
+{
+  "totalCount": 1,
+  "nextToken": "eyJpZCI6...",
+  "images": [
+    {
+      "imageId": "imgc-xxxxxxxxxxxxxx",
+      "groupCount": 1,
+      "resourceGroups": [
+        {
+          "resourceGroupId": "group-xxxxxxxxxxxxxxxx",
+          "appInstanceGroupId": "arc-pool-xxxxxxxx",
+          "reserveMinAmount": 5,
+          "maxAmount": 1000,
+          "resourceGroupType": "DEFAULT",
+          "status": "PUBLISHED"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**涉及接口：**
+
+| Action                          | 所需权限                               |
+| ------------------------------- | -------------------------------------- |
+| `DescribeImageReserveMinAmount` | `agentbay:DescribeImageReserveMinAmount` |
+
+```json
+{
+  "Action": ["agentbay:DescribeImageReserveMinAmount"]
 }
 ```

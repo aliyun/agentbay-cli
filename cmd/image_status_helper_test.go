@@ -136,6 +136,10 @@ func (m *mockGetMcpImageInfoClient) DescribeWarmUpStatusOpen(ctx context.Context
 	return nil, fmt.Errorf("not implemented")
 }
 
+func (m *mockGetMcpImageInfoClient) DescribeImageReserveMinAmount(ctx context.Context, request *client.DescribeImageReserveMinAmountRequest) (*client.DescribeImageReserveMinAmountResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 func (m *mockGetMcpImageInfoClient) ListTag(ctx context.Context) (*client.ListTagResponse, error) {
 	return nil, fmt.Errorf("not implemented")
 }

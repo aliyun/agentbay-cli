@@ -251,7 +251,7 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 	stepIdx++
 	credReq := &client.GetMarketSkillCredentialRequest{FileName: &skillZipName}
 	var credResp *client.GetMarketSkillCredentialResponse
-	err = withTransientRetry(client.DefaultRetryConfig(), "GetMarketSkillCredential", func() error {
+	err = withTransientRetry(ctx, client.DefaultRetryConfig(), "GetMarketSkillCredential", func() error {
 		var e error
 		credResp, e = apiClient.GetMarketSkillCredential(ctx, credReq)
 		return e
@@ -346,7 +346,7 @@ func runSkillsPush(cmd *cobra.Command, args []string) error {
 		createReq.Icon = &iconInput
 	}
 	var createResp *client.CreateMarketSkillResponse
-	err = withTransientRetry(client.DefaultRetryConfig(), "CreateMarketSkill", func() error {
+	err = withTransientRetry(ctx, client.DefaultRetryConfig(), "CreateMarketSkill", func() error {
 		var e error
 		createResp, e = apiClient.CreateMarketSkill(ctx, createReq)
 		return e
@@ -524,7 +524,7 @@ func runSkillsUpdate(cmd *cobra.Command, args []string) error {
 		stepIdx++
 		credReq := &client.GetMarketSkillCredentialRequest{FileName: &skillZipName}
 		var credResp *client.GetMarketSkillCredentialResponse
-		err = withTransientRetry(client.DefaultRetryConfig(), "GetMarketSkillCredential", func() error {
+		err = withTransientRetry(ctx, client.DefaultRetryConfig(), "GetMarketSkillCredential", func() error {
 			var e error
 			credResp, e = apiClient.GetMarketSkillCredential(ctx, credReq)
 			return e
@@ -628,7 +628,7 @@ func runSkillsUpdate(cmd *cobra.Command, args []string) error {
 	}
 
 	var updateResp *client.CreateMarketSkillResponse
-	err = withTransientRetry(client.DefaultRetryConfig(), "UpdateMarketSkill", func() error {
+	err = withTransientRetry(ctx, client.DefaultRetryConfig(), "UpdateMarketSkill", func() error {
 		var e error
 		updateResp, e = apiClient.UpdateMarketSkill(ctx, updateReq)
 		return e

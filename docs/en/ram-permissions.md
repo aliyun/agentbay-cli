@@ -109,6 +109,7 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
 | `BatchCreateHideResourceGroupsWithMaxSession` | `agentbay:BatchCreateHideResourceGroupsWithMaxSession` | `image set-max-session`                                                                                       |
 | `UpdateImageReserveMinAmount`                 | `agentbay:UpdateImageReserveMinAmount`                 | `image set-pre-open`                                                                                           |
 | `DescribeWarmUpStatusOpen`                    | `agentbay:DescribeWarmUpStatusOpen`                    | `image warmup-status`                                                                                         |
+| `DescribeImageReserveMinAmount`               | `agentbay:DescribeImageReserveMinAmount`               | `image describe-pre-open`                                                                                     |
 
 **RAM Policy example (full access to `image` commands):**
 
@@ -138,7 +139,8 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
         "agentbay:GetDockerfileTemplate",
         "agentbay:BatchCreateHideResourceGroupsWithMaxSession",
         "agentbay:UpdateImageReserveMinAmount",
-        "agentbay:DescribeWarmUpStatusOpen"
+        "agentbay:DescribeWarmUpStatusOpen",
+        "agentbay:DescribeImageReserveMinAmount"
       ],
       "Resource": "*"
     }

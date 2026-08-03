@@ -2573,6 +2573,66 @@ func (client *Client) DescribeWarmUpStatusOpenWithOptions(request *DescribeWarmU
 	return _result, _err
 }
 
+// DescribeImageReserveMinAmountWithOptions queries image pre-open values (full options)
+func (client *Client) DescribeImageReserveMinAmountWithOptions(request *DescribeImageReserveMinAmountRequest, runtime *dara.RuntimeOptions) (_result *DescribeImageReserveMinAmountResponse, _err error) {
+	_err = request.Validate()
+	if _err != nil {
+		return _result, _err
+	}
+	query := map[string]interface{}{}
+	// Handle ImageIds with special format: ImageIds.1, ImageIds.2, ...
+	for i, id := range request.ImageIds {
+		key := fmt.Sprintf("ImageIds.%d", i+1)
+		query[key] = id
+	}
+	if !dara.IsNil(request.NextToken) {
+		query["NextToken"] = request.NextToken
+	}
+	if !dara.IsNil(request.MaxResults) {
+		query["MaxResults"] = request.MaxResults
+	}
+
+	req := &openapiutil.OpenApiRequest{
+		Query: openapiutil.Query(query),
+		Headers: map[string]*string{
+			"Accept": dara.String("application/json"),
+		},
+	}
+	params := &openapiutil.Params{
+		Action:      dara.String("DescribeImageReserveMinAmount"),
+		Version:     dara.String("2025-05-01"),
+		Protocol:    dara.String("HTTPS"),
+		Pathname:    dara.String("/"),
+		Method:      dara.String("POST"),
+		AuthType:    dara.String("AK"),
+		Style:       dara.String("RPC"),
+		ReqBodyType: dara.String("formData"),
+		BodyType:    dara.String("string"),
+	}
+	_result = &DescribeImageReserveMinAmountResponse{}
+	_body, _err := client.CallApi(params, req, runtime)
+	if _err != nil {
+		reqID := ""
+		if _body != nil {
+			reqID = extractRequestIDFromResponse(_body)
+		}
+		return _result, &ErrWithRequestID{Err: _err, RequestID: reqID}
+	}
+	_result, _err = parseDescribeImageReserveMinAmountResponse(_body)
+	return _result, _err
+}
+
+// DescribeImageReserveMinAmount queries image pre-open values (convenience method)
+func (client *Client) DescribeImageReserveMinAmount(request *DescribeImageReserveMinAmountRequest) (_result *DescribeImageReserveMinAmountResponse, _err error) {
+	runtime := &dara.RuntimeOptions{}
+	return client.DescribeImageReserveMinAmountWithOptions(request, runtime)
+}
+
+// DescribeImageReserveMinAmountWithContext queries image pre-open values with context
+func (client *Client) DescribeImageReserveMinAmountWithContext(ctx context.Context, request *DescribeImageReserveMinAmountRequest, runtime *dara.RuntimeOptions) (_result *DescribeImageReserveMinAmountResponse, _err error) {
+	return client.DescribeImageReserveMinAmountWithOptions(request, runtime)
+}
+
 // ShareDockerRepoWithOptions shares a Docker repo with the target Alibaba Cloud account (full options)
 func (client *Client) ShareDockerRepoWithOptions(request *ShareDockerRepoRequest, runtime *dara.RuntimeOptions) (_result *ShareDockerRepoResponse, _err error) {
 	_err = request.Validate()

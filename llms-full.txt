@@ -159,7 +159,7 @@ agentbay image create-from-template ...                        # 4. create your 
 | Group   | Commands                                                                                                                           | Description      | Details                 |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------------- |
 | Core    | `version`, `login`, `logout`                                                                                                       | Version & auth   | [→](docs/en/core.md)    |
-| Image   | `list`, `init`, `create`, `create-from-template`, `activate`, `deactivate`, `delete`, `status`, `set-max-session`, `set-pre-open`, `warmup-status` | Image lifecycle  | [→](docs/en/image.md)   |
+| Image   | `list`, `init`, `create`, `create-from-template`, `activate`, `deactivate`, `delete`, `status`, `set-max-session`, `set-pre-open`, `describe-pre-open`, `warmup-status` | Image lifecycle  | [→](docs/en/image.md)   |
 | API Key | `create`, `enable`, `disable`, `delete`, `list`, `concurrency set`, `describe-key-content`                                         | Key management   | [→](docs/en/apikey.md)  |
 | Network | `package list`                                                                                                                     | Network config   | [→](docs/en/network.md) |
 | Skills  | `push`, `update`, `show`, `list`, `delete`                                                                                         | Skill management | [→](docs/en/skills.md)  |
@@ -1320,9 +1320,9 @@ agentbay image set-pre-open --image-id imgc-xxxxxxxxxxxxxx --pre-open 10
 | Flag          | Type   | Required | Description                                    |
 | ------------- | ------ | -------- | ---------------------------------------------- |
 | `--image-id`  | string | Yes      | Image ID                                       |
-| `--pre-open`  | int    | Yes      | Pre-open value (reserveMinAmount, must be ≥ 1) |
+| `--pre-open`  | int    | Yes      | Pre-open value (reserveMinAmount, must be ≥ 1; server enforces a per-account max, default 40) |
 
-> Resource expansion/shrinkage is processed asynchronously. Use `agentbay image warmup-status` to check the actual status.
+> Expansion is processed asynchronously; shrinkage is processed synchronously. Use `agentbay image describe-pre-open` to query the configured pre-open values.
 
 **Involved APIs:**
 
@@ -1365,6 +1365,104 @@ agentbay image warmup-status
 ```json
 {
   "Action": ["agentbay:DescribeWarmUpStatusOpen"]
+}
+```
+
+---
+
+### `image describe-pre-open`
+
+Query the pre-open (reserveMinAmount) configuration values for ACS images. Reads DB configuration values directly, covering both default and hidden resource groups. Unlike `warmup-status`, this command does not depend on `set-max-session` and returns per-resource-group details.
+
+Supports batch query with multiple `--image-id` flags, pagination via `--next-token` / `--max-results`, and JSON output via `--output json`.
+
+```bash
+# Query a single image
+agentbay image describe-pre-open --image-id imgc-xxxxxxxxxxxxxx
+
+# Query multiple images
+agentbay image describe-pre-open --image-id imgc-aaa --image-id imgc-bbb
+
+# Query all images (first page)
+agentbay image describe-pre-open
+
+# Get the next page of results
+agentbay image describe-pre-open --next-token eyJpZCI6...
+
+# Use a larger page size
+agentbay image describe-pre-open --max-results 50
+
+# JSON output
+agentbay image describe-pre-open --output json
+```
+
+**Flags:**
+
+| Flag            | Short | Type   | Required | Description                                                                        |
+| --------------- | ----- | ------ | -------- | ---------------------------------------------------------------------------------- |
+| `--image-id`    |       | string | No       | Image ID (repeatable for batch query; omit to query all images)                    |
+| `--next-token`  |       | string | No       | Pagination token from a previous response                                          |
+| `--max-results` |       | int    | No       | Page size (images per page, default 20, max 500)                                   |
+| `--output`      | `-o`  | string | No       | Output format. Use `json` for machine-readable complete data (e.g. for AI/scripts) |
+
+**Output example:**
+
+Default table output:
+
+```
+[DESCRIBE-PRE-OPEN] Querying pre-open values for all images...
+[INFO] DescribeImageReserveMinAmount Request ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+IMAGE ID                  GROUP COUNT
+--------                  -----------
+imgc-0a9mg1hbmx9nt8i68    1
+
+Resource Group Details for Image: imgc-0a9mg1hbmx9nt8i68
+  Type       Pool ID              Reserve    Max      Group ID                  Status
+  ----       -------              -------    ---      --------                  ------
+  DEFAULT    arc-pool-xxxxxxxx    5          1000     group-xxxxxxxxxxxxxxxx    PUBLISHED
+
+(NextToken: eyJpZCI6..., use --next-token to get the next page)
+```
+
+Use `--output json` for complete JSON output:
+
+```bash
+agentbay image describe-pre-open --output json
+```
+
+```json
+{
+  "totalCount": 1,
+  "nextToken": "eyJpZCI6...",
+  "images": [
+    {
+      "imageId": "imgc-xxxxxxxxxxxxxx",
+      "groupCount": 1,
+      "resourceGroups": [
+        {
+          "resourceGroupId": "group-xxxxxxxxxxxxxxxx",
+          "appInstanceGroupId": "arc-pool-xxxxxxxx",
+          "reserveMinAmount": 5,
+          "maxAmount": 1000,
+          "resourceGroupType": "DEFAULT",
+          "status": "PUBLISHED"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Involved APIs:**
+
+| Action                          | Required Permission                      |
+| ------------------------------- | ---------------------------------------- |
+| `DescribeImageReserveMinAmount` | `agentbay:DescribeImageReserveMinAmount` |
+
+```json
+{
+  "Action": ["agentbay:DescribeImageReserveMinAmount"]
 }
 ```
 
@@ -2487,6 +2585,7 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
 | `BatchCreateHideResourceGroupsWithMaxSession` | `agentbay:BatchCreateHideResourceGroupsWithMaxSession` | `image set-max-session`                                                                                       |
 | `UpdateImageReserveMinAmount`                 | `agentbay:UpdateImageReserveMinAmount`                 | `image set-pre-open`                                                                                           |
 | `DescribeWarmUpStatusOpen`                    | `agentbay:DescribeWarmUpStatusOpen`                    | `image warmup-status`                                                                                         |
+| `DescribeImageReserveMinAmount`               | `agentbay:DescribeImageReserveMinAmount`               | `image describe-pre-open`                                                                                     |
 
 **RAM Policy example (full access to `image` commands):**
 
@@ -2516,7 +2615,8 @@ If you are using a RAM sub-account's AK/SK, go to the [RAM console](https://ram.
         "agentbay:GetDockerfileTemplate",
         "agentbay:BatchCreateHideResourceGroupsWithMaxSession",
         "agentbay:UpdateImageReserveMinAmount",
-        "agentbay:DescribeWarmUpStatusOpen"
+        "agentbay:DescribeWarmUpStatusOpen",
+        "agentbay:DescribeImageReserveMinAmount"
       ],
       "Resource": "*"
     }

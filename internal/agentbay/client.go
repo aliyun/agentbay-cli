@@ -62,6 +62,8 @@ type Client interface {
 	UpdateImageReserveMinAmount(ctx context.Context, request *client.UpdateImageReserveMinAmountRequest) (*client.UpdateImageReserveMinAmountResponse, error)
 	// WarmUp Status
 	DescribeWarmUpStatusOpen(ctx context.Context, request *client.DescribeWarmUpStatusOpenRequest) (*client.DescribeWarmUpStatusOpenResponse, error)
+	// Image Pre-Open Query
+	DescribeImageReserveMinAmount(ctx context.Context, request *client.DescribeImageReserveMinAmountRequest) (*client.DescribeImageReserveMinAmountResponse, error)
 	// Docker Repo Sharing
 	ShareDockerRepo(ctx context.Context, request *client.ShareDockerRepoRequest) (*client.ShareDockerRepoResponse, error)
 	UnshareDockerRepo(ctx context.Context, request *client.UnshareDockerRepoRequest) (*client.UnshareDockerRepoResponse, error)
@@ -465,6 +467,15 @@ func (cw *clientWrapper) DescribeWarmUpStatusOpen(ctx context.Context, request *
 		return nil, err
 	}
 	return sdkClient.DescribeWarmUpStatusOpenWithOptions(request, cw.getRuntimeOptions())
+}
+
+// DescribeImageReserveMinAmount wraps the SDK client method
+func (cw *clientWrapper) DescribeImageReserveMinAmount(ctx context.Context, request *client.DescribeImageReserveMinAmountRequest) (*client.DescribeImageReserveMinAmountResponse, error) {
+	sdkClient, err := cw.getClient()
+	if err != nil {
+		return nil, err
+	}
+	return sdkClient.DescribeImageReserveMinAmountWithContext(ctx, request, cw.getRuntimeOptions())
 }
 
 // ShareDockerRepo wraps the SDK client method

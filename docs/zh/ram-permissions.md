@@ -109,6 +109,7 @@
 | `BatchCreateHideResourceGroupsWithMaxSession` | `agentbay:BatchCreateHideResourceGroupsWithMaxSession` | `image set-max-session`                                                                                       |
 | `UpdateImageReserveMinAmount`                 | `agentbay:UpdateImageReserveMinAmount`                 | `image set-pre-open`                                                                                           |
 | `DescribeWarmUpStatusOpen`                    | `agentbay:DescribeWarmUpStatusOpen`                    | `image warmup-status`                                                                                         |
+| `DescribeImageReserveMinAmount`               | `agentbay:DescribeImageReserveMinAmount`               | `image describe-pre-open`                                                                                     |
 
 **RAM Policy 示例（`image` 命令完整授权）：**
 
@@ -138,7 +139,8 @@
         "agentbay:GetDockerfileTemplate",
         "agentbay:BatchCreateHideResourceGroupsWithMaxSession",
         "agentbay:UpdateImageReserveMinAmount",
-        "agentbay:DescribeWarmUpStatusOpen"
+        "agentbay:DescribeWarmUpStatusOpen",
+        "agentbay:DescribeImageReserveMinAmount"
       ],
       "Resource": "*"
     }
