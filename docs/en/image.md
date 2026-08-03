@@ -525,7 +525,7 @@ agentbay image set-pre-open --image-id imgc-xxxxxxxxxxxxxx --pre-open 10
 | `--image-id`  | string | Yes      | Image ID                                       |
 | `--pre-open`  | int    | Yes      | Pre-open value (reserveMinAmount, must be ≥ 1; server enforces a per-account max, default 40) |
 
-> Expansion is processed asynchronously; shrinkage is processed synchronously. Use `agentbay image describe-pre-open` to query the configured pre-open values.
+> Expansion is processed asynchronously; shrinkage is processed synchronously. Use `agentbay image describe-pre-open` to verify configured pre-open values (not runtime instance status).
 
 **Involved APIs:**
 

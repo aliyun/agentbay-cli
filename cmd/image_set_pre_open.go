@@ -134,6 +134,6 @@ func runImageSetPreOpen(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("[OK] Pre-open has been set to %d for image '%s'.\n", preOpen, imageId)
-	fmt.Printf("[INFO] Expansion is processed asynchronously; shrinkage is processed synchronously. Use 'agentbay image describe-pre-open' to query the configured pre-open values.\n")
+	fmt.Printf("[INFO] Expansion is processed asynchronously; shrinkage is processed synchronously. Use 'agentbay image describe-pre-open' to verify configured pre-open values (not runtime instance status).\n")
 	return nil
 }

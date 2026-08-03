@@ -513,7 +513,7 @@ agentbay image set-pre-open --image-id imgc-xxxxxxxxxxxxxx --pre-open 10
 | `--image-id` | string | 是   | 镜像 ID                               |
 | `--pre-open` | int    | 是   | 预开值（reserveMinAmount，必须 ≥ 1；服务端按账号上限校验，默认上限 40）  |
 
-> 扩容操作异步处理，缩容操作同步处理。可使用 `agentbay image describe-pre-open` 查看配置后的预开值。
+> 扩容操作异步处理，缩容操作同步处理。可使用 `agentbay image describe-pre-open` 校验配置后的预开值（该命令返回的是配置值，不反映实际实例创建进度）。
 
 **涉及接口：**
 
